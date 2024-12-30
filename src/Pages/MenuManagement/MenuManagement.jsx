@@ -193,6 +193,12 @@ export default function MenuManagement() {
             } catch (error) {
                 console.error('Error fetching sections:', error);
                 toast.error('حدث خطأ أثناء جلب الأقسام');
+                const dummyData = [
+                    { id: 1, name: 'قسم تجريبي 1', cover_image_url: def },
+                    { id: 2, name: 'قسم تجريبي 2', cover_image_url: def },
+                    { id: 3, name: 'قسم تجريبي 3', cover_image_url: def },
+                ];
+                setSections(dummyData); // Set dummy data to state
             }
         }
 
