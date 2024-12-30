@@ -187,6 +187,8 @@ export default function MenuManagement() {
                             return { ...section, cover_image_url: null }; // No image case
                         })
                     );
+                    console.log(sectionsWithImages);
+
 
                     setSections(sectionsWithImages); // Update the state with sections including image URLs
                 }
@@ -194,11 +196,44 @@ export default function MenuManagement() {
                 console.error('Error fetching sections:', error);
                 toast.error('حدث خطأ أثناء جلب الأقسام');
                 const dummyData = [
-                    { id: 1, name: 'قسم تجريبي 1', cover_image_url: def },
-                    { id: 2, name: 'قسم تجريبي 2', cover_image_url: def },
-                    { id: 3, name: 'قسم تجريبي 3', cover_image_url: def },
+                    {
+                        id: 15,
+                        menu_id: 1,
+                        name: 'ff',
+                        note: '',
+                        badge: null,
+                        cover_image: 'cover_image-5ca0b5.jpeg',
+                        is_available: true,
+                        is_offer: false,
+                        items: [],
+                        cover_image_url: 'blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f'
+                    },
+                    {
+                        id: 16,
+                        menu_id: 1,
+                        name: 'dsdsd',
+                        note: '',
+                        badge: null,
+                        cover_image: null,
+                        is_available: true,
+                        is_offer: false,
+                        items: [],
+                        cover_image_url: null
+                    },
+                    {
+                        id: 17,
+                        menu_id: 1,
+                        name: 'Mohamed ',
+                        note: 'gamed ',
+                        badge: null,
+                        cover_image: 'cover_image-132be3.jpg',
+                        is_available: true,
+                        is_offer: false,
+                        items: [],
+                        cover_image_url: 'blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4'
+                    }
                 ];
-                setSections(dummyData); // Set dummy data to state
+                setSections(dummyData);
             }
         }
 
