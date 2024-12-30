@@ -29,7 +29,7 @@ export default function Dashboard() {
 
     const Review = ({ name, date, text, rating }) => {
         return (
-            <div className="review mt-2 p-4 rounded-md bg-slate-100 w-full">
+            <div className="review mt-2   p-4 rounded-md bg-slate-100 w-full">
                 <div className="first">
                     <div className="name-date w-full flex justify-between gap-2">
                         <p className='font-medium'>{name}</p>
@@ -62,7 +62,7 @@ export default function Dashboard() {
         return now.toLocaleDateString('en-GB', options).replace(',', ''); // Remove comma after the day
     }
     return <>
-        <div className="dashboard p-8 ">
+        <div className="dashboard px-12 py-8 ">
             <div className="first">
 
                 <div className="name text-xl font-medium font-sans"> Welcome, Mohamed  </div>
