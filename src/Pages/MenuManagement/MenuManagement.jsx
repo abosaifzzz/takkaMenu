@@ -48,6 +48,13 @@ export default function MenuManagement() {
 
 
     // Function to handle the category reordering after drag end
+    const handleMoveSection = (fromIndex, toIndex) => {
+        const updatedSections = [...sections];
+        const [movedSection] = updatedSections.splice(fromIndex, 1); // Remove the section from its current position
+        updatedSections.splice(toIndex, 0, movedSection); // Insert the section at the new position
+        setSections(updatedSections); // Update the state
+    };
+
 
     const handleSort = () => {
         const reorderedCategories = [...sections];
@@ -291,6 +298,7 @@ export default function MenuManagement() {
         window.location.reload(); // Reloads the page after the API call succeeds
 
     }
+
 
 
 
@@ -579,13 +587,41 @@ export default function MenuManagement() {
                                     >
                                         <div className="left flex items-center gap-2">
                                             {/* Drag button now only has draggable functionality */}
-                                            <i className="drag-btn fa-solid fa-bars text-sm text-gray-400 cursor-grab"></i>
+                                            <div className="drag-btns md:hidden flex gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (index > 0) {
+                                                            handleMoveSection(index, index - 1); // Move section up
+                                                        }
+                                                    }}
+                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
+                                                >
+                                                    <i className="fa-solid fa-arrow-up"></i>
+                                                </button>
+                                                {/* Down Arrow Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (index < sections.length - 1) {
+                                                            handleMoveSection(index, index + 1); // Move section down
+                                                        }
+                                                    }}
+                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
+                                                >
+                                                    <i className="fa-solid fa-arrow-down"></i>
+
+                                                </button>
+                                            </div>
+                                            <i className="drag-btn fa-solid fa-bars md:flex hidden text-sm text-gray-400 cursor-grab"></i>
                                             {/* Placeholder for category image */}
                                             <img className="w-10 h-10 rounded-md" src={section.cover_image_url ? section.cover_image_url : def} alt='' />
 
                                             <p>{section.name}</p>
                                         </div>
                                         <div className="right flex gap-4 items-center">
+
+
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" className="sr-only peer" value="" />
                                                 <div className="group peer bg-gray-300 rounded-full duration-300 w-8 h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute after:h-4 after:w-4 after:top-0 after:left-0 after:flex after:justify-center after:items-center peer-checked:after:translate-x-4 peer-hover:after:scale-95"></div>
