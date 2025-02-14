@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom';
 const mockReviewsData = [
     { id: 1, name: 'Mohamed Tarek Abo Saif', date: 'Friday 25 October', text: '"....الأكل حلو جدا و المكان شكله حلو و "', rating: 4 },
     { id: 2, name: 'Sara Ali', date: 'Saturday 26 October', text: '"....المكان نظيف و الطعام ممتاز"', rating: 5 },
@@ -188,9 +189,11 @@ export default function Dashboard() {
                         <div className="reviews-sections h-fit relative p-3 bg-white rounded-lg w-1/2">
                             <div className="view-reviews flex justify-between">
                                 <p className='mb-2'>Recent Reviews</p>
-                                <p className='text-blue-500 cursor-pointer'>
-                                    <i className="fa-regular fa-eye text-blue-500 me-1"></i> View All
-                                </p>
+                                <Link to={"/customer-reviews"}>
+                                    <p className='text-blue-500 cursor-pointer'>
+                                        <i className="fa-regular fa-eye text-blue-500 me-1"></i> View All
+                                    </p>
+                                </Link>
                             </div>
                             <hr />
                             <div className="reviews pt-3">
@@ -204,7 +207,10 @@ export default function Dashboard() {
                             </div>
                             {reviews.length > 3 && (
                                 <div className="view-all bg-white/40 absolute flex justify-center items-center bottom-0 left-0 right-0 h-11 backdrop-blur-sm">
-                                    <p className='font-medium cursor-pointer '>Click here to View all</p>
+                                    <Link to={"/customer-reviews"}>
+
+                                        <p className='font-medium cursor-pointer '>Click here to View all</p>
+                                    </Link>
                                 </div>
                             )}
                         </div>

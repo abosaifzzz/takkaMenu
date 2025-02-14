@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useRef, useState } from 'react';
+import def from '../../assets/download.png'
 
 import cover from "../../assets/cover.jpeg"
 import reslogo from "../../assets/res-logo.jpg"
@@ -14,7 +15,8 @@ import instapay from "../../assets/instapay.png"
 import instagram from "../../assets/instagram.png"
 import location from "../../assets/location.png"
 
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 
 
 
@@ -24,6 +26,8 @@ export default function Menu() {
     const handleItemDetailsClick = (item) => {
         navigate('/item-details', { state: { item } });
     };
+    const [sections, setSections] = useState([]);
+
     const scrollRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [startX, setStartX] = useState(0);
@@ -35,6 +39,195 @@ export default function Menu() {
     const [isFormVisible, setFormVisible] = useState(false); // State to control the form visibility
     const [cart, setCart] = useState([]); // Stores items in the cart
     const [cartCount, setCartCount] = useState(0); // 
+    const { menu_id } = useParams(); // Get menu_id dynamically from the URL
+    const [locationUrl, setLocationUrl] = useState(""); // Stored Location URL
+    const [instagramUrl, setInstagramUrl] = useState(""); // Stored Instagram URL
+    const [whatsAppUrl, setWhatsAppUrl] = useState("");
+    const [facebookUrl, setFacebookUrl] = useState(""); // Stored Facebook URL
+
+
+    const fetchLocationAccount = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/location-account/${menu_id}`);
+            if (response.data?.url) {
+                setLocationUrl(response.data.url);
+            }
+        } catch (err) {
+            console.error("Error fetching Location URL:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchInstagramAccount = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/instagram-account/${menu_id}`);
+            if (response.data?.url) {
+                console.log(response.data?.url);
+
+                setInstagramUrl(response.data.url);
+            }
+        } catch (err) {
+            console.error("Error fetching Instagram URL:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchFacebookAccount = async (menu_id) => {
+
+
+        try {
+            console.log(menu_id);
+
+            const response = await axios.get(`http://localhost:234/api/facebook-account/${menu_id}`);
+
+            if (response.data && response.data.url) {
+
+                setFacebookUrl(response.data.url);
+
+            } else {
+                console.log("errrrr");
+
+            }
+        } catch (err) {
+            console.log(err);
+
+        } finally {
+            setLoading(false);
+        }
+    };
+    const fetchWhatsappAccount = async (menu_id) => {
+
+
+        try {
+
+            const response = await axios.get(`http://localhost:234/api/whatsapp-account/${menu_id}`);
+
+            if (response.data && response.data.url) {
+                let url = response.data.url;
+                let phoneNumber = url.replace("https://wa.me/", "");
+
+                // setFacebookAccount(response.data);
+                setWhatsAppUrl(response.data.url);
+                setTempWhatsAppUrl(phoneNumber); // Sync temp value
+                setIsWhatsAppDisabled(true); // Disable input if URL exists
+                setIsUpdateWhatsApp(true); // Show "Update" button            } else {
+
+
+                // setFacebookAccount(null);
+            }
+        } catch (err) {
+            console.log(err);
+
+            // setFacebookAccount(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const fetchPhones = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/contacts/${menu_id}`);
+            if (response.data.length > 0) {
+                setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
+            } else {
+                setPhones([""]); // Default input field if no numbers exist
+            }
+        } catch (error) {
+            console.error("Error fetching phone numbers:", error);
+        }
+    };
+
+    async function getSections(menu_id) {
+        try {
+            // Fetch sections using menu_id
+            const response = await axios.get(`http://localhost:234/api/menusection/${menu_id}`);
+            console.log(response);
+
+            if (response.data) {
+                const sectionsWithImages = await Promise.all(
+                    response.data.map(async (section) => {
+                        // If a cover_image exists, fetch the image URL
+                        if (section.cover_image) {
+                            try {
+                                const imageResponse = await axios.get(
+                                    `http://localhost:234/api/file/${section.cover_image}`,
+                                    { responseType: "blob" } // Fetch the image as a blob
+                                );
+                                const imageUrl = URL.createObjectURL(imageResponse.data); // Create a URL for the blob
+                                return { ...section, cover_image_url: imageUrl }; // Add the URL to the section object
+                            } catch (imageError) {
+                                console.error(`Error fetching image for ${section.cover_image}`, imageError);
+                                return { ...section, cover_image_url: null }; // Fallback to null if image fetch fails
+                            }
+                        }
+                        return { ...section, cover_image_url: null }; // No image case
+                    })
+                );
+                console.log(sectionsWithImages);
+                setSections(sectionsWithImages); // Update the state with sections including image URLs
+            }
+        } catch (error) {
+            console.error("Error fetching sections:", error);
+            toast.error("حدث خطأ أثناء جلب الأقسام");
+
+            // Fallback dummy data
+            const dummyData = [
+                {
+                    id: 15,
+                    menu_id: menu_id,
+                    name: "Sample Section 1",
+                    note: "",
+                    badge: null,
+                    cover_image: null,
+                    is_available: true,
+                    is_offer: false,
+                    items: [],
+                    cover_image_url: "blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f",
+                },
+                {
+                    id: 16,
+                    menu_id: menu_id,
+                    name: "Sample Section 2",
+                    note: "",
+                    badge: null,
+                    cover_image: null,
+                    is_available: true,
+                    is_offer: false,
+                    items: [],
+                    cover_image_url: null,
+                },
+                {
+                    id: 17,
+                    menu_id: menu_id,
+                    name: "Sample Section 3",
+                    note: "Note for section 3",
+                    badge: null,
+                    cover_image: null,
+                    is_available: true,
+                    is_offer: false,
+                    items: [],
+                    cover_image_url: "blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4",
+                },
+            ];
+            setSections(dummyData);
+        }
+    }
+
+    useEffect(() => {
+
+        fetchWhatsappAccount(menu_id);
+        fetchLocationAccount(menu_id);
+        fetchPhones(menu_id);
+        getSections(menu_id)
+        fetchFacebookAccount(menu_id);
+        fetchInstagramAccount(menu_id);
+
+
+    }, [menu_id]);
+
+
+
     // Function to handle item click
     const handleItemClick = (e, item) => {
         e.stopPropagation(); // Stop event from bubbling up only in specific cases
@@ -327,8 +520,8 @@ export default function Menu() {
     ];
 
     const getPriceRange = (item) => {
-        if (item.sizes && item.sizes.length > 1) {
-            const prices = item.sizes.map(size => parseFloat(size.price.replace('EGP ', '')));
+        if (item.item_prices && item.item_prices.length > 1) {
+            const prices = item.item_prices.map(itemPrice => parseFloat(itemPrice.price.replace('EGP ', '')));
             const minPrice = Math.min(...prices);
             const maxPrice = Math.max(...prices);
             return `EGP ${minPrice} - EGP ${maxPrice}`;
@@ -355,22 +548,55 @@ export default function Menu() {
 
             </div>
             <div className="contact-icons w-72 mx-auto mt-3 gap-2 flex justify-center">
-                <div className="call  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                    <img className='w-full rounded-full h-full' src={call} alt="" />
 
-                </div>
-                <div className="face  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+
+                {whatsAppUrl ?
+
+                    <div className="whatsapp  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+
+                        <a href={whatsAppUrl} target='blank'>
+                            <img className='w-full rounded-full h-full' src={wp} alt="" />
+
+
+
+                        </a>
+
+                    </div> : ""}
+
+
+                {facebookUrl ? <div className="face  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
                     <img className='rounded-full' src={fb} alt="" />
 
-                </div>
-                <div className="insta  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                    <img className='rounded-full' src={instagram} alt="" />
+                </div> : ""
+                }
+
+                {instagramUrl ? <div className="insta  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+                    <a href={instagramUrl} target='blank'>
+
+                        <img className='rounded-full' src={instagram} alt="" />
+
+
+                    </a>
 
                 </div>
-                <div className="location  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                    <img className='rounded-full' src={location} alt="" />
+                    : ""
 
-                </div>
+                }
+
+
+
+                {locationUrl ?
+
+                    <div className="location  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+                        <a href={locationUrl} target='blank'>
+                            <img className='rounded-full' src={location} alt="" />
+
+
+                        </a>
+
+                    </div>
+                    : ""
+                }
 
             </div>
 
@@ -433,9 +659,9 @@ export default function Menu() {
 
                                 >
 
-                                    {categories.map((category) => (
-                                        <div key={category.id} className="category-section border border-red-500 bg-white px-4 py-1 rounded-2xl">
-                                            <p>{category.name}</p>
+                                    {sections.map((section) => (
+                                        <div key={section.id} className="category-section border border-red-500 bg-white px-4 py-1 rounded-2xl">
+                                            <p>{section.name}</p>
                                         </div>
 
 
@@ -511,16 +737,16 @@ export default function Menu() {
                                 )}
 
                                 {/* Categories and Items */}
-                                {categories.map((category) => (
-                                    <div key={category.id} className="category-and-items mt-5 rounded-md">
+                                {sections.map((section) => (
+                                    <div key={section.id} className="category-and-items mt-5 rounded-md">
                                         <div className="category bg-white rounded-md shadow-lg pb-3">
-                                            <img className='w-full object-cover h-28 rounded-md' src={category.image} alt={category.name} />
+                                            <img className='w-full object-cover h-28 rounded-md' src={section.cover_image_url ? section.cover_image_url : def} alt={section.name} />
                                             <div className="category-name text-center mt-2">
-                                                <p className='cairo font-semibold'>{category.name}</p>
+                                                <p className='cairo font-semibold'>{section.name}</p>
                                             </div>
                                         </div>
 
-                                        {category.items.map((item) => (
+                                        {section.items.map((item) => (
                                             <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
                                                 <div className="left-side w-3/4 h-full p-1">
                                                     <div className="item-name">
@@ -531,7 +757,7 @@ export default function Menu() {
                                                     </div>
                                                 </div>
                                                 <div className="right-side relative h-full">
-                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image} alt={item.name} />
+                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image ? item.image : def} alt={item.name} />
                                                     <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                         <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">

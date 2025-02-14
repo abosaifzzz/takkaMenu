@@ -10,6 +10,8 @@ import ItemDetails from './Pages/ItemDetails/ItemDetails';
 import Cart from './Pages/Cart/Cart';
 import CartProceed from './Pages/CartProceed/CartProceed';
 import AccountManagement from './Pages/AccountManagement/AccountManagement.jsx';
+import MenuSettings from './Pages/MenuSettings/MenuSettings.jsx';
+import Reviews from './Pages/Reviews/Reviews.jsx';
 
 
 function App() {
@@ -24,24 +26,34 @@ function App() {
       children: [
 
         {
-          path: "dashboard",
+          path: "dashboard/:menu_id",
           element: <Dashboard />
         },
         {
-          path: "menu-editor",
+          path: "menu-editor/:menu_id",
           element: <MenuManagement />
         },
         {
           path: "account-management",
           element: <AccountManagement />
         },
+        {
+          path: "menu-settings",
+          element: <MenuSettings />
+        },
+        {
+          path: "customer-reviews",
+          element: <Reviews />
+        },
+
+
       ]
 
     },
     {
 
 
-      path: "menu",
+      path: "menu/:menu_id",
       element: <Menu />
 
     },

@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import itemimg from "../../assets/res-logo.jpg";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import def from '../../assets/download.png'
+
 
 export default function ItemDetails() {
   const location = useLocation();
@@ -22,10 +24,10 @@ export default function ItemDetails() {
       {/* Background image section with bg-fixed */}
       <div
         className="item-img relative h-64 bg-fixed bg-contain  "
-        style={{ backgroundImage: `url(${item.image || itemimg})` }}
+        style={{ backgroundImage: `url(${item.image || def})` }}
       >
         <div className="back-btn flex justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
-          <Link to={"/menu"}>
+          <Link to={"/menu/1"}>
             <i className="fa-solid fa-arrow-left"></i>
           </Link>
         </div>
@@ -40,13 +42,13 @@ export default function ItemDetails() {
           <div dir='rtl' className="item-desc kufi font-medium mt-5">
             {item.description || ''}
           </div>
-          {item.sizes && item.sizes.length > 0 && (
+          {item.item_prices && item.item_prices.length > 0 && (
             <div className="item-sizes mt-5">
               <p className="text-lg font-medium kufi text-blue-900">الخيارات</p>
-              {item.sizes.map((size, index) => (
+              {item.item_prices.map((price, index) => (
                 <div key={index} className="item-size mt-2 flex justify-between">
-                  <p className="size-name font-medium">{size.name}</p>
-                  <p className="size-price font-medium">{size.price} EGP</p>
+                  <p className="size-name font-medium">{price.label}</p>
+                  <p className="size-price font-medium">{price.price} EGP</p>
                 </div>
               ))}
             </div>
