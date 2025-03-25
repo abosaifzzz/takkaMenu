@@ -13,6 +13,7 @@ import add from '../../assets/add.png'
 import call from '../../assets/call.png'
 import minus from '../../assets/minus.png'
 import { useParams } from 'react-router-dom';
+import NewMenuCreation from '../../Components/NewMenuCreation/NewMenuCreation.jsx';
 
 
 
@@ -27,17 +28,51 @@ export default function MenuManagement() {
     const [isAddFormVisible, setIsAddFormVisible] = useState(false);
     const [categoryName, setCategoryName] = useState('');
     const [categoryDescription, setCategoryDescription] = useState('');
+    const [itemName, setItemName] = useState('');
+    const [itemDesc, setItemDesc] = useState('');
+    const [firstPrice, setFirstPrice] = useState('');
+
     const [activeMoreIndex, setActiveMoreIndex] = useState(null); // Tracks which "more" menu is active
     const [activeSectionEditor, setActiveSectionEditor] = useState("items");
     const [activeItemEditor, setActiveItemEditor] = useState("details");
     const [prices, setPrices] = useState([]);
     const [extras, setExtras] = useState([]);
     const [phones, setPhones] = useState([]); // First number is default
+    const [itemPayload, setItemPayload] = useState({ name: '', description: '', item_price: [], item_extras: [], first_price: '' });
+    // payload
+
+
+
+    const getData = () => {
+
+        let data = {};
+
+        setItemPayload(data)
+
+    }
+
+    const handleChangeForUpdated = (e) => {//{name, descripyion}
+        const { name, value } = e.target;
+        setItemPayload({ ...itemPayload, [name]: value })
+    }
+
+    const handleChangeItemPrice = (index, e) => {// item_price:[]
+        const { name, value } = e.target;
+        let updatedPrices = [...itemPayload.item_price];
+        updatedPrices[index] = { ...updatedPrices[index], [name]: value }
+        setItemPayload({ ...itemPayload, item_price: updatedPrices })
+    }
+
+    // <form><input name='name' value={itemPayload.name} onChange={handleChangeForUpdated}></form>
+    //map(item, index) => { retun <input name='label' value={item.label} onChange={(event)=>{handleChangeItemPrice(index, event)}}>}
 
 
 
 
-    const [file, setFile] = useState(null);
+
+    const [sectionFile, setSectionFile] = useState(null);
+    const [itemFile, setItemFile] = useState(null);
+
     const [preview, setPreview] = useState(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,7 +111,11 @@ export default function MenuManagement() {
     const [isLocationDisabled, setIsLocationDisabled] = useState(false);
     const [isUpdateLocation, setIsUpdateLocation] = useState(false);
     const [loading, setLoading] = useState(true);
-    const { menu_id } = useParams(); // Get menu_id dynamically from the URL
+    const menu_id = localStorage.getItem("menu") // Get menu_id dynamically from the URL
+    console.log(menu_id);
+
+
+
 
 
     const fetchPhones = async () => {
@@ -155,6 +194,64 @@ export default function MenuManagement() {
             setLoading(false);
         }
     };
+    const fetchSocialAccounts = async (menu_id) => {
+
+
+        try {
+
+            const response = await axios.get(`http://localhost:234/api/menusocial/${menu_id}`);
+
+            if (response.data) {
+
+                console.log(response.data);
+                const firstFacebook = response.data.find((item) => item.platform === "facebook");
+                if (firstFacebook) {
+                    console.log(firstFacebook.url);
+
+                    setTempFacebookUrl(firstFacebook.url);
+                    setFacebookUrl(firstFacebook.url)
+                    setIsFacebookDisabled(true); // Disable input if URL exists
+                    setIsUpdateFacebook(true); // Show "Update" button
+
+                }
+                const firstWhatsapp = response.data.find((item) => item.platform === "whatsapp");
+                if (firstWhatsapp) {
+                    console.log(firstWhatsapp.url);
+                    let url = firstWhatsapp.url;
+                    let phoneNumber = url.replace("https://wa.me/", "");
+
+
+
+
+                    setTempWhatsAppUrl(phoneNumber);
+                    setWhatsAppUrl(firstWhatsapp.url)
+                    setIsWhatsAppDisabled(true); // Disable input if URL exists
+                    setIsUpdateWhatsApp(true); // Show "Update" button
+
+                }
+
+
+                // let url = response.data.url;
+                // let phoneNumber = url.replace("https://wa.me/", "");
+
+                // // setFacebookAccount(response.data);
+                // setWhatsAppUrl(response.data.url);
+                // setTempWhatsAppUrl(phoneNumber); // Sync temp value
+                // setIsWhatsAppDisabled(true); // Disable input if URL exists
+                // setIsUpdateWhatsApp(true); // Show "Update" button            } else {
+
+
+                // setFacebookAccount(null);
+            }
+        } catch (err) {
+            console.log(err);
+
+            // setFacebookAccount(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fetchWhatsappAccount = async (menu_id) => {
 
 
@@ -188,7 +285,7 @@ export default function MenuManagement() {
         fetchWhatsappAccount(menu_id);
         fetchLocationAccount(menu_id);
         fetchPhones(menu_id);
-
+        fetchSocialAccounts(menu_id)
         fetchFacebookAccount(menu_id);
         fetchInstagramAccount(menu_id);
 
@@ -312,54 +409,90 @@ export default function MenuManagement() {
 
 
 
+    const addItemApi = async (itemObject, file) => {
+
+        const itemPayload = file ? createFormData(itemObject, file, "image") : itemObject;
+
+
+
+        const response = await axios.post("http://localhost:234/api/item", itemPayload);
+        console.log("Item successfully created:", response.data);
+        toast.success("Item created successfully!");
+
+
+
+
+
+    }
+
+
 
     async function handleAddItemSubmit(event) {
         event.preventDefault();
-
-        const addItemformData = new FormData(event.target);
-
-        const payload = {
-            menu_id: 1,
+        const itemObject = {
+            menu_id,
             section_id: selectedSectionId,
-            name: addItemformData.get("item_name"),
-            image: preview, // Use the base64 or file URL preview for the image
-            description: addItemformData.get("description"),
-            item_price: [
-                {
-                    label: addItemformData.get("price1_label"),
-                    price: parseFloat(addItemformData.get("price1_value")),
-                },
-                {
-                    label: addItemformData.get("price2_label"),
-                    price: parseFloat(addItemformData.get("price2_value")),
-                },
-            ],
-            item_extras: [
-                {
-                    name: addItemformData.get("extra1_name"),
-                    price: parseFloat(addItemformData.get("extra1_price")),
-                },
-                {
-                    name: addItemformData.get("extra2_name"),
-                    price: parseFloat(addItemformData.get("extra2_price")),
-                },
-            ],
-        };
+            name: itemName,
+            description: itemDesc,
+            first_price: firstPrice
 
-        console.log("Payload to be sent:", payload);
+        }
 
         try {
-            const response = await axios.post("http://localhost:234/api/item", payload);
-            if (response.status === 201) {
-                console.log("Item successfully created:", response.data);
-                toast.success("Item created successfully!");
-            } else {
-                toast.error("Failed to create item. Please try again.");
-            }
+            // Await the API call to ensure completion
+            await addItemApi(itemObject, itemFile);
+            // Fetch the updated sections after adding the new section
+            await getSections(menu_id);
+            // Clear the input fields
+            setItemName('');
+            setItemDesc('');
+            setItemFile(null);
+            setPreview(null)
+            setFirstPrice('')
         } catch (error) {
-            console.error("Error creating item:", error);
-            toast.error("Error creating item.");
+            console.error('Error adding section:', error);
+            toast.error('حدث خطأ أثناء اضافة المنتج');
         }
+
+
+        // let itemObject = {name:itemName, description:itemDesc , item_price:[{label:"",price:firstPrice}]}// name, section_id, description , item_price:[{}]}....
+        // let item_file = {} // file object
+        // const itemPayload = file ? createFormData(itemObject, item_file, "image") : itemObject;
+        //send serverPayload to backend
+
+        // const addItemformData = new FormData(event.target);
+
+        // const payload = {
+        //     menu_id: 1,
+        //     section_id: selectedSectionId,
+        //     name: addItemformData.get("item_name"),
+        //     image: preview, // Use the base64 or file URL preview for the image
+        //     description: addItemformData.get("description"),
+        //     item_price: [
+        //         {
+        //             label: addItemformData.get("price1_label"),
+        //             price: parseFloat(addItemformData.get("price1_value")),
+        //         },
+        //         {
+        //             label: addItemformData.get("price2_label"),
+        //             price: parseFloat(addItemformData.get("price2_value")),
+        //         },
+        //     ],
+        //     item_extras: [
+        //         {
+        //             name: addItemformData.get("extra1_name"),
+        //             price: parseFloat(addItemformData.get("extra1_price")),
+        //         },
+        //         {
+        //             name: addItemformData.get("extra2_name"),
+        //             price: parseFloat(addItemformData.get("extra2_price")),
+        //         },
+        //     ],
+        // };
+
+        // console.log("item Payload to be sent:", itemPayload);
+
+
     }
 
 
@@ -371,6 +504,7 @@ export default function MenuManagement() {
                 setPreview(reader.result); // Store the base64 string for the image preview
             };
             reader.readAsDataURL(file);
+            setItemFile(file)
         }
     }
 
@@ -633,25 +767,52 @@ export default function MenuManagement() {
             if (response.data) {
                 const sectionsWithImages = await Promise.all(
                     response.data.map(async (section) => {
-                        // If a cover_image exists, fetch the image URL
+                        let coverImageUrl = null;
+
+                        // Fetch section cover image if available
                         if (section.cover_image) {
                             try {
                                 const imageResponse = await axios.get(
                                     `http://localhost:234/api/file/${section.cover_image}`,
-                                    { responseType: "blob" } // Fetch the image as a blob
+                                    { responseType: "blob" } // Fetch image as blob
                                 );
-                                const imageUrl = URL.createObjectURL(imageResponse.data); // Create a URL for the blob
-                                return { ...section, cover_image_url: imageUrl }; // Add the URL to the section object
+                                coverImageUrl = URL.createObjectURL(imageResponse.data);
                             } catch (imageError) {
-                                console.error(`Error fetching image for ${section.cover_image}`, imageError);
-                                return { ...section, cover_image_url: null }; // Fallback to null if image fetch fails
+                                console.error(`Error fetching cover image for ${section.cover_image}`, imageError);
                             }
                         }
-                        return { ...section, cover_image_url: null }; // No image case
+
+                        // Fetch images for section items
+                        const itemsWithImages = await Promise.all(
+                            section.items.map(async (item) => {
+                                let itemImageUrl = null;
+
+                                if (item.image) {
+                                    try {
+                                        const itemImageResponse = await axios.get(
+                                            `http://localhost:234/api/file/${item.image}`,
+                                            { responseType: "blob" }
+                                        );
+                                        itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+                                    } catch (itemImageError) {
+                                        console.error(`Error fetching item image for ${item.image}`, itemImageError);
+                                    }
+                                }
+
+                                return { ...item, image_url: itemImageUrl };
+                            })
+                        );
+
+                        return {
+                            ...section,
+                            cover_image_url: coverImageUrl,
+                            items: itemsWithImages, // Include updated items with images
+                        };
                     })
                 );
+
                 console.log(sectionsWithImages);
-                setSections(sectionsWithImages); // Update the state with sections including image URLs
+                setSections(sectionsWithImages); // Update state with sections and images
             }
         } catch (error) {
             console.error("Error fetching sections:", error);
@@ -668,7 +829,14 @@ export default function MenuManagement() {
                     cover_image: null,
                     is_available: true,
                     is_offer: false,
-                    items: [],
+                    items: [
+                        {
+                            id: 101,
+                            name: "Sample Item 1",
+                            image: null,
+                            image_url: "blob:http://localhost:5173/item1-placeholder",
+                        },
+                    ],
                     cover_image_url: "blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f",
                 },
                 {
@@ -692,13 +860,21 @@ export default function MenuManagement() {
                     cover_image: null,
                     is_available: true,
                     is_offer: false,
-                    items: [],
+                    items: [
+                        {
+                            id: 102,
+                            name: "Sample Item 2",
+                            image: null,
+                            image_url: "blob:http://localhost:5173/item2-placeholder",
+                        },
+                    ],
                     cover_image_url: "blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4",
                 },
             ];
             setSections(dummyData);
         }
     }
+
 
     useEffect(() => {
 
@@ -740,29 +916,30 @@ export default function MenuManagement() {
             return;
         }
 
-        if (file) {
+        if (sectionFile) {
             const maxSize = 3 * 1024 * 1024; // 3MB
-            if (file.size > maxSize) {
+            if (sectionFile.size > maxSize) {
                 toast.error('حجم الملف لا يمكن أن يتجاوز 3MB');
                 return;
             }
         }
 
         const stateObject = {
-            menu_id: "1",
+            menu_id,
             name: categoryName,
             note: categoryDescription
         };
 
         try {
             // Await the API call to ensure completion
-            await addSectionApi(stateObject, file);
+            await addSectionApi(stateObject, sectionFile);
             // Fetch the updated sections after adding the new section
-            await getSections();
+            await getSections(menu_id);
             // Clear the input fields
             setCategoryName('');
             setCategoryDescription('');
-            setFile(null);
+            setSectionFile(null);
+            setPreview(null)
         } catch (error) {
             console.error('Error adding section:', error);
             toast.error('حدث خطأ أثناء إضافة القسم');
@@ -782,7 +959,7 @@ export default function MenuManagement() {
 
 
 
-        setFile(selectedFile); // Storing file in state
+        setSectionFile(selectedFile); // Storing file in state
 
         createPreview(selectedFile); // Update the preview
 
@@ -803,7 +980,7 @@ export default function MenuManagement() {
     const handleDeleteImg = (event) => {
         event.stopPropagation(); // Stop event propagation to prevent file input from being triggered
         setPreview(null); // Clear the preview
-        setFile(null); // Clear the preview
+        setSectionFile(null); // Clear the preview
 
     };
 
@@ -870,8 +1047,9 @@ export default function MenuManagement() {
     };
 
 
-    return (
-        <div onClick={handleMoreClose} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
+    return <>
+
+        {menu_id ? (<div onClick={handleMoreClose} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
             <Toaster></Toaster>
             <div className={`edit-section-form  fixed p-3 rounded-s-lg z-20 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out 
                 ${isFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
@@ -1051,7 +1229,7 @@ export default function MenuManagement() {
                     </div>
                 </form>
             </div>
-            {
+            {/* {
 
                 isEditItemFormVisible && (
                     <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
@@ -1270,7 +1448,6 @@ export default function MenuManagement() {
                                         </div>
                                     </div>
                                 )}
-                                {/* Submit Buttons */}
                                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
                                     <button type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
                                         Cancel
@@ -1284,7 +1461,7 @@ export default function MenuManagement() {
                         </div>
                     </div>
                 )
-            }
+            } */}
 
             {isAddItemFormVisible && (
 
@@ -1310,12 +1487,12 @@ export default function MenuManagement() {
                                 </div>
 
 
-                                <div
+                                {/* <div
                                     className={itemTab("more")}
                                     onClick={() => setActiveItemEditor("more")}
                                 >
                                     More
-                                </div>
+                                </div> */}
                             </div>
                             {activeItemEditor === "details" && (
                                 <div>
@@ -1327,20 +1504,24 @@ export default function MenuManagement() {
                                         <input
                                             type="text"
                                             name="item_name"
+                                            value={itemName}
+                                            onChange={(e) => setItemName(e.target.value)}
                                             className="w-full text-sm p-1 mt-2 rounded-md border-2 h-9"
                                             placeholder="Item name"
                                             required
                                         />
                                     </div>
 
-                                    <div className="category-description mt-4">
+                                    <div className="item-description mt-4">
                                         <p className="text-sm">Description</p>
                                         <textarea
                                             rows="3"
                                             name="description"
+                                            value={itemDesc}
                                             style={{ resize: "none" }}
                                             className="w-full text-sm mt-3 p-3 border rounded-md"
                                             placeholder="Describe your item ..."
+                                            onChange={(e) => setItemDesc(e.target.value)}
                                         ></textarea>
                                     </div>
                                     <div className="item-image mt-4">
@@ -1376,7 +1557,8 @@ export default function MenuManagement() {
                                             className="rounded-md w-44 h-9 border-2 px-2"
                                             placeholder="0,00"
                                             type="text"
-
+                                            value={firstPrice}
+                                            onChange={(e) => setFirstPrice(e.target.value)}
 
                                         />
                                     </div>
@@ -1683,7 +1865,7 @@ export default function MenuManagement() {
                                                     {/* Placeholder for item image */}
                                                     <img
                                                         className="w-7 h-7 rounded-md"
-                                                        src={item.image ? item.image : def}
+                                                        src={item.image_url ? item.image_url : def}
                                                         alt={item.name}
                                                     />
                                                     <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
@@ -1920,6 +2102,9 @@ export default function MenuManagement() {
 
 
             </div>
-        </div >
-    );
+        </div >) : (<NewMenuCreation />
+        )}
+
+
+    </>
 }

@@ -40,10 +40,21 @@ export default function Menu() {
     const [cart, setCart] = useState([]); // Stores items in the cart
     const [cartCount, setCartCount] = useState(0); // 
     const { menu_id } = useParams(); // Get menu_id dynamically from the URL
+    const [showContacts, setShowContacts] = useState(false);
+
     const [locationUrl, setLocationUrl] = useState(""); // Stored Location URL
     const [instagramUrl, setInstagramUrl] = useState(""); // Stored Instagram URL
     const [whatsAppUrl, setWhatsAppUrl] = useState("");
     const [facebookUrl, setFacebookUrl] = useState(""); // Stored Facebook URL
+    const [socialLinks, setSocialLinks] = useState({
+        whatsapp: "",
+        facebook: "",
+        instagram: "",
+        location: "",
+    });
+
+    const [error, setError] = useState(null);
+    const [phones, setPhones] = useState(""); // Stored Facebook URL
 
 
     const fetchLocationAccount = async () => {
@@ -51,6 +62,10 @@ export default function Menu() {
             const response = await axios.get(`http://localhost:234/api/location-account/${menu_id}`);
             if (response.data?.url) {
                 setLocationUrl(response.data.url);
+            } else {
+                console.log("No location");
+
+
             }
         } catch (err) {
             console.error("Error fetching Location URL:", err);
@@ -78,7 +93,6 @@ export default function Menu() {
 
 
         try {
-            console.log(menu_id);
 
             const response = await axios.get(`http://localhost:234/api/facebook-account/${menu_id}`);
 
@@ -147,25 +161,52 @@ export default function Menu() {
             if (response.data) {
                 const sectionsWithImages = await Promise.all(
                     response.data.map(async (section) => {
-                        // If a cover_image exists, fetch the image URL
+                        let coverImageUrl = null;
+
+                        // Fetch section cover image if available
                         if (section.cover_image) {
                             try {
                                 const imageResponse = await axios.get(
                                     `http://localhost:234/api/file/${section.cover_image}`,
-                                    { responseType: "blob" } // Fetch the image as a blob
+                                    { responseType: "blob" } // Fetch image as blob
                                 );
-                                const imageUrl = URL.createObjectURL(imageResponse.data); // Create a URL for the blob
-                                return { ...section, cover_image_url: imageUrl }; // Add the URL to the section object
+                                coverImageUrl = URL.createObjectURL(imageResponse.data);
                             } catch (imageError) {
-                                console.error(`Error fetching image for ${section.cover_image}`, imageError);
-                                return { ...section, cover_image_url: null }; // Fallback to null if image fetch fails
+                                console.error(`Error fetching cover image for ${section.cover_image}`, imageError);
                             }
                         }
-                        return { ...section, cover_image_url: null }; // No image case
+
+                        // Fetch images for section items
+                        const itemsWithImages = await Promise.all(
+                            section.items.map(async (item) => {
+                                let itemImageUrl = null;
+
+                                if (item.image) {
+                                    try {
+                                        const itemImageResponse = await axios.get(
+                                            `http://localhost:234/api/file/${item.image}`,
+                                            { responseType: "blob" }
+                                        );
+                                        itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+                                    } catch (itemImageError) {
+                                        console.error(`Error fetching item image for ${item.image}`, itemImageError);
+                                    }
+                                }
+
+                                return { ...item, image_url: itemImageUrl };
+                            })
+                        );
+
+                        return {
+                            ...section,
+                            cover_image_url: coverImageUrl,
+                            items: itemsWithImages, // Include updated items with images
+                        };
                     })
                 );
+
                 console.log(sectionsWithImages);
-                setSections(sectionsWithImages); // Update the state with sections including image URLs
+                setSections(sectionsWithImages); // Update state with sections and images
             }
         } catch (error) {
             console.error("Error fetching sections:", error);
@@ -182,7 +223,14 @@ export default function Menu() {
                     cover_image: null,
                     is_available: true,
                     is_offer: false,
-                    items: [],
+                    items: [
+                        {
+                            id: 101,
+                            name: "Sample Item 1",
+                            image: null,
+                            image_url: "blob:http://localhost:5173/item1-placeholder",
+                        },
+                    ],
                     cover_image_url: "blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f",
                 },
                 {
@@ -206,15 +254,49 @@ export default function Menu() {
                     cover_image: null,
                     is_available: true,
                     is_offer: false,
-                    items: [],
+                    items: [
+                        {
+                            id: 102,
+                            name: "Sample Item 2",
+                            image: null,
+                            image_url: "blob:http://localhost:5173/item2-placeholder",
+                        },
+                    ],
                     cover_image_url: "blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4",
                 },
             ];
             setSections(dummyData);
         }
     }
+    const fetchSocialLinks = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menusocial/${menu_id}`);
+            const updatedLinks = {
+                whatsapp: "",
+                facebook: "",
+                instagram: "",
+                location: "",
+            };
+
+            // ✅ Loop through the response and set each platform dynamically
+            response.data.forEach((item) => {
+                if (updatedLinks.hasOwnProperty(item.platform)) {
+                    updatedLinks[item.platform] = item.url; // Set the URL
+                }
+            });
+
+            setSocialLinks(updatedLinks); // ✅ Update state
+
+        } catch (error) {
+            console.error("Error fetching social links:", error);
+            setError("Failed to load social links.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
+        fetchSocialLinks(menu_id);
 
         fetchWhatsappAccount(menu_id);
         fetchLocationAccount(menu_id);
@@ -532,6 +614,35 @@ export default function Menu() {
 
     return <>
         <div className="menu  bg-slate-100">
+
+            <div
+                className="contact-us-button fixed z-50 bottom-4 right-4 cursor-pointer"
+                onClick={() => setShowContacts(!showContacts)}
+            >
+                <img src={call} className={`w-11 h-11 border-2 rounded-full ${showContacts ? 'border-sky-300' : 'border-white'}`} alt="Call" />
+            </div>
+
+            {/* Contact Numbers with CSS Transition */}
+            <div
+                className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
+                    }`}
+            >
+                <i className="fa-solid absolute -bottom-3 right-3 text-2xl text-white fa-sort-down"></i>
+
+                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
+                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
+                    <p className='text-lg cairo'>01118335538</p>
+                </div>
+                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
+                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
+                    <p className='text-lg cairo'>01118335538</p>
+                </div>
+                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
+                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
+                    <p className='text-lg cairo'>01118335538</p>
+                </div>
+            </div>
+
             <div className="menu-cover-pic relative h-44 shadow-xl shadow-slate-200  bg-red-100 flex justify-center items-center">
                 <div className="close-label bg-red-500 flex justify-center items-center absolute top-0 left-0 right-0 h-8">
                     <p className='text-white'><i className="fa-solid fa-circle-exclamation text-gray-400"></i> Closed at 2:00 Am </p>
@@ -550,53 +661,37 @@ export default function Menu() {
             <div className="contact-icons w-72 mx-auto mt-3 gap-2 flex justify-center">
 
 
-                {whatsAppUrl ?
-
-                    <div className="whatsapp  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-
-                        <a href={whatsAppUrl} target='blank'>
-                            <img className='w-full rounded-full h-full' src={wp} alt="" />
-
-
-
+                {socialLinks.whatsapp && (
+                    <div className="whatsapp w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+                        <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer">
+                            <img className="w-full h-full rounded-full" src={wp} alt="WhatsApp" />
                         </a>
-
-                    </div> : ""}
-
-
-                {facebookUrl ? <div className="face  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                    <img className='rounded-full' src={fb} alt="" />
-
-                </div> : ""
-                }
-
-                {instagramUrl ? <div className="insta  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                    <a href={instagramUrl} target='blank'>
-
-                        <img className='rounded-full' src={instagram} alt="" />
-
-
-                    </a>
-
-                </div>
-                    : ""
-
-                }
-
-
-
-                {locationUrl ?
-
-                    <div className="location  w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
-                        <a href={locationUrl} target='blank'>
-                            <img className='rounded-full' src={location} alt="" />
-
-
-                        </a>
-
                     </div>
-                    : ""
-                }
+                )}
+
+                {socialLinks.facebook && (
+                    <div className="face w-8 h-8 flex justify-center items-center bg-blue-50 rounded-full">
+                        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+                            <img className="w-full h-full rounded-full" src={fb} alt="Facebook" />
+                        </a>
+                    </div>
+                )}
+
+                {socialLinks.instagram && (
+                    <div className="insta w-8 h-8 flex justify-center items-center bg-pink-50 rounded-full">
+                        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+                            <img className="w-full h-full rounded-full" src={instagram} alt="Instagram" />
+                        </a>
+                    </div>
+                )}
+
+                {socialLinks.location && (
+                    <div className="location w-8 h-8 flex justify-center items-center bg-gray-50 rounded-full">
+                        <a href={socialLinks.location} target="_blank" rel="noopener noreferrer">
+                            <img className="w-full h-full rounded-full" src={location} alt="Location" />
+                        </a>
+                    </div>
+                )}
 
             </div>
 
@@ -757,7 +852,7 @@ export default function Menu() {
                                                     </div>
                                                 </div>
                                                 <div className="right-side relative h-full">
-                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image ? item.image : def} alt={item.name} />
+                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
                                                     <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                         <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">

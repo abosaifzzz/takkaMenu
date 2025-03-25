@@ -10,6 +10,13 @@
   font-variation-settings: "slnt" 0;
 }
 
+
+.elmasry{
+  font-family: "El Messiri", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
 .kufi {
   font-family: "Noto Kufi Arabic", sans-serif;
   font-optical-sizing: auto;
@@ -228,4 +235,128 @@
 
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
+}
+
+
+.signup{
+  background-image: url("./assets/bg.webp");
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+/* ///////////////////// */
+/* confirm */
+/* From Uiverse.io by reshades */ 
+.form-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #00000000;
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8.2px);
+  -webkit-backdrop-filter: blur(8.2px);
+  border: 1px solid #369eff66;
+  /* width: 14em;
+  height: 14em; */
+}
+
+.content-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.form-confirm p {
+  color: #fff;
+  font-weight: bolder;
+}
+
+.path {
+  fill: #369eff
+}
+
+.svg {
+  filter: blur(20px);
+  z-index: -1;
+  position: absolute;
+  opacity: 50%;
+  animation: anim 3s infinite;
+}
+
+.inp {
+  margin-left: auto;
+  margin-right: auto;
+  white-space: 4px;
+}
+
+.input-confirm + .input-confirm {
+  margin-left: 0.3em
+}
+
+.input-confirm {
+  color: #fff;
+  height: 2em;
+  width: 2em;
+  float: left;
+  text-align: center;
+  background: #00000000;
+  outline: none;
+  border: 1px #369eff solid;
+  border-radius: 10px;
+  transition: all 0.6s ease;
+}
+
+.input-confirm:focus {
+  outline: none;
+  border: 1px #fff solid;
+}
+
+.input-confirm:not(:placeholder-shown) {
+  opacity: 40%
+}
+.bg-confirm{
+background-image: url("./assets/bg1.webp");
+
+
+
+}
+
+.form-confirm button {
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #00000000;
+  color: #fff;
+  width: 8.5em;
+  height: 2.3em;
+  border: #369eff 0.2em solid;
+  border-radius: 11px;
+  transition: all 0.5s ease;
+}
+
+.form-confirm button:hover {
+  background-color: #369eff;
+}
+
+@keyframes anim {
+  0% {
+    transform: translateY(-70px);
+  }
+
+  50% {
+    transform: translateY(-19px);
+  }
+
+  100% {
+    transform: translateY(-70px);
+  }
+}
+
+.first-part{background: rgb(175,26,48);
+  background: linear-gradient(113deg, rgba(175,26,48,1) 0%, rgba(74,111,164,1) 88%, rgba(65,106,160,1) 100%);
+
+}
+.layout{
+  background-image: url("./assets/q2.webp");
 }

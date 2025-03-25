@@ -12,12 +12,41 @@ import CartProceed from './Pages/CartProceed/CartProceed';
 import AccountManagement from './Pages/AccountManagement/AccountManagement.jsx';
 import MenuSettings from './Pages/MenuSettings/MenuSettings.jsx';
 import Reviews from './Pages/Reviews/Reviews.jsx';
+import Signup from './Pages/Signup/Signup.jsx';
+import ConfirmEmail from './Pages/ConfirmEmail/ConfirmEmail.jsx';
+import StartForm from './Pages/StartForm/StartForm.jsx';
+import Home from './Pages/Home/Home.jsx';
+import Layout from './Components/Layout/Layout.jsx';
 
 
 function App() {
   let routers = createBrowserRouter([
     {
-      index: true,
+      path: "",
+
+      element: <Layout />,
+      children: [
+
+        {
+          index: true,
+          element: <Home />
+        },
+      ]
+    },
+    {
+      path: "/signup",
+      element: <Signup />,
+    },
+    {
+      path: "/confirm",
+      element: <ConfirmEmail />,
+    },
+    {
+      path: "/start",
+      element: <StartForm />,
+    },
+    {
+      path: "/login",
       element: <Login />,
     },
     {
@@ -26,11 +55,11 @@ function App() {
       children: [
 
         {
-          path: "dashboard/:menu_id",
+          path: "menu/:menuId/dashboard",
           element: <Dashboard />
         },
         {
-          path: "menu-editor/:menu_id",
+          path: "menu/:menuId/menu-editor",
           element: <MenuManagement />
         },
         {
@@ -79,7 +108,7 @@ function App() {
 
     }
 
-  ]);
+  ])
 
   return (
     <>
@@ -87,4 +116,4 @@ function App() {
     </>)
 }
 
-export default App
+export default App;

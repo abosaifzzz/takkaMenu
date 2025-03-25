@@ -24,7 +24,7 @@ export default function ItemDetails() {
       {/* Background image section with bg-fixed */}
       <div
         className="item-img relative h-64 bg-fixed bg-contain  "
-        style={{ backgroundImage: `url(${item.image || def})` }}
+        style={{ backgroundImage: `url(${item.image_url || def})` }}
       >
         <div className="back-btn flex justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
           <Link to={"/menu/1"}>
@@ -54,12 +54,12 @@ export default function ItemDetails() {
             </div>
           )}
 
-          {item.extras && item.extras.length > 0 && (
+          {item.item_extras && item.item_extras.length > 0 && (
             <div className="item-extras mt-5">
               <p className="text-lg font-medium kufi text-blue-900">الأضافات</p>
-              {item.extras.map((extra, index) => (
+              {item.item_extras.map((extra, index) => (
                 <div key={index} className="item-extra mt-2 flex justify-between">
-                  <p className="extra-name font-medium">{extra.name}</p>
+                  <p className="extra-name font-medium">{extra.label}</p>
                   <p className="extra-price font-medium">{extra.price} EGP</p>
                 </div>
               ))}

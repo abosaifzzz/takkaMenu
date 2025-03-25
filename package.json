@@ -34,7 +34,13 @@
 
     "@dnd-kit/utilities": "^3.2.2",
 
+    "@react-oauth/google": "^0.12.1",
+
     "axios": "^1.7.9",
+
+    "jwt-decode": "^4.0.0",
+
+    "lucide-react": "^0.477.0",
 
     "react": "^18.3.1",
 

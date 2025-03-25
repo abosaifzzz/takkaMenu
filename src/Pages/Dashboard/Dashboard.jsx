@@ -19,6 +19,7 @@ export default function Dashboard() {
 
     const [reviews, setReviews] = useState([]); // State to hold reviews data
     const [loading, setLoading] = useState(true); // State to handle loading state
+    const [userName, setUserName] = useState("");
 
     useEffect(() => {
         // Fetch data when the component mounts
@@ -51,6 +52,16 @@ export default function Dashboard() {
         );
     };
 
+
+
+    useEffect(() => {
+        const name = localStorage.getItem("name");  // Get name from localStorage
+        if (name) {
+            setUserName(name);
+        }
+    }, []);
+
+
     function getFormattedDate() {
         const now = new Date();
         const options = {
@@ -63,10 +74,10 @@ export default function Dashboard() {
         return now.toLocaleDateString('en-GB', options).replace(',', ''); // Remove comma after the day
     }
     return <>
-        <div className="dashboard px-12 py-8 ">
+        <div className="dashboard min-h-screen px-12 py-8 ">
             <div className="first">
 
-                <div className="name text-xl font-medium font-sans"> Welcome, Mohamed  </div>
+                <div className="name text-xl font-medium font-sans"> Welcome, {userName}  </div>
                 <div className="date">
                     <p className='font-thin'>{getFormattedDate()}</p>
 
@@ -87,11 +98,13 @@ export default function Dashboard() {
                                         <div className="f-col pb-4 border-b w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Orders</span>
-                                                <p className='mt-2 text-3xl font-[450]'>0</p>
+                                                <p className='mt-2 text-3xl font-[450]'>195</p>
 
                                             </div>
-                                            <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
+                                            <div className="right flex justify-end gap-2 items-center">
+                                                <i class="fa-solid fa-arrow-down"></i>
+
+                                                <p className='text-red-500 text-lg'>23.5 %</p>
 
 
                                             </div>
@@ -99,11 +112,11 @@ export default function Dashboard() {
                                         <div className="f-col pb-4 border-b w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Orders Income</span>
-                                                <p className='mt-2 text-2xl font-[450]'>EGP 0.00</p>
+                                                <p className='mt-2 text-2xl font-[450]'>EGP 42,600</p>
 
                                             </div>
                                             <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
+                                                <p className='text-gray-500 text-lg'>68 %</p>
 
 
                                             </div>
@@ -113,14 +126,15 @@ export default function Dashboard() {
 
                                     </div>
                                     <div className="s-row w-full justify-between gap-6  flex mt-3">
-                                        <div className="s-col pb-4 border-b w-1/2 justify-between flex ">
+                                        <div className="th-col pb-4 border-b w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Search</span>
-                                                <p className='mt-2 text-3xl font-[450]'>0</p>
+                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Visitors</span>
+                                                <p className='mt-2 text-3xl font-[450]'>236</p>
 
                                             </div>
-                                            <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
+                                            <div className="right flex justify-end gap-2 items-center">
+                                                <i class="fa-solid fa-arrow-up"></i>
+                                                <p className='text-green-500 text-lg'>73.2 %</p>
 
 
                                             </div>
@@ -128,40 +142,11 @@ export default function Dashboard() {
                                         <div className="s-col pb-4 border-b w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span><i className="fa-solid fa-chart-column text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Reviews</span>
-                                                <p className='mt-2 text-3xl font-[450]'>0</p>
+                                                <p className='mt-2 text-3xl font-[450]'>56</p>
 
                                             </div>
                                             <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
-
-
-                                            </div>
-                                        </div>
-
-
-
-                                    </div>
-                                    <div className="th-row w-full justify-between gap-6  flex mt-3">
-                                        <div className="th-col pb-4 border-b w-1/2 justify-between flex ">
-                                            <div className="left">
-                                                <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Search</span>
-                                                <p className='mt-2 text-3xl font-[450]'>0</p>
-
-                                            </div>
-                                            <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
-
-
-                                            </div>
-                                        </div>
-                                        <div className="th-col pb-4 border-b w-1/2 justify-between flex ">
-                                            <div className="left">
-                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans text-lg  text-gray-500'>Visitors</span>
-                                                <p className='mt-2 text-3xl font-[450]'>0</p>
-
-                                            </div>
-                                            <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>0.00 %</p>
+                                                <p className='text-green-500 text-lg'>59.9 %</p>
 
 
                                             </div>

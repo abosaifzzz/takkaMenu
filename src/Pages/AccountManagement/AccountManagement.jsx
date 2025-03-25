@@ -9,19 +9,7 @@ export default function AccountManagement() {
 
 
                 <div className="name mt-7">
-                    <label htmlFor="" className='block pb-3'>First Name</label>
-
-                    <input type="text" className='md:w-2/3 w-full h-9 border-2 rounded-md' />
-
-                </div>
-                <div className="name mt-7">
-                    <label htmlFor="" className='block pb-3'>Last Name</label>
-
-                    <input type="text" className='md:w-2/3 w-full h-9 border-2 rounded-md' />
-
-                </div>
-                <div className="name pb-8 mt-7">
-                    <label htmlFor="" className='block pb-3'>Job Title</label>
+                    <label htmlFor="" className='block pb-3'>Name</label>
 
                     <input type="text" className='md:w-2/3 w-full h-9 border-2 rounded-md' />
 
