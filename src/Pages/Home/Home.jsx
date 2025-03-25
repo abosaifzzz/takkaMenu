@@ -11,6 +11,12 @@ import qr3 from "../../assets/qr3.jpeg"
 import qr4 from "../../assets/qr4.jpeg"
 
 import qr5 from "../../assets/qr5.jpeg"
+import qr6 from "../../assets/qr6.jpeg"
+import qr7 from "../../assets/qr7.jpeg"
+import qr8 from "../../assets/qr8.jpeg"
+import qr9 from "../../assets/qr9.jpeg"
+import qr10 from "../../assets/qr10.jpeg"
+
 
 import q2 from "../../assets/q2.webp"
 import { Link } from 'react-router-dom';
@@ -49,6 +55,24 @@ export default function Home() {
     const containerRef = useRef(null);
     const [scrollPosition, setScrollPosition] = useState(0);
     const [scrollSpeed, setScrollSpeed] = useState(0.5);
+    const sliderRef = useRef(null);
+
+    useEffect(() => {
+        const slider = sliderRef.current;
+        let animationFrame;
+        let position = 0;
+        const speed = 0.5; // pixels per frame (adjust for speed)
+
+        const animate = () => {
+            position = (position + speed) % (slider.scrollWidth / 2);
+            slider.style.transform = `translateX(-${position}px)`;
+            animationFrame = requestAnimationFrame(animate);
+        };
+
+        animationFrame = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationFrame);
+    }, []);
 
     useEffect(() => {
         // Adjust speed based on screen width
@@ -164,7 +188,7 @@ export default function Home() {
                 </div>
 
                 <div className="system w-full flex md:flex-row flex-col pt-10">
-                    <div className="left md:w-1/2 w-full p-8">
+                    <div className="left md:flex hidden md:w-1/2 w-full p-8">
                         <img src={ui1} className='w-full' alt="" />
 
 
@@ -276,6 +300,12 @@ export default function Home() {
                         </div> */}
 
                     </div>
+                    <div className="left flex md:hidden md:w-1/2 w-full p-8">
+                        <img src={ui1} className='w-full' alt="" />
+
+
+
+                    </div>
 
 
                 </div>
@@ -332,25 +362,28 @@ export default function Home() {
                 </div>
 
                 <div className="system w-full flex md:flex-row flex-col pt-10">
-                    <div className="left w-1/2 -slate-300 flex flex-col gap-3  items-center  p-8">
-                        <div className="r1 flex gap-3">
-                            <img src={qr1} className='w-60 rounded-lg shadow-2xl bg-slate-500' alt="" />
-                            <img src={qr4} className='w-60 rounded-lg shadow-2xl bg-slate-500' alt="" />
+                    <div className="left md:flex hidden w-full md:w-1/2 overflow-hidden relative ms-6 rounded-lg bg-slate-100 md:h-[500px] mb-10 h-[300px]">
+                        <div
+                            ref={sliderRef}
+                            className="absolute top-0 left-0 flex flex-col gap-3 p-8 whitespace-nowrap"
+                            style={{ width: '200%' }}
+                        >
+                            {/* First Row */}
+                            <div className="r1 flex gap-3">
+                                {[qr1, qr2, qr3, qr4, qr5].map((src, index) => (
+                                    <img key={`row1-${index}`} src={src} className='md:w-60 md:h-60 w-44 h-44 object-cover rounded-lg shadow-2xl bg-slate-500' alt="" />
+                                ))}
+                            </div>
 
+                            {/* Second Row */}
+                            <div className="r2 flex gap-3">
+                                {[qr6, qr7, qr8, qr9, qr10].map((src, index) => (
+                                    <img key={`row2-${index}`} src={src} className='md:w-60 md:h-60 w-44 h-44 object-cover rounded-lg shadow-2xl bg-slate-500' alt="" />
+                                ))}
+                            </div>
                         </div>
-
-                        <div className="r1 flex w-full gap-3">
-                            <img src={qr3} className='w-60 rounded-lg shadow-2xl bg-slate-500' alt="" />
-                            <img src={qr2} className='w-60 rounded-lg shadow-2xl bg-slate-500' alt="" />
-
-                            <img src={qr5} className='w-60 rounded-lg shadow-2xl bg-slate-500' alt="" />
-
-
-                        </div>
-
-
-
                     </div>
+
                     <div dir='rtl' className="right flex flex-col     md:w-1/2 w-full p-8">
                         <p className='md:text-5xl text-2xl w-5/6 elmasry'>أفضل الوسائل لعرض الـ <span dir='ltr'>Qr Code</span> الخاص بمطعمك</p>
                         <div className="line border-t-4 mt-7 md:w-96 w-44 text-end -full border-sky-700 "></div>
@@ -398,6 +431,25 @@ export default function Home() {
 
 
                     </div>
+                    <div className="left md:hidden w-full md:w-1/2 flex flex-col items-center overflow-hidden  rounded-lg bg-slate-100 md:h-[500px] mb-10 h-[300px]">
+
+
+                        {/* First Row */}
+                        <div className="r1 flex gap-3">
+                            {[qr1, qr2, qr3].map((src, index) => (
+                                <img key={`row1-${index}`} src={src} className='lg:w-60 lg:h-60 md:w-44 md:h-44 sm:w-32 sm:h-32 w-24 h-24 object-cover rounded-lg shadow-2xl bg-slate-500' alt="" />
+                            ))}
+                        </div>
+
+                        {/* Second Row */}
+                        <div className="r2 flex gap-3">
+                            {[qr4, qr5, qr6].map((src, index) => (
+                                <img key={`row1-${index}`} src={src} className='lg:w-60 lg:h-60 md:w-44 md:h-44 sm:w-32 sm:h-32 w-24 h-24 object-cover rounded-lg shadow-2xl bg-slate-500' alt="" />
+                            ))}
+                        </div>
+
+                    </div>
+
 
 
                 </div>
