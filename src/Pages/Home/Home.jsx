@@ -87,8 +87,8 @@ export default function Home() {
                 <div className="first-part  flex flex-col justify-center items-center  w-full   opacity-95 text-white">
 
                     <div className="1  w-full h-2/3  flex flex-col justify-center items-center">
-                        <p className='cairo font-semibold xl:text-6xl xl:text-green-500  lg:text-5xl lg:text-fuchsia-400 md:text-4xl sm:text-2xl text-xl mt-20'>نقلة جديدة في عـالــم الديچيتال منيــو  </p>
-                        <p className='cairo font-semibold xl:text-6xl xl:text-green-500  lg:text-5xl lg:text-fuchsia-400 md:text-4xl sm:text-2xl text-xl mt-8'>المنيـــو دلـــوقتي بقي <span className='kufi'>تــكــة</span>  </p>
+                        <p className='cairo font-semibold xl:text-6xl   lg:text-5xl  md:text-4xl sm:text-2xl text-xl mt-20'>نقلة جديدة في عـالــم الديچيتال منيــو  </p>
+                        <p className='cairo font-semibold xl:text-6xl   lg:text-5xl  md:text-4xl sm:text-2xl text-xl mt-8'>المنيـــو دلـــوقتي بقي <span className='kufi'>تــكــة</span>  </p>
 
                     </div>
 
