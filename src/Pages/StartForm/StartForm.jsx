@@ -14,6 +14,8 @@ import time from "../../assets/time.png"
 
 import exlogo from "../../assets/exlogo.png"
 import useFetchData from '../../utils/useApi.js'
+import axios from 'axios'
+import toast from 'react-hot-toast'
 
 export default function StartForm() {
     const [bodyData, setBodyData] = useState({});
@@ -61,7 +63,12 @@ export default function StartForm() {
             if (response?.data) {
                 console.log("Menu created successfully:", response.data);
                 const menuId = response.data.id_hash
+                const m_id = response.data.id
+
                 localStorage.setItem("menu", menuId)
+                localStorage.setItem("m_id", m_id)
+                addSection(m_id)
+
                 console.log(menuId);
                 window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
 
@@ -76,6 +83,41 @@ export default function StartForm() {
             // Handle error (e.g., show an error message)
         }
     };
+
+    const addSection = async (m_id) => {
+        // event.preventDefault();
+
+
+        const stateObject = {
+            menu_id: m_id,
+            name: "offers",
+            is_offer: true
+        };
+
+        try {
+            // Await the API call to ensure completion
+            await addSectionApi(stateObject);
+            // Fetch the updated sections after adding the new section
+        } catch (error) {
+            console.error('Error adding section:', error);
+            toast.error('حدث خطأ أثناء إضافة القسم');
+        }
+    };
+
+
+
+    const addSectionApi = async (stateObject) => {
+
+
+
+
+        const response = await axios.post('http://localhost:234/api/section', stateObject);
+        console.log(response)
+        toast.success('تم الأضافة بنجاح');
+        // toggleAddFormVisibility()
+
+
+    }
 
 
 

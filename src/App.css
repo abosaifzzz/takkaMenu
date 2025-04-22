@@ -360,3 +360,13 @@ background-image: url("./assets/bg1.webp");
 .layout{
   background-image: url("./assets/q2.webp");
 }
+
+/* Add this to your CSS for better mobile frame styling */
+.mobile-frame {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  background: #000;
+}
+
+.mobile-frame iframe {
+  background: white; /* Shows while loading */
+}

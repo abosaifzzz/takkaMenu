@@ -1,4 +1,6 @@
+import axios from 'axios';
 import React, { useEffect, useState } from 'react'
+import rev2 from "../../assets/rev2.png"
 const mockReviewsData = [
     {
         id: 1,
@@ -109,94 +111,140 @@ const mockReviewsData = [
         email: "dalia.k@example.com"
     }
 ];
-const fetchReviews = () => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockReviewsData);
-        }, 1000); // 1-second delay to simulate network latency
-    });
-};
-
 export default function Reviews() {
     const [reviews, setReviews] = useState([]); // State to hold reviews data
+    const [reviewsLoading, setReviewsLoading] = useState(true); // State to handle loading state
+
+
+    let m_id = localStorage.getItem("m_id")
+
+    const fetchReviews = async (menu_id) => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menu/reviews/${menu_id}`);
+            console.log(response);
+
+            setReviews(response.data)
+            console.log(reviews);
+
+            return response.data; // Returns the reviews data from the API
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+            // Return empty array or handle error as needed
+            return [];
+        }
+    };
 
     useEffect(() => {
+        setTimeout(() => {
+            setReviewsLoading(false)
+        }, 500);
+
         // Fetch data when the component mounts
-        fetchReviews().then((data) => {
-            setReviews(data);
-        });
-    }, []);
-
-    const Review = ({ name, date, text, rating, email, phone }) => {
-        return (
-            <div className="review mt-2  mb-7 p-4 rounded-md shadow-md bg-white w-full">
-                <div className="first">
-                    <div className="name-date w-full flex justify-between gap-2">
-                        <p className='font-medium'>{name}</p>
-                        <p>
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <i key={i} className={`fa-${i < rating ? 'solid' : 'regular'} fa-star text-amber-400`}></i>
-                            ))}
-                        </p>
-                    </div>
-
-                    <p className='text-sm text-gray-500 font-medium cairo'>{text}</p>
+        fetchReviews(m_id)
+    }, [m_id]);
 
 
 
-                </div>
-                <p className='text-sm text-gray-700'>{date}</p>
 
-                <div className="last md:flex items-center justify-between">
-                    <div className="review-data flex flex-wrap items-center gap-5  text-ellipsis overflow-hidden whitespace-nowrap md:w-3/4">
 
-                        <p><i className="fa-solid fa-envelope"></i> {email}</p>
-                        <p><i className="fa-solid fa-phone"></i> {phone}</p>
-
-                    </div>
-                    <div className="second w-1/4  flex gap-2 justify-end">
-                        <button className='p-1 px-2 bg-red-500 text-white hover:bg-red-600 rounded-md'>Remove</button>
-                        {/* <button className='p-1 px-2 bg-green-600 hover:bg-green-400 text-white rounded-md'>View</button> */}
-                    </div>
-
-                </div>
-
-            </div>
-        );
-    };
     return <>
+        {reviewsLoading ? (<>
+            <div className="reviews-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
+                <div className="text-center">
+                    <div
+                        className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-red-500 mx-auto"
+                    ></div>
 
-
-        <div className="reviews-page min-h-screen relative pb-20 flex flex-col md:p-10 p-5">
-
-            <p className='text-lg pb-4 font-medium text-gray-700'>Customer Reviews</p>
-
-
-            <div className="personal-info md:w-2/3 w-full p-5 rounded-md bg-slate-50 shadow-lg h-fit">
-
-                <div className="review w-full  p-0       rounded-md ">
-                    <div className="review-owner-rate">
-
-                        <div className="rate">
-
-                            <div className="reviews pt-3">
-                                {
-                                    reviews.slice(0, 12).map((review) => (
-                                        <Review key={review.id} {...review} />
-                                    ))
-                                }
-                            </div>
-
-                        </div>
-
-
-
-
-                    </div>
                 </div>
+
+
+
             </div>
 
-        </div>
+        </>) : (
+            <div className="reviews-page min-h-screen relative pb-20 flex flex-col md:p-10 p-5 bg-gray-50">
+                <h2 className='text-2xl pb-4 font-semibold cairo text-gray-800 border-b border-gray-200'>
+                    تقييمات العملاء
+                    {reviews.length > 0 && (
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                            ({reviews.length} reviews)
+                        </span>
+                    )}
+                </h2>
+
+                <div className="personal-info md:w-2/3 w-full mt-6">
+                    {reviews.length > 0 ? (
+                        reviews.slice(0, 12).map((review) => (
+                            <div key={review.id} className="review mb-6 p-4 rounded-md shadow-md bg-white">
+                                {/* Review Header */}
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className='font-medium text-gray-800'>
+                                        {review.client_name || 'Anonymous Customer'}
+                                    </p>
+                                    <div className="flex">
+                                        {[...Array(5)].map((_, i) => (
+                                            <i
+                                                key={i}
+                                                className={`fa-${i < review.rate ? 'solid' : 'regular'} fa-star text-amber-400`}
+                                            ></i>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Review Content */}
+                                <p className='text-sm text-gray-600 mb-3'>{review.comment}</p>
+                                <p className='text-xs text-gray-500 mb-4'>
+                                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </p>
+
+                                {/* Review Footer */}
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center pt-3 border-t border-gray-100">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm mb-3 md:mb-0">
+                                        {review.client_name && (
+                                            <p className="text-gray-600">
+                                                <i className="fa-solid fa-user mr-1"></i> {review.client_name}
+                                            </p>
+                                        )}
+                                        {review.client_phone && (
+                                            <a href={`tel:${review.client_phone}`} className="text-blue-500 hover:text-blue-700">
+                                                <i className="fa-solid fa-phone mr-1"></i> {review.client_phone}
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button className='py-1 px-3 bg-red-500 text-white hover:bg-red-600 rounded-md text-sm'>
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-6 py-32 text-center flex flex-col justify-center items-center bg-white rounded-md shadow-md">
+
+                            <img src={rev2} className='w-32' alt="" />
+                            <p className="text-gray-500 cairo">لا يوجد تقيمات حتي الأن</p>
+                        </div>
+                    )}
+                </div>
+
+                {reviews.length > 12 && (
+                    <div className="mt-6 text-center">
+                        <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                            Load More Reviews
+                        </button>
+                    </div>
+                )}
+            </div>
+
+        )}
+
+
 
 
 

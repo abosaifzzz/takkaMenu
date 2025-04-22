@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
+import useFetchData from '../../utils/useApi.js';
 
 
 export default function Signup() {
@@ -14,6 +15,10 @@ export default function Signup() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [phone, setPhone] = useState('');
     const [loginLoading, setLoginLoading] = useState(false);
+
+
+
+    const { isLoading, error, fetchData, data } = useFetchData();
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
@@ -70,7 +75,7 @@ export default function Signup() {
             setLoginLoading(true)
 
             setTimeout(() => {
-                window.location.href = "/start";  // Redirect to dashboard
+                window.location.href = "/login";  // Redirect to dashboard
 
             }, 3000);
 
@@ -97,7 +102,7 @@ export default function Signup() {
             }
         }
     };
-    const handleLogin = async (googleToken = null) => {
+    const handleLogin = async (googleToken = null, email) => {
 
         // Prepare the data to send to the API
 
@@ -119,9 +124,14 @@ export default function Signup() {
 
         // }
 
+        console.log(email);
+
+
         let data = {
             google_token: googleToken
         }
+        console.log(data);
+
 
         try {
             // Call the login API using Axios
@@ -136,23 +146,52 @@ export default function Signup() {
             if (response.data.user) {
                 console.log("good");
                 console.log(response.data.user.owner_id);
-                localStorage.setItem('owner', response.data.user.owner_id);
+                const ownerId = response.data.user.owner_id
+                localStorage.setItem("owner", ownerId)
+
+                fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
+                    .then((response) => {
+                        console.log("Response data:", response?.data); // Debug log
+                        if (response?.data[0]) {
+                            console.log('Fetched Menus:', response.data);
+
+                            localStorage.setItem('menu', response.data[0].id_hash);
+                            localStorage.setItem('m_id', response.data[0].id);
+
+                            let menuId = response.data[0].id_hash
+                            console.log("from log", menuId);
+
+                            localStorage.setItem('owner', ownerId);
+                            setLoginLoading(true)
+                            setTimeout(() => {
+                                toast.success("تم تسجيل الدخول بنجاح")
+
+                            }, 2000);
+
+
+
+                            // const menusId = localStorage.getItem("menu")
+                            // console.log(menusId);
+
+                            setTimeout(() => {
+                                window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
+
+                            }, 3000);
+
+
+
+                        } else {
+                            window.location.href = `/start`;  // Redirect to dashboard
+
+
+
+
+                        }
+                    })
+
                 localStorage.setItem('token', response.data.accessToken);
                 console.log(response.data.user.name);
                 localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
-                setLoginLoading(true)
-
-                setTimeout(() => {
-                    toast.success("تم تسجيل الدخول بنجاح")
-
-                }, 2000);
-
-
-                setTimeout(() => {
-                    window.location.href = "/dashboard";  // Redirect to dashboard
-
-                }, 3000);
-
 
 
             } else {
@@ -248,30 +287,30 @@ export default function Signup() {
                     <div className="relative w-full h-full">
                         <div className="absolute   -top-2 -left-2 -right-2 -bottom-2 rounded-lg bg-gradient-to-r from-sky-400 via-red-500 to-sky-700 shadow-lg animate-pulse"></div>
                         <div id="form-container" className="bg-white p-10 rounded-lg shadow-2xl h-full  relative z-10 transform transition duration-500 ease-in-out">
-                            <h2 id="form-title" className="text-center lg:text-xl md:text-lg text-sm font-bold mb-3 text-gray-800">Transform Your Menu, Transform Your <span className='text-red-600'>Experience</span> </h2>
+                            <h2 id="form-title" className="text-center lg:text-xl md:text-lg text-sm font-bold mb-3 text-gray-800 cairo">منيو جديد خبرة <span className='text-red-600 cairo'>جديدة</span> </h2>
 
-                            <h2 id="form-title" className="text-center lg:text-2xl md:text-lg text-sm cairo font-bold mb-3 text-sky-800">Register Now! </h2>
+                            <h2 id="form-title" className="text-center lg:text-2xl md:text-lg text-sm cairo font-bold mb-3 text-sky-800">سجل دلوقتي </h2>
 
-                            <form className="space-y-5">
+                            <form dir='rtl' className="space-y-5">
                                 <input value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    type="text" className="bg-gray-100 text-gray-900 border-0 mb-0 rounded-md p-2  w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="Full Name" />
+                                    type="text" className="bg-gray-100 text-gray-900 border-0 mb-0 rounded-md p-2  w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out cairo duration-150" placeholder="الأسم بالكامل" />
                                 <input type="email" value={email}
-                                    onChange={(e) => setEmail(e.target.value)} className="bg-gray-100 text-gray-900 border-0 rounded-md m-0 p-2 mb-4 w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="Email" />
+                                    onChange={(e) => setEmail(e.target.value)} className="bg-gray-100 text-gray-900 border-0 rounded-md m-0 p-2 mb-4 w-full cairo focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="الأيميل" />
                                 <div className="passwords lg:flex  justify-between gap-4">
 
                                     <div className="relative w-full">
                                         <input value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             type={showPassword ? "text" : "password"}
-                                            className="bg-gray-100 text-gray-900 border-0 rounded-md p-2 mb-4 w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="Password" />
+                                            className="bg-gray-100 text-gray-900 border-0 cairo rounded-md p-2 mb-4 w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="كلمة المرور" />
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="16"
                                             height="16"
                                             fill="gray"
                                             id="togglePassword"
-                                            className="bi bi-eye absolute top-1/3 right-3 -translate-y-1/2 cursor-pointer z-20 opacity-100"
+                                            className="bi bi-eye absolute top-1/3 left-3 -translate-y-1/2 cursor-pointer z-20 opacity-100"
                                             viewBox="0 0 16 16"
                                             onClick={togglePasswordVisibility}
                                         >
@@ -305,16 +344,16 @@ export default function Signup() {
                                     <div className="relative w-full">
                                         <input value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)} type="password"
-                                            className="bg-gray-100 text-gray-900 border-0 rounded-md p-2     w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="Confirm Password" />
+                                            className="bg-gray-100 text-gray-900 border-0 rounded-md p-2     w-full focus:bg-gray-200 focus:outline-none focus:ring-1  cairo focus:ring-blue-500 transition ease-in-out duration-150" placeholder="تأكيد كلمة المرور" />
 
 
                                     </div>
                                 </div>
                                 <input value={phone}
-                                    onChange={(e) => setPhone(e.target.value)} type="text" className="bg-gray-100 text-gray-900 border-0 rounded-md p-2 mb-4 w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150" placeholder="Phone" />
+                                    onChange={(e) => setPhone(e.target.value)} type="text" className="bg-gray-100 text-gray-900 border-0 rounded-md p-2 mb-4 w-full focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out cairo duration-150" placeholder="الموبايل" />
 
                                 <button onClick={handleSubmit} type="submit"
-                                    className="w-full md:h-12 h-8 flex justify-center items-center md:text-base text-sm bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                    className="w-full md:h-12 h-8 cairo flex justify-center items-center md:text-base text-sm bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                                     {loginLoading ? (
                                         <svg
                                             viewBox="0 0 24 24"
@@ -337,28 +376,30 @@ export default function Signup() {
                                             ></path>
                                         </svg>
                                     ) : null}
-                                    Register
+                                    تسجيل
                                 </button>
-                                <p className="text-blue-500 inline-block me-1 text-sm m-0">Already have account? </p>
-                                <Link to={"/login"} className='text-sm font-medium cursor-pointer hover:text-sky-600 '>Login</Link>
+                                <p className="cairo text-blue-500 inline-block me-1 text-sm m-0">لديك حساب بالفعل ؟ </p>
+                                <Link to={"/login"} className='cairo text-sm font-medium cursor-pointer hover:text-sky-600 '>تسجيل الدخول</Link>
 
                             </form>
                             <div className="flex items-center justify-between mt-4 mb-3">
                                 <span className="w-1/5 border-b dark:border-gray-600 md:w-1/4"></span>
                                 <a
-                                    className="text-sm text-gray-500 uppercase dark:text-gray-400 hover:underline"
+                                    className="text-sm cairo text-gray-500 uppercase dark:text-gray-400 hover:underline"
 
-                                >or </a>
+                                >أو </a>
                                 <span className="w-1/5 border-b dark:border-gray-400 md:w-1/4"></span>
                             </div>
                             <GoogleLogin
                                 text="signup_with"  // Ensures the button says "Sign up with Google"
                                 onSuccess={(credentialResponse) => {
-                                    let googleToken = credentialResponse.credential
+                                    console.log(credentialResponse);
 
+                                    let googleToken = credentialResponse.credential
                                     const credentialResponseDecoded = jwtDecode(credentialResponse.credential)
-                                    console.log(credentialResponseDecoded);
-                                    handleLogin(googleToken);
+                                    let email = credentialResponseDecoded.email
+
+                                    handleLogin(googleToken, email);
                                 }}
                                 onError={() => {
                                     console.log("Signup Failed");

@@ -3,6 +3,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import q from "../../assets/q.webp"
 import ui1 from "../../assets/ui1.png"
 import ui2 from "../../assets/ui2.png"
+import ui4 from "../../assets/ui4.jpeg"
+
+import u3 from "../../assets/u3.png"
+
 import check from "../../assets/check.png"
 
 import qr1 from "../../assets/qr1.jpeg"
@@ -351,8 +355,8 @@ export default function Home() {
 
 
                     </div>
-                    <div className="left flex justify-center md:w-1/2 w-full p-8">
-                        <img src={ui2} className='w-3/5' alt="" />
+                    <div className="left flex rounded-md justify-center md:w-1/2 w-full p-8">
+                        <img src={ui4} className='w-full rounded-lg' alt="" />
 
 
 

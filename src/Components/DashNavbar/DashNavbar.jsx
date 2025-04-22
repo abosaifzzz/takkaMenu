@@ -14,6 +14,7 @@ export default function DashNavbar() {
         localStorage.removeItem("name")
         localStorage.removeItem("owner")
         localStorage.removeItem("menu")
+        localStorage.removeItem("m_id")
 
 
         toast.loading("جاري تسجيل الخروج ..")
@@ -35,7 +36,7 @@ export default function DashNavbar() {
     }, []);
     return <>
         <Toaster />
-        <div className="new-menu-nav bg-white  flex justify-end items-center">
+        <div className="new-menu-nav bg-gray-100 border-b-2 border-slate-300 rounded-b-lg  flex justify-end items-center">
             <div onClick={toggleSettings}
                 className="name-icon relative   p-5 px-9">
 
@@ -47,20 +48,20 @@ export default function DashNavbar() {
                     </div>
 
                     {isSettingsOpen && (
-                        <div className={`user-settings z-40 absolute border-2 rounded-md -bottom-40 -right-7 w-44 bg-white transition-all duration-500 ease-out ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                        <div className={`user-settings z-40 absolute border-2 rounded-md -bottom-40 -left-7 w-44 bg-white transition-all duration-500 ease-out ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
                             }`}
                         >
-                            <p className="cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
-                                <i className="text-gray-600 fa-solid fa-user"></i> Account Settings
+                            <p className="cairo cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
+                                <i className="text-gray-600 fa-solid fa-user"></i> اعدادات الحساب
                             </p>
-                            <p className="cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
-                                <i className="text-gray-600 fa-solid fa-bars"></i> Menu Settings
+                            <p className="cairo cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
+                                <i className="text-gray-600 fa-solid fa-bars"></i> اعدادات المنيو
                             </p>
-                            <p className="cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
-                                <i className="text-gray-600 fa-solid fa-headset"></i> Help Center
+                            <p className="cairo cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
+                                <i className="text-gray-600 fa-solid fa-headset"></i> مركز المساعدة
                             </p>
-                            <p onClick={signOut} className="cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
-                                <i className="text-gray-600 fa-solid fa-right-from-bracket"></i> Sign Out
+                            <p onClick={signOut} className="cairo cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
+                                <i className="text-gray-600 fa-solid fa-right-from-bracket"></i> تسجيل الخروج
                             </p>
                         </div>
                     )}

@@ -34,7 +34,7 @@ export default function DashboardLayout() {
         };
     }, []);
     return <>
-        <div className="dash-layout  bg-slate-100 relative flex">
+        <div dir='rtl' className="dash-layout  bg-slate-100 relative flex">
 
 
             <DashSideBar sidebarIsOpen={sidebarIsOpen} toggleSidebar={toggleSidebar} />

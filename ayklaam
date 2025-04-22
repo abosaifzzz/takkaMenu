@@ -1,0 +1,176 @@
+                        <div className="categories mt-6">
+                            {sections.length > 0 ? (sections.map((section, index) => (
+                                <div
+                                    key={section.id}
+                                    className={`category mt-2 ${draggingIndex === index ? 'opacity-50' : ''}`}
+                                    onDragEnter={() => handleDragEnter(index)}
+                                    onDragLeave={handleDragLeave}
+                                    onDragOver={handleDragOver}
+                                    onDragEnd={handleSort}
+                                    style={{
+                                        borderTop: hoveredIndex === index ? '2px dashed #4CAF50' : '',
+                                        transition: 'border 0.3s ease',
+                                        transform: draggingIndex === index ? 'scale(1.05)' : '',
+                                        boxShadow: draggingIndex === index ? '0 4px 10px rgba(0, 0, 0, 0.2)' : '',
+                                    }}
+                                >
+                                    <div
+                                        onClick={() => {
+                                            toggleFormVisibility(section.id);
+                                            toggleCategoryItems(section.id);
+                                            toggleCategoryMenu();
+                                            setSelectedSection(section);
+
+                                        }}
+                                        draggable
+                                        onDragStart={() => handleDragStart(index)}
+                                        className="category-parent cursor-pointer hover:bg-slate-50 shadow-lg flex justify-between p-3 bg-white rounded-lg"
+                                    >
+                                        <div className="left flex items-center gap-2">
+                                            <div className="drag-btns md:hidden flex gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (index > 0) {
+                                                            handleMoveSection(index, index - 1);
+                                                        }
+                                                    }}
+                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
+                                                >
+                                                    <i className="fa-solid fa-arrow-up"></i>
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (index < sections.length - 1) {
+                                                            handleMoveSection(index, index + 1);
+                                                        }
+                                                    }}
+                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
+                                                >
+                                                    <i className="fa-solid fa-arrow-down"></i>
+
+                                                </button>
+                                            </div>
+                                            <i className="drag-btn fa-solid fa-bars md:flex hidden text-sm text-gray-400 cursor-grab"></i>
+                                            <img className="w-10 h-10 rounded-md" src={section.cover_image_url ? section.cover_image_url : def} alt='' />
+
+                                            <p className="truncate md:max-w-[400px] sm:max-w-80 max-w-24 text-ellipsis overflow-hidden whitespace-nowrap" > {section.name}</p>
+                                        </div>
+                                        <div className="right flex gap-4 items-center">
+
+
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" value="" />
+                                                <div className="group peer bg-gray-300 rounded-full duration-300 w-8 h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute after:h-4 after:w-4 after:top-0 after:left-0 after:flex after:justify-center after:items-center peer-checked:after:translate-x-4 peer-hover:after:scale-95"></div>
+                                            </label>
+                                            <div className="more relative">
+                                                <i onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleMoreClick(index); // Toggle the "more" menu for this section
+                                                }} className="fa-solid px-2 text-slate-700 fa-ellipsis-vertical"></i>
+                                                {activeMoreIndex === index && (
+                                                    <div className="dropdn absolute md:-right-20 -right-11  z-10 w-32 h-fit border bg-white rounded-md">
+                                                        <p className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className=" text-gray-500 fa-solid fa-clone"></i> dupplicate</p>
+                                                        <p onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent parent click events
+                                                            handleDeleteClick(section); // Call the delete handler
+                                                        }} className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className="text-gray-500 fa-regular fa-trash-can"></i> Delete</p>
+
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <i
+                                                className="fa-solid fa-chevron-down cursor-pointer transform transition-transform duration-300"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleCategoryItems(section.id);
+                                                }}
+                                            ></i>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className="category-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out"
+                                        style={{ maxHeight: expandedCategories[section.id] ? '500px' : '0px' }}
+                                    >
+                                        {section.items.map((item, itemIndex) => (
+                                            <div
+
+                                                onClick={() => {
+                                                    openEditItemForm(item),
+                                                        setSelectedItem(item)
+                                                }
+                                                } key={item.id} className="item p-2 mt-2 hover:bg-slate-200 cursor-pointer rounded-md w-[97%] flex gap-2 justify-between bg-white">
+                                                <div className="left md:w-2/3 w-1/2   flex items-center gap-2">
+                                                    <i className="fa-solid fa-bars text-sm text-gray-400"></i>
+                                                    {/* Placeholder for item image */}
+                                                    <img
+                                                        className="w-7 h-7 rounded-md"
+                                                        src={item.image_url ? item.image_url : def}
+                                                        alt={item.name}
+                                                    />
+                                                    <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
+                                                </div>
+                                                <div className="right flex md:gap-4 gap-2 items-center">
+                                                    <div className="price-edit border flex p-1 rounded-md gap-2">
+                                                        <p className='md:text-base text-sm'>EGP</p>
+                                                        <input dir='ltr' className="md:w-14 w-12 md:text-base text-sm" type="text" value={item?.item_prices?.[0]?.price || "0"} readOnly />
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only peer" value="" />
+                                                        <div className="group peer bg-gray-300 rounded-full duration-300 md:w-8 w-6 h-3 md:h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute md:after:h-4 after:h-3 md:after:w-4 after:w-3 after:top-0 after:left-0 after:flex after:justify-center after:items-center md:peer-checked:after:translate-x-4 peer-checked:after:translate-x-3 peer-hover:after:scale-95"></div>
+                                                    </label>
+                                                    <div className="more relative">
+                                                        <i
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleItemMoreClick(itemIndex);
+                                                            }}
+                                                            className="fa-solid px-2 bg-green-400 text-slate-700 fa-ellipsis-vertical cursor-pointer"
+                                                        ></i>
+
+                                                        {activeItemMoreIndex === itemIndex && (
+                                                            <div className="dropdn absolute md:-right-20 -right-11 z-30 w-32 h-fit border bg-white rounded-md shadow-md">
+                                                                <p
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        // handleItemDuplicate(item); // Uncomment when you implement this
+                                                                    }}
+                                                                    className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                                >
+                                                                    <i className="text-gray-500 fa-solid fa-clone"></i> Duplicate
+                                                                </p>
+                                                                <p
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deleteItem(item.id);
+                                                                    }}
+                                                                    className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                                >
+                                                                    <i
+                                                                        className="text-gray-500 fa-regular fa-trash-can"></i> Delete
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div onClick={() => openAddItemForm(section.id)} className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg">
+                                            <p> + Add Item </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))) : (
+
+                                <div className="empty-sections flex flex-col justify-center items-center">
+                                    <i className="fa-solid fa-arrow-up"></i>
+                                    <p>No Section add now!</p>
+
+                                </div>
+
+
+                            )}
+                        </div>

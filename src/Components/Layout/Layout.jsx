@@ -7,7 +7,7 @@ export default function Layout() {
 
     return <>
 
-        <div className="navbar absolute z-40 flex flex-col md:flex-row px-4 md:px-10 justify-between items-center w-full py-2">
+        <div dir='ltr' className="navbar absolute z-40 flex flex-col md:flex-row px-4 md:px-10 justify-between items-center w-full py-2">
             {/* Mobile menu button (hidden on desktop) */}
             <div className="md:hidden flex w-full justify-between items-center">
                 <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white text-2xl">

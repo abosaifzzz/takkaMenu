@@ -68,6 +68,7 @@ export default function Login() {
                             console.log('Fetched Menus:', response.data);
 
                             localStorage.setItem('menu', response.data[0].id_hash);
+                            localStorage.setItem('m_id', response.data[0].id);
 
                             let menuId = response.data[0].id_hash
                             console.log("from log", menuId);
@@ -138,30 +139,30 @@ export default function Login() {
 
     return <>
         <Toaster />
-        <section className="bg-gray-100 min-h-screen flex box-border justify-center items-center">
+        <section dir='rtl' className="bg-gray-100 min-h-screen flex box-border justify-center items-center">
             <div className="bg-white shadow-lg rounded-2xl flex max-w-3xl p-5 items-center">
                 <div className="md:w-1/2 px-8">
-                    <h2 className="font-bold text-3xl text-[#002D74]">Login</h2>
-                    <p className="text-sm mt-4 text-[#002D74]">If you already a member, easily log in now.</p>
+                    <h2 className="font-bold text-3xl text-[#002D74] cairo">تسجيل الدخول</h2>
+                    <p className="text-sm mt-4 text-[#002D74] cairo"> اذا كنت بالفعل عميل سجل دخولك الأن</p>
 
                     <form onSubmit={handleLogin} className="flex flex-col gap-4">
                         <input
-                            className="p-2 mt-8 rounded-xl border"
+                            className="p-2 mt-8 cairo rounded-xl border"
                             type="email"
                             name="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email"
+                            placeholder="الأيميل"
                             required />
                         <div className="relative">
                             <input
-                                className="p-2 rounded-xl border w-full"
+                                className="p-2 rounded-xl cairo border w-full"
                                 type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 id="password"
-                                placeholder="Password"
+                                placeholder="كلمة المرور"
                                 required />
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -169,7 +170,7 @@ export default function Login() {
                                 height="16"
                                 fill="gray"
                                 id="togglePassword"
-                                className="bi bi-eye absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer z-20 opacity-100"
+                                className="bi bi-eye absolute top-1/2 left-3 -translate-y-1/2 cursor-pointer z-20 opacity-100"
                                 viewBox="0 0 16 16"
                                 onClick={togglePasswordVisibility}
                             >
@@ -198,7 +199,7 @@ export default function Login() {
                                 ></path>
                             </svg>
                         </div>
-                        <button type="submit" className="bg-[#002D74] flex justify-center items-center text-white py-2 rounded-xl hover:scale-105 duration-300 hover:bg-[#206ab1] font-medium">
+                        <button type="submit" className="bg-[#002D74] cairo flex justify-center items-center text-white py-2 rounded-xl hover:scale-105 duration-300 hover:bg-[#206ab1] font-medium">
 
                             {loginLoading ? (
                                 <svg
@@ -222,7 +223,7 @@ export default function Login() {
                                     ></path>
                                 </svg>
                             ) : null}
-                            Login
+                            تسجيل الدخول
                         </button>
                     </form>
                     <div className="mt-6  items-center text-gray-100">
@@ -254,13 +255,13 @@ export default function Login() {
 
                         Login with Google
                     </button> */}
-                    <div className="mt-10 text-sm border-b border-gray-500 py-5 playfair tooltip">Forget password?</div>
+                    <div className="mt-10 text-sm border-b border-gray-500 py-5 playfair cairo tooltip">نسيت كلمة المرور ؟</div>
 
                     <div className="mt-4 text-sm flex justify-between items-center container-mr">
-                        <p className="mr-3 md:mr-0 ">If you don't have an account..</p>
-                        <button className="hover:border register text-white bg-[#002D74] hover:border-gray-400 rounded-xl py-2 px-5 hover:scale-110 hover:bg-[#002c7424] font-semibold duration-300">
+                        <p className="mr-3 md:mr-0 cairo ">ليس لديك حساب؟</p>
+                        <button className="hover:border cairo register text-white bg-[#002D74] hover:border-gray-400 rounded-xl py-2 px-5 hover:scale-110 hover:bg-[#002c7424] font-semibold duration-300">
 
-                            <Link to={"/"}>Register</Link>
+                            <Link to={"/"}>سجل الأن</Link>
                         </button>
                     </div>
                 </div>

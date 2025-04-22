@@ -2,12 +2,14 @@ import React, { useState } from 'react'
 import shop from "../../assets/shop.png"
 import paint from "../../assets/paint.png"
 import sample from "../../assets/sample.png"
+import toast from 'react-hot-toast';
+import axios from 'axios';
 
 
-export default function NewMenuCreation() {
+export default function NewMenuCreation({ onMenuSelect }) {
     const [createForm, setCreateForm] = useState(false);
     const [module, setModule] = useState(null);
-
+    let m_id = localStorage.getItem("m_id")
 
     const openCreateForm = () => {
         setCreateForm(true);
@@ -16,8 +18,19 @@ export default function NewMenuCreation() {
         setCreateForm(false);
 
         setModule(null)
+
     };
 
+
+
+
+    const handleContinue = async () => {  // Make it async
+        // await addSection();  // Wait for completion
+        if (module) {
+            onMenuSelect(module);
+            closeCreateForm();
+        }
+    };
 
     return <>
         <div className="new-menu-creation relative flex flex-col h-screen items-center p-8">
@@ -25,9 +38,9 @@ export default function NewMenuCreation() {
 
             <img className='w-14' src={shop} alt="" />
             {/* <i className="fa-solid text-3xl text-sky-500 fa-hourglass"></i> */}
-            <p>You don’t have any menu yet. Start creating one.
+            <p className='cairo'> انت لا تملك اي قوائم طعام .. قم بالأضافة الأن !
             </p>
-            <button onClick={openCreateForm} className='py-2 px-3 hover:bg-sky-600 bg-sky-500 text-white rounded-md mt-2'>Create Menu</button>
+            <button onClick={openCreateForm} className='py-2 px-3 hover:bg-sky-600 bg-sky-500 text-white rounded-md mt-2 cairo'>اضافة قائمة طعام</button>
 
 
             <div
@@ -73,6 +86,7 @@ export default function NewMenuCreation() {
                 <div className="action-b mt-4 flex w-full justify-end items-end">
                     <button
                         disabled={!module}
+                        onClick={handleContinue}
                         className={`m-3 text-white px-3 py-2 rounded-md transition-all duration-200 ${module ? "bg-sky-700 hover:bg-sky-600" : "bg-sky-300 cursor-not-allowed"
                             }`}
                     >Continue</button>

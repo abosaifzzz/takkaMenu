@@ -9,6 +9,12 @@ import kofta from "../../assets/kofta.jpg"
 import fb from "../../assets/fb.png"
 import wp from "../../assets/wp.png"
 import call from "../../assets/call.png"
+import rev from "../../assets/rev.png"
+import add from "../../assets/add.png"
+import closed from "../../assets/closed.png"
+
+
+
 import massenger from "../../assets/massenger.png"
 
 import instapay from "../../assets/instapay.png"
@@ -17,6 +23,8 @@ import location from "../../assets/location.png"
 
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { FaStar, FaTimes, FaPaperclip } from 'react-icons/fa';
 
 
 
@@ -39,27 +47,178 @@ export default function Menu() {
     const [isFormVisible, setFormVisible] = useState(false); // State to control the form visibility
     const [cart, setCart] = useState([]); // Stores items in the cart
     const [cartCount, setCartCount] = useState(0); // 
-    const { menu_id } = useParams(); // Get menu_id dynamically from the URL
     const [showContacts, setShowContacts] = useState(false);
+    const [menuData, setMenuData] = useState("");
+    const [menuLive, setMenuLive] = useState(true); // Stored Location URL
+
+    const [toggleReview, setToggleReview] = useState(false); // Stored Location URL
 
     const [locationUrl, setLocationUrl] = useState(""); // Stored Location URL
     const [instagramUrl, setInstagramUrl] = useState(""); // Stored Instagram URL
     const [whatsAppUrl, setWhatsAppUrl] = useState("");
     const [facebookUrl, setFacebookUrl] = useState(""); // Stored Facebook URL
+
     const [socialLinks, setSocialLinks] = useState({
         whatsapp: "",
         facebook: "",
         instagram: "",
         location: "",
     });
+    const [isClosed, setIsClosed] = useState(false);
+    const [endTime, setEndTime] = useState('');
+
 
     const [error, setError] = useState(null);
     const [phones, setPhones] = useState(""); // Stored Facebook URL
 
 
+    const [review, setReview] = useState({
+        rate: 0,
+        comment: '',
+        client_name: '',
+        client_phone: '',
+        attachment: null
+    });
+    const [hoverRating, setHoverRating] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [previewImage, setPreviewImage] = useState(null);
+
+    const [offerItems, setOfferItems] = useState([]);
+    const [offerSectionId, setOfferSectionId] = useState(null);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setReview(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setReview(prev => ({ ...prev, attachment: file }));
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+
+
+
+        let reviewObj = {
+            menu_id,
+
+            rate: review.rate,
+            comment: review.comment,
+            client_name: review.client_name,
+            client_phone: review.client_phone
+        }
+        console.log(reviewObj);
+
+
+
+
+        try {
+            await axios.post('http://localhost:234/api/menu/reviews', reviewObj, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            alert('Review submitted successfully!');
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            alert('Failed to submit review. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+
+
+    const menu_id = localStorage.getItem("m_id"); // Get menu_id dynamically from the URL
+    const id_hash = localStorage.getItem("menu"); // Get menu_id dynamically from the URL
+
+
+    const fetchOfferItems = async () => {
+        const { sectionId, items } = await getOfferSectionWithItems(menu_id);
+
+        setOfferItems(items);
+        await console.log(offerItems);
+
+        setOfferSectionId(sectionId);
+    };
+
+
+    async function getOfferSectionWithItems(m_id) {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menu-offers-client/${m_id}`);
+            console.log("offers", response);
+
+            if (!response.data || response.data.message === "Sections not found") {
+                console.log("No sections found for this menu");
+                return { sectionId: null, items: [] };
+            }
+
+            // Find the offer section (is_offer = true)
+            const offerSection = response.data[0]
+
+            if (!offerSection) {
+                console.log("No offer section found");
+                return { sectionId: null, items: [] };
+            }
+
+            // Save the section ID globally
+            // offerSectionId = offerSection.id;
+            console.log("Offer Section ID:", offerSectionId);
+
+            // Process items with their images
+            const itemsWithImages = await Promise.all(
+                offerSection.items.map(async (item) => {
+                    let itemImageUrl = null;
+                    if (item.image) {
+                        try {
+                            const itemImageResponse = await axios.get(
+                                `http://localhost:234/api/file/${item.image}`,
+                                { responseType: "blob" }
+                            );
+                            itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+                        } catch (itemImageError) {
+                            console.error("Error fetching item image:", itemImageError);
+                        }
+                    }
+                    return { ...item, image_url: itemImageUrl };
+                })
+            );
+
+            // Log the items before returning
+            console.log("Offer Section Items:", itemsWithImages);
+
+            return {
+                sectionId: offerSection.id,
+                items: itemsWithImages,
+                sectionData: {
+                    name: offerSection.name,
+                    description: offerSection.description
+                }
+            };
+
+        } catch (error) {
+            console.error("Error fetching offer section:", error);
+            toast.error("حدث خطأ أثناء جلب قسم العروض");
+            return { sectionId: null, items: [] };
+        }
+    }
+
     const fetchLocationAccount = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/location-account/${menu_id}`);
+            const response = await axios.get(`http://localhost:234/api/location-account/${id_hash}`);
             if (response.data?.url) {
                 setLocationUrl(response.data.url);
             } else {
@@ -143,7 +302,11 @@ export default function Menu() {
         try {
             const response = await axios.get(`http://localhost:234/api/contacts/${menu_id}`);
             if (response.data.length > 0) {
+                console.log(response.data);
+
                 setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
+
+
             } else {
                 setPhones([""]); // Default input field if no numbers exist
             }
@@ -155,7 +318,7 @@ export default function Menu() {
     async function getSections(menu_id) {
         try {
             // Fetch sections using menu_id
-            const response = await axios.get(`http://localhost:234/api/menusection/${menu_id}`);
+            const response = await axios.get(`http://localhost:234/api/menusection-client/${menu_id}`);
             console.log(response);
 
             if (response.data) {
@@ -213,59 +376,8 @@ export default function Menu() {
             toast.error("حدث خطأ أثناء جلب الأقسام");
 
             // Fallback dummy data
-            const dummyData = [
-                {
-                    id: 15,
-                    menu_id: menu_id,
-                    name: "Sample Section 1",
-                    note: "",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [
-                        {
-                            id: 101,
-                            name: "Sample Item 1",
-                            image: null,
-                            image_url: "blob:http://localhost:5173/item1-placeholder",
-                        },
-                    ],
-                    cover_image_url: "blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f",
-                },
-                {
-                    id: 16,
-                    menu_id: menu_id,
-                    name: "Sample Section 2",
-                    note: "",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [],
-                    cover_image_url: null,
-                },
-                {
-                    id: 17,
-                    menu_id: menu_id,
-                    name: "Sample Section 3",
-                    note: "Note for section 3",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [
-                        {
-                            id: 102,
-                            name: "Sample Item 2",
-                            image: null,
-                            image_url: "blob:http://localhost:5173/item2-placeholder",
-                        },
-                    ],
-                    cover_image_url: "blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4",
-                },
-            ];
-            setSections(dummyData);
+
+
         }
     }
     const fetchSocialLinks = async () => {
@@ -295,15 +407,114 @@ export default function Menu() {
         }
     };
 
+    // const fetchMenuData = async () => {
+    //     try {
+    //         // Fetch menu settings
+    //         const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
+    //         console.log("menu-data", response.data);
+    //         setMenuData(response.data);
+
+    //         const { is_active } = response.data
+    //         if (is_active) {
+    //             setMenuLive(false)
+
+    //         }
+    //         const { end_time } = response.data;
+    //         setEndTime(end_time);
+    //         const { name } = response.data
+    //         console.log(name);
+
+
+    //         // Check if current time >= end_time (one-time check)
+    //         const now = new Date();
+    //         const [endHour, endMinute] = end_time.split(':').map(Number);
+    //         const endTimeToday = new Date();
+    //         endTimeToday.setHours(endHour, endMinute, 0, 0);
+
+    //         setIsClosed(now >= endTimeToday);
+
+
+    //         // Set menu settings
+    //         await console.log("men naaaame:", menuData.name);
+
+    //         toast.success("menu")
+
+    //         // Fetch profile image if it exists
+    //         // if (response.data.menuSettings.profile_image) {
+    //         //     const profileImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.profile_image}`;
+    //         //     const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' });
+    //         //     const profileImageObjectURL = URL.createObjectURL(profileImageResponse.data);
+    //         //     setMenuSettings((prevSettings) => ({
+    //         //         ...prevSettings,
+    //         //         profileImageUrl: profileImageObjectURL, // Add profile image URL to the menu settings
+    //         //     }));
+    //         // }
+
+    //         // // Fetch cover image if it exists
+    //         // if (response.data.menuSettings.cover_image) {
+    //         //     const coverImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.cover_image}`;
+    //         //     const coverImageResponse = await axios.get(coverImageUrl, { responseType: 'blob' });
+    //         //     const coverImageObjectURL = URL.createObjectURL(coverImageResponse.data);
+    //         //     setMenuSettings((prevSettings) => ({
+    //         //         ...prevSettings,
+    //         //         coverImageUrl: coverImageObjectURL, // Add cover image URL to the menu settings
+    //         //     }));
+    //         // }
+    //     } catch (error) {
+    //         toast.error("er")
+    //         console.error("Error fetching menu settings or images:", error);
+    //         setError("Failed to load menu settings or images.");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+
+    const fetchMenuData = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
+            console.log("API response:", response.data);
+
+            // Update all state at once
+            setMenuData(response.data);
+
+            // Extract other values you need
+            const { is_active, end_time } = response.data;
+            setMenuLive(!is_active);
+            setEndTime(end_time);
+
+            // Time check logic
+            if (end_time) {
+                const now = new Date();
+                const [endHour, endMinute] = end_time.split(':').map(Number);
+                const endTimeToday = new Date();
+                endTimeToday.setHours(endHour, endMinute, 0, 0);
+                setIsClosed(now >= endTimeToday);
+            }
+
+            toast.success("Menu loaded successfully");
+        } catch (error) {
+            toast.error("Error loading menu");
+            console.error("Fetch error:", error);
+            setError("Failed to load menu data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+
     useEffect(() => {
         fetchSocialLinks(menu_id);
-
+        fetchMenuData(menu_id)
         fetchWhatsappAccount(menu_id);
         fetchLocationAccount(menu_id);
         fetchPhones(menu_id);
         getSections(menu_id)
         fetchFacebookAccount(menu_id);
         fetchInstagramAccount(menu_id);
+        fetchOfferItems(menu_id); // Call the function directly
+
 
 
     }, [menu_id]);
@@ -613,49 +824,177 @@ export default function Menu() {
 
 
     return <>
-        <div className="menu  bg-slate-100">
+        <div dir='ltr' className="menu  bg-slate-100">
+
+
+            {toggleReview && (
+                <div className="review-form-page fixed flex justify-center items-center z-50 w-full  h-full">
+
+
+
+                    <div dir='rtl' className="rev-form w-4/5 h-fit rounded-lg shadow-lg z-50 bg-white p-6 overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold cairo">اترك تقييم</h2>
+                            <button
+
+                                onClick={() => setToggleReview(false)}
+
+                                className="text-gray-500 hover:text-gray-700">
+                                <FaTimes size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {/* Rating */}
+                            <div>
+                                <label className="block mb-2 cairo">تقييمك</label>
+                                <div className="flex space-x-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            type="button"
+                                            key={star}
+                                            onClick={() => setReview({ ...review, rate: star })}
+                                            onMouseEnter={() => setHoverRating(star)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            className="text-2xl focus:outline-none"
+                                        >
+                                            <FaStar
+                                                className={
+                                                    (hoverRating || review.rate) >= star
+                                                        ? 'text-yellow-400'
+                                                        : 'text-gray-300'
+                                                }
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Comment */}
+                            <div>
+                                <label htmlFor="comment" className="block cairo mb-2">
+                                    رسالتك
+                                </label>
+                                <textarea
+                                    id="comment"
+                                    name="comment"
+                                    rows="3"
+                                    value={review.comment}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="شاركنا رأيك..."
+                                ></textarea>
+                            </div>
+
+                            {/* Name */}
+                            <div>
+                                <label htmlFor="client_name" className="block cairo mb-2">
+                                    اسمك
+                                </label>
+                                <input
+                                    type="text"
+                                    id="client_name"
+                                    name="client_name"
+                                    value={review.client_name}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="محمد"
+                                />
+                            </div>
+
+                            {/* Phone */}
+                            <div>
+                                <label htmlFor="client_phone" className="block cairo mb-2">
+                                    الموبايل
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="client_phone"
+                                    name="client_phone"
+                                    value={review.client_phone}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="01018665XXXX"
+                                />
+                            </div>
+
+                            {/* Attachment */}
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting || review.rate === 0}
+                                className={`w-full cairo py-2 px-4 rounded text-white ${isSubmitting || review.rate === 0
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-500 hover:bg-green-600'
+                                    }`}
+                            >
+                                {isSubmitting ? 'ارسال...' : 'ارسال التقييم'}
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+
+            )
+            }
+
+
+
 
             <div
-                className="contact-us-button fixed z-50 bottom-4 right-4 cursor-pointer"
+                className="contact-us-button fixed z-40 bottom-4 right-4 cursor-pointer"
                 onClick={() => setShowContacts(!showContacts)}
             >
                 <img src={call} className={`w-11 h-11 border-2 rounded-full ${showContacts ? 'border-sky-300' : 'border-white'}`} alt="Call" />
             </div>
+            <div onClick={() => setToggleReview(true)}
+
+                className="review-us-button fixed z-40 bottom-20 right-4 cursor-pointer"
+            >
+                <img src={rev} className={`w-11 h-11 bg-white  p-1 rounded-full `} alt="Call" />
+
+                <div className="add-rev-btn absolute w-4 h-4 flex text-sm justify-center items-center rounded-full -left-2 bottom-0 text-white ">
+                    <img src={add} className='border-2 border-white rounded-full' alt="" />
+                </div>
+            </div>
 
             {/* Contact Numbers with CSS Transition */}
-            <div
-                className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
+            {/* <div
+                className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts
+                    ? 'opacity-100 translate-y-0 scale-100'
+                    : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
                     }`}
             >
                 <i className="fa-solid absolute -bottom-3 right-3 text-2xl text-white fa-sort-down"></i>
 
-                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
-                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
-                    <p className='text-lg cairo'>01118335538</p>
-                </div>
-                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
-                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
-                    <p className='text-lg cairo'>01118335538</p>
-                </div>
-                <div className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
-                    <i className="fa-solid text-xl text-green-700 fa-phone"></i>
-                    <p className='text-lg cairo'>01118335538</p>
-                </div>
-            </div>
-
+                {phones.map((phone, index) => (
+                    <div key={index} className="number flex gap-2 p-3 hover:bg-slate-100 items-center">
+                        <i className="fa-solid text-xl text-green-700 fa-phone"></i>
+                        <p className='cairo text-lg'>{phone}</p>
+                    </div>
+                ))}
+            </div> */}
             <div className="menu-cover-pic relative h-44 shadow-xl shadow-slate-200  bg-red-100 flex justify-center items-center">
-                <div className="close-label bg-red-500 flex justify-center items-center absolute top-0 left-0 right-0 h-8">
-                    <p className='text-white'><i className="fa-solid fa-circle-exclamation text-gray-400"></i> Closed at 2:00 Am </p>
-
-                </div>
-                <img className='w-full h-full object-cover' src={cover} alt="" />
-                <div className="profile-pic absolute -bottom-1/3 border-4 border-white shadow-lg w-44 h-44 rounded-full overflow-hidden">
+                {isClosed && (
+                    <div className="close-label bg-red-500 flex justify-center items-center absolute top-0 left-0 right-0 h-8">
+                        <p className='cairo text-white'>
+                            <i className="fa-solid fa-circle-exclamation text-gray-400 mr-2"></i>
+                            Closed at {endTime}
+                        </p>
+                    </div>
+                )}                <img className='w-full h-full object-cover' src={cover} alt="" />
+                <div className="profile-pic absolute -bottom-1/3 border-4 border-white shadow-lg md:w-44 md:h-44 w-36 h-36 rounded-full overflow-hidden">
                     <img src={reslogo} alt="" className="w-full h-full object-cover" />
                 </div>
             </div>
-            <div className="name-bio flex flex-col items-center mt-20">
-                <p className='name text-xl font-medium'>Mekato Cafe</p>
-                <p className='bio text-gray-600'>20% taxes and services in weekend </p>
+            <div className="name-bio  flex flex-col items-center mt-20">
+
+                <p className='cairo name text-xl font-medium' dir="rtl">
+                    {menuData.name}
+                </p>
+
+                <p className='bio cairo px-3 text-center md:text-base text-sm text-gray-600'> {menuData.bio} </p>
 
             </div>
             <div className="contact-icons w-72 mx-auto mt-3 gap-2 flex justify-center">
@@ -695,377 +1034,491 @@ export default function Menu() {
 
             </div>
 
+            {menuLive ? (
+                <>
+                    <div className="menu-not-live flex flex-col items-center gap-2 border-t-2 mt-5 pt-12 min-h-screen">
+                        <img src={closed} alt="" />
+                        <p className='cairo'>المنيو مغلق الأن</p>
 
-            <div className="w-full position-relative">
-                <div className="flex justify-center border-b border-gray-200 pt-2  ">
-                    <div
-                        className={sectionTab("menu")}
-                        onClick={() => setActiveSection("menu")}
-                    >
-                        المنيو
+
                     </div>
 
 
-                    <div
-                        className={sectionTab("pay")}
-                        onClick={() => setActiveSection("pay")}
-                    >
-                        العروض
+
+                </>
+
+
+            ) : (<>
+
+                <div className="w-full position-relative">
+                    <div className="flex justify-center border-b border-gray-200 pt-2  ">
+
+
+                        <div
+                            className={sectionTab("pay")}
+                            onClick={() => setActiveSection("pay")}
+                        >
+                            العروض
+                        </div>
+                        <div
+                            className={sectionTab("menu")}
+                            onClick={() => setActiveSection("menu")}
+                        >
+                            المنيو
+                        </div>
+
                     </div>
-                </div>
 
-                <div className="  mt-4  md:pb-28 pb-20 relative  rounded-md">
-                    {activeSection === "menu" && (
-                        <div className="menu">
-                            <div className="search-categories flex items-center mt-1 h-11">
-                                {/* Search Icon */}
-                                <div
-                                    className="search-icon flex justify-center items-center bg-slate-50 rounded-s-full border-e-2 w-11 h-11 cursor-pointer"
-                                    onClick={toggleSearch}
-                                >
-                                    <i className="fa-solid fa-magnifying-glass"></i>
+                    <div className="  mt-4  md:pb-28 pb-20 relative  rounded-md">
+                        {activeSection === "menu" && (
+                            <div className="menu">
+                                <div className="search-categories flex items-center mt-1 h-11">
+                                    {/* Search Icon */}
+                                    <div
+                                        className="search-icon flex justify-center items-center bg-slate-50 rounded-s-full border-e-2 w-11 h-11 cursor-pointer"
+                                        onClick={toggleSearch}
+                                    >
+                                        <i className="fa-solid fa-magnifying-glass"></i>
+                                    </div>
+
+                                    {/* Search Input */}
+                                    <div
+                                        className={`search-input ${isSearchVisible ? 'w-full' : 'w-0'} h-full transition-all duration-300 overflow-hidden`}
+                                    >
+                                        <input
+                                            className="w-full h-full px-1 border-none outline-none bg-slate-50"
+                                            type="search"
+                                            placeholder="Search here .."
+                                        />
+                                    </div>
+
+                                    {/* Categories Section with Horizontal Scroll */}
+                                    <div
+                                        className={`categories  h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'
+                                            }`}
+                                        ref={scrollRef}
+                                        onMouseDown={handleMouseDown}
+                                        onMouseMove={handleMouseMove}
+                                        onMouseLeave={handleMouseUp}
+                                        onMouseUp={handleMouseUp}
+                                        style={{
+                                            cursor: isDragging ? 'grabbing' : 'grab',
+                                            scrollbarWidth: 'none', // for Firefox
+                                            msOverflowStyle: 'none' // for IE and Edge
+                                        }}
+
+                                    >
+
+                                        {sections.map((section) => (
+                                            <div key={section.id} className="category-section border border-red-500 bg-white px-4 py-1 rounded-2xl">
+                                                <p className='cairo md:text-base text-sm'>{section.name}</p>
+                                            </div>
+
+
+                                        ))}
+
+
+                                        {/* Add more items as needed */}
+                                    </div>
+
                                 </div>
 
-                                {/* Search Input */}
-                                <div
-                                    className={`search-input ${isSearchVisible ? 'w-full' : 'w-0'} h-full transition-all duration-300 overflow-hidden`}
-                                >
-                                    <input
-                                        className="w-full h-full px-1 border-none outline-none bg-slate-50"
-                                        type="search"
-                                        placeholder="Search here .."
-                                    />
-                                </div>
+                                <div className="menu-categories-items p-4 ">
 
-                                {/* Categories Section with Horizontal Scroll */}
-                                <div
-                                    className={`categories  h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'
-                                        }`}
-                                    ref={scrollRef}
-                                    onMouseDown={handleMouseDown}
-                                    onMouseMove={handleMouseMove}
-                                    onMouseLeave={handleMouseUp}
-                                    onMouseUp={handleMouseUp}
-                                    style={{
-                                        cursor: isDragging ? 'grabbing' : 'grab',
-                                        scrollbarWidth: 'none', // for Firefox
-                                        msOverflowStyle: 'none' // for IE and Edge
-                                    }}
+                                    {/* Item Size Form */}
+                                    {isFormVisible && selectedItem && (
+                                        <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
+                                            <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
+                                                <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
+                                                    X
+                                                </div>
+                                                <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
+                                                <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
+                                                <hr />
+                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
 
-                                >
+                                                {/* Sizes */}
+                                                <div className="sizes items-buttons-container pb-2 px-3">
+                                                    {selectedItem.sizes.map((size, index) => (
+                                                        <div className="Size items-button w-full" key={index}>
+                                                            <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
+                                                            <label htmlFor={`size${index}`} className="items-button__label w-full">
+                                                                <span className="items-button__custom"></span>
+                                                                <div className="item-option w-full justify-between flex">
+                                                                    <p className='cairo font-medium'>{size.name}</p>
+                                                                    <p className='cairo font-medium'>{size.price}</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <hr />
 
-                                    {sections.map((section) => (
-                                        <div key={section.id} className="category-section border border-red-500 bg-white px-4 py-1 rounded-2xl">
-                                            <p>{section.name}</p>
+                                                {/* Extras */}
+                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                                <div className="extras items-buttons-container px-3">
+                                                    {selectedItem.extras.map((extra, index) => (
+                                                        <div className="extra items-button w-full" key={index}>
+                                                            <input name="extras-group" id={`extra${index}`} className="items-button__input" type="radio" />
+                                                            <label htmlFor={`extra${index}`} className="items-button__label w-full">
+                                                                <span className="items-button__custom"></span>
+                                                                <div className="item-option w-full justify-between flex">
+                                                                    <p className='cairo font-medium'>{extra.name}</p>
+                                                                    <p className='cairo font-medium'>{extra.price}</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="add-to-cart flex justify-center mt-4">
+                                                    <button className={`button ${loading ? 'loading' : ''}`} onClick={handleClick}>
+                                                        <span onClick={addToCart}>Add to cart</span>
+                                                        <div className="cart">
+                                                            <svg viewBox="0 0 36 26">
+                                                                <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
+                                                                <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
+                                    )}
 
+                                    {/* Categories and Items */}
+                                    {sections.map((section) => (
+                                        <div key={section.id} className="category-and-items mt-5 rounded-md">
+                                            <div className="category bg-white rounded-md shadow-lg pb-3">
+                                                <img className='w-full object-cover h-28 rounded-md' src={section.cover_image_url ? section.cover_image_url : def} alt={section.name} />
+                                                <div className="category-name text-center mt-2">
+                                                    <p className='cairo cairo font-semibold'>{section.name}</p>
+                                                </div>
+                                            </div>
 
+                                            {section.items.map((item) => (
+                                                <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
+                                                    <div className="left-side w-3/4 h-full p-1">
+                                                        <div className="item-name">
+                                                            <p className='cairo font-medium text-sm kufi'>{item.name}</p>
+                                                        </div>
+                                                        <div className="item-price-and-add w-full h-full flex justify-between">
+                                                            <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>{getPriceRange(item)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="right-side relative h-full">
+                                                        <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
+                                                        <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                            <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
+                                                                    <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
+                                                                    <path d="M8 12H16" strokeWidth="1.5"></path>
+                                                                    <path d="M12 16V8" strokeWidth="1.5"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ))}
 
 
-                                    {/* Add more items as needed */}
+
+
+                                </div>
+
+
+
+
+                            </div>
+
+                        )}
+                        {activeSection === "contact" && (
+
+                            <div className="contact mt-3 flex flex-col items-center  rounded-md ">
+                                <div className="contact-tools  w-full p-4 flex justify-center gap-3">
+                                    <div className="facebook w-32 h-32  flex justify-center items-center bg-blue-50 rounded-md">
+                                        <img src={fb} alt="" />
+                                        {/* <i className="fa-brands text-3xl  fa-facebook-f"></i> */}
+                                    </div>
+                                    <div className="call w-32 h-32 flex justify-center items-center bg-green-50 rounded-md">
+
+                                        {/* <i className="fa-solid  text-3xl fa-phone"></i>              */}
+                                        <img className='w-full h-full' src={call} alt="" />
+
+                                    </div>
+
+
                                 </div>
 
                             </div>
 
-                            <div className="menu-categories-items p-4 ">
+                        )}
 
-                                {/* Item Size Form */}
-                                {isFormVisible && selectedItem && (
-                                    <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
-                                        <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
-                                            <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
-                                                X
-                                            </div>
-                                            <p className='text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
-                                            <p className='item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
-                                            <hr />
-                                            <p className='text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
+                        {activeSection === "pay" && (
+                            <div className="pay flex justify-center">
 
-                                            {/* Sizes */}
-                                            <div className="sizes items-buttons-container pb-2 px-3">
-                                                {selectedItem.sizes.map((size, index) => (
-                                                    <div className="Size items-button w-full" key={index}>
-                                                        <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
-                                                        <label htmlFor={`size${index}`} className="items-button__label w-full">
-                                                            <span className="items-button__custom"></span>
-                                                            <div className="item-option w-full justify-between flex">
-                                                                <p className='font-medium'>{size.name}</p>
-                                                                <p className='font-medium'>{size.price}</p>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <hr />
+                                <div className="menu-categories-items min-h-screen w-full p-4 ">
 
-                                            {/* Extras */}
-                                            <p className='text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
-                                            <div className="extras items-buttons-container px-3">
-                                                {selectedItem.extras.map((extra, index) => (
-                                                    <div className="extra items-button w-full" key={index}>
-                                                        <input name="extras-group" id={`extra${index}`} className="items-button__input" type="radio" />
-                                                        <label htmlFor={`extra${index}`} className="items-button__label w-full">
-                                                            <span className="items-button__custom"></span>
-                                                            <div className="item-option w-full justify-between flex">
-                                                                <p className='font-medium'>{extra.name}</p>
-                                                                <p className='font-medium'>{extra.price}</p>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="add-to-cart flex justify-center mt-4">
-                                                <button className={`button ${loading ? 'loading' : ''}`} onClick={handleClick}>
-                                                    <span onClick={addToCart}>Add to cart</span>
-                                                    <div className="cart">
-                                                        <svg viewBox="0 0 36 26">
-                                                            <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
-                                                            <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
-                                                        </svg>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Categories and Items */}
-                                {sections.map((section) => (
-                                    <div key={section.id} className="category-and-items mt-5 rounded-md">
-                                        <div className="category bg-white rounded-md shadow-lg pb-3">
-                                            <img className='w-full object-cover h-28 rounded-md' src={section.cover_image_url ? section.cover_image_url : def} alt={section.name} />
-                                            <div className="category-name text-center mt-2">
-                                                <p className='cairo font-semibold'>{section.name}</p>
-                                            </div>
-                                        </div>
-
-                                        {section.items.map((item) => (
-                                            <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
-                                                <div className="left-side w-3/4 h-full p-1">
-                                                    <div className="item-name">
-                                                        <p className='font-medium text-sm kufi'>{item.name}</p>
-                                                    </div>
-                                                    <div className="item-price-and-add w-full h-full flex justify-between">
-                                                        <p className='kufi text-[#20617c] text-lg font-medium mt-2'>{getPriceRange(item)}</p>
-                                                    </div>
+                                    {/* Item Size Form */}
+                                    {isFormVisible && selectedItem && (
+                                        <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
+                                            <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
+                                                <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
+                                                    X
                                                 </div>
-                                                <div className="right-side relative h-full">
-                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
-                                                    <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
-                                                        <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
-                                                                <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
-                                                                <path d="M8 12H16" strokeWidth="1.5"></path>
-                                                                <path d="M12 16V8" strokeWidth="1.5"></path>
+                                                <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
+                                                <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
+                                                <hr />
+                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
+
+                                                {/* Sizes */}
+                                                <div className="sizes items-buttons-container pb-2 px-3">
+                                                    {selectedItem.sizes.map((size, index) => (
+                                                        <div className="Size items-button w-full" key={index}>
+                                                            <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
+                                                            <label htmlFor={`size${index}`} className="items-button__label w-full">
+                                                                <span className="items-button__custom"></span>
+                                                                <div className="item-option w-full justify-between flex">
+                                                                    <p className='cairo font-medium'>{size.name}</p>
+                                                                    <p className='cairo font-medium'>{size.price}</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <hr />
+
+                                                {/* Extras */}
+                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                                <div className="extras items-buttons-container px-3">
+                                                    {selectedItem.extras.map((extra, index) => (
+                                                        <div className="extra items-button w-full" key={index}>
+                                                            <input name="extras-group" id={`extra${index}`} className="items-button__input" type="radio" />
+                                                            <label htmlFor={`extra${index}`} className="items-button__label w-full">
+                                                                <span className="items-button__custom"></span>
+                                                                <div className="item-option w-full justify-between flex">
+                                                                    <p className='cairo font-medium'>{extra.name}</p>
+                                                                    <p className='cairo font-medium'>{extra.price}</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="add-to-cart flex justify-center mt-4">
+                                                    <button className={`button ${loading ? 'loading' : ''}`} onClick={handleClick}>
+                                                        <span onClick={addToCart}>Add to cart</span>
+                                                        <div className="cart">
+                                                            <svg viewBox="0 0 36 26">
+                                                                <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
+                                                                <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
                                                             </svg>
-                                                        </button>
-                                                    </div>
+                                                        </div>
+                                                    </button>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ))}
+                                        </div>
+                                    )}
+
+                                    {/* Categories and Items */}
+
+
+                                    {offerItems.map((item) => (
+                                        <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
+                                            <div className="left-side w-3/4 h-full p-1">
+                                                <div className="item-name">
+                                                    <p className='cairo font-medium text-sm kufi'>{item.name}</p>
+                                                </div>
+                                                <div className="item-price-and-add w-full h-full flex justify-between">
+                                                    <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>{item?.item_prices[0]?.price}</p>
+                                                </div>
+                                            </div>
+                                            <div className="right-side relative h-full">
+                                                <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
+                                                <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                    <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
+                                                            <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
+                                                            <path d="M8 12H16" strokeWidth="1.5"></path>
+                                                            <path d="M12 16V8" strokeWidth="1.5"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
 
 
 
 
-                            </div>
 
-
-
-
-                        </div>
-
-                    )}
-                    {activeSection === "contact" && (
-
-                        <div className="contact mt-3 flex flex-col items-center  rounded-md ">
-                            <div className="contact-tools  w-full p-4 flex justify-center gap-3">
-                                <div className="facebook w-32 h-32  flex justify-center items-center bg-blue-50 rounded-md">
-                                    <img src={fb} alt="" />
-                                    {/* <i className="fa-brands text-3xl  fa-facebook-f"></i> */}
                                 </div>
-                                <div className="call w-32 h-32 flex justify-center items-center bg-green-50 rounded-md">
-
-                                    {/* <i className="fa-solid  text-3xl fa-phone"></i>              */}
-                                    <img className='w-full h-full' src={call} alt="" />
-
-                                </div>
-
 
                             </div>
-
-                        </div>
-
-                    )}
-
-                    {activeSection === "pay" && (
-                        <div className="pay flex justify-center">
-                            <div className="call shadow-lg border rounded-lg w-32 h-32 flex bg-slate-300 justify-center items-center ">
-
-                                <img className='w-full h-full rounded-lg' src={instapay} alt="" />
-
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className={`cart fixed w-full ${cartCount == 0 ? "hidden" : "flex"} flex flex-col items-center  z-10  bottom-0  `}>
-
-
-                <div dir='rtl' className="cart-icon w-1/3 flex items-center justify-between px-3 bg-sky-400 border-t border-blue-600 shadow-2xl h-12 mx-4 rounded-t-3xl ">
-                    <div className="cart-and-count text-white flex items-center justify-center">
-                        <i className="fa-solid fa-cart-shopping text-red-600 text-2xl pe-5"></i>
-                        <p className='cart-count text-2xl '>{cartCount}</p>
+                        )}
                     </div>
-                    <Link to={"/cart"}>
-                        <i className="fa-solid fa-arrow-left text-white text-xl"></i>
-                    </Link>
                 </div>
-                {/* <div dir='rtl' className="cart-page p-3 pb-14  w-full h-full bg-white">
-                                    <div className="cart-details  h-fit border-2">
-                                        <div className="res-logo  h-36 pb-5 flex justify-center items-center  ">
-                                            <img className='rounded-full border-8 border-white shadow-lg w-32 h-32' src={reslogo} alt="" />
+                <div className={`cart fixed w-full ${cartCount == 0 ? "hidden" : "flex"} flex flex-col items-center  z-10  bottom-0  `}>
 
 
-                                        </div>
-                                        <hr />
-                                        <div dir='rtl' className="items-details p-3">
-                                            <p className='text-xl font-bold cairo'>تفاصيل الطلب</p>
+                    <div dir='rtl' className="cart-icon w-1/3 flex items-center justify-between px-3 bg-sky-400 border-t border-blue-600 shadow-2xl h-12 mx-4 rounded-t-3xl ">
+                        <div className="cart-and-count text-white flex items-center justify-center">
+                            <i className="fa-solid fa-cart-shopping text-red-600 text-2xl pe-5"></i>
+                            <p className='cairo cart-count text-2xl '>{cartCount}</p>
+                        </div>
+                        <Link to={"/cart"}>
+                            <i className="fa-solid fa-arrow-left text-white text-xl"></i>
+                        </Link>
+                    </div>
+                    {/* <div dir='rtl' className="cart-page p-3 pb-14  w-full h-full bg-white">
+                        <div className="cart-details  h-fit border-2">
+                            <div className="res-logo  h-36 pb-5 flex justify-center items-center  ">
+                                <img className='rounded-full border-8 border-white shadow-lg w-32 h-32' src={reslogo} alt="" />
 
 
-                                        </div>
-                                        <hr />
-                                        <div dir='rtl' className="items ">
-                                            <div className="item p-3 bg-slate-100">
-                                                <div className="item-name-price flex justify-between">
-
-                                                    <p className='cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
-
-                                                </div>
-                                                <div className="item-size">
-                                                    <p className='font-medium'>حجم صغير</p>
-
-                                                </div>
-                                                <div className="item-extras flex justify-between">
-                                                    <p>اضافة جبنة</p> <p>25 EGP</p>
-                                                </div>
-                                                <div className="item-extras flex justify-between">
-                                                    <p>اضافة بيبسي</p> <p>35 EGP</p>
-                                                </div>
-                                                <div className="item-count  mt-4 flex justify-center w-full">
-                                                    <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
-                                                        <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
-                                                        <p className='text-xl'>2</p>
-                                                        <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
-                                                    </div>
+                            </div>
+                            <hr />
+                            <div dir='rtl' className="items-details p-3">
+                                <p className='cairo text-xl font-bold cairo'>تفاصيل الطلب</p>
 
 
-                                                </div>
-                                            </div>
-                                            <div className="item p-3 bg-slate-100">
-                                                <div className="item-name-price flex justify-between">
+                            </div>
+                            <hr />
+                            <div dir='rtl' className="items ">
+                                <div className="item p-3 bg-slate-100">
+                                    <div className="item-name-price flex justify-between">
 
-                                                    <p className='cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
-
-                                                </div>
-                                                <div className="item-size">
-                                                    <p className='font-medium'>حجم صغير</p>
-
-                                                </div>
-                                                <div className="item-extras flex justify-between">
-                                                    <p>اضافة جبنة</p> <p>25 EGP</p>
-                                                </div>
-                                                <div className="item-extras flex justify-between">
-                                                    <p>اضافة بيبسي</p> <p>35 EGP</p>
-                                                </div>
-                                                <div className="item-count  mt-4 flex justify-center w-full">
-                                                    <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
-                                                        <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
-                                                        <p className='text-xl'>2</p>
-                                                        <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
-                                                    </div>
-
-
-                                                </div>
-                                            </div>
-                                            <div className="item p-3 bg-slate-100">
-                                                <div className="item-name-price flex justify-between">
-
-                                                    <p className='cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
-
-                                                </div>
-                                                <div className="item-size">
-                                                    <p className='font-medium'></p>
-
-                                                </div>
-                                                <div className="item-extras flex justify-between">
-                                                    <p></p> <p></p>
-                                                </div>
-
-                                                <div className="item-count  mt-4 flex justify-center w-full">
-                                                    <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
-                                                        <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
-                                                        <p className='text-xl'>2</p>
-                                                        <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
-                                                    </div>
-
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr />
-                                        <div className="total-price p-3 flex justify-between">
-                                            <p className='cairo font-bold'>السعر الكلي </p> <p className=' font-bold'>350 EGP</p>
-
-
-                                        </div>
-                                        <hr />
-                                        <div className="order-way p-3">
-                                            <input name="order-group" id={`table`} className="items-button__input" type="radio" />
-                                            <label htmlFor={`table`} className="items-button__label w-full">
-                                                <span className="items-button__custom"></span>
-                                                <p className='font-medium cairo'>داخل المطعم</p>
-                                            </label>
-                                            <input name="order-group" id={`pickup`} className="items-button__input" type="radio" />
-                                            <label htmlFor={`pickup`} className="items-button__label w-full">
-                                                <span className="items-button__custom"></span>
-                                                <p className='font-medium cairo'>Pickup</p>
-                                            </label>
-                                            <input name="order-group" id={`takeaway`} className="items-button__input" type="radio" />
-                                            <label htmlFor={`takeaway`} className="items-button__label w-full">
-                                                <span className="items-button__custom"></span>
-                                                <p className='font-medium cairo'>تيك اواي</p>
-                                            </label>
-                                            <input name="order-group" id={`delivery`} className="items-button__input" type="radio" />
-                                            <label htmlFor={`delivery`} className="items-button__label w-full">
-                                                <span className="items-button__custom"></span>
-                                                <p className='font-medium cairo'>دليفري</p>
-                                            </label>
-                                        </div>
-                                        <hr />
-
-                                        <div className="proceed flex justify-center mb-7 items-center p-3">
-
-                                            <button className='py-2 px-4 bg-green-500 rounded-md cairo font-semibold text-white'>تنفيذ الطلب</button>
-
-                                        </div>
+                                        <p className='cairo cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
 
                                     </div>
+                                    <div className="item-size">
+                                        <p className='cairo font-medium'>حجم صغير</p>
+
+                                    </div>
+                                    <div className="item-extras flex justify-between">
+                                        <p>اضافة جبنة</p> <p>25 EGP</p>
+                                    </div>
+                                    <div className="item-extras flex justify-between">
+                                        <p>اضافة بيبسي</p> <p>35 EGP</p>
+                                    </div>
+                                    <div className="item-count  mt-4 flex justify-center w-full">
+                                        <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
+                                            <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
+                                            <p className='cairo text-xl'>2</p>
+                                            <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                                <div className="item p-3 bg-slate-100">
+                                    <div className="item-name-price flex justify-between">
+
+                                        <p className='cairo cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
+
+                                    </div>
+                                    <div className="item-size">
+                                        <p className='cairo font-medium'>حجم صغير</p>
+
+                                    </div>
+                                    <div className="item-extras flex justify-between">
+                                        <p>اضافة جبنة</p> <p>25 EGP</p>
+                                    </div>
+                                    <div className="item-extras flex justify-between">
+                                        <p>اضافة بيبسي</p> <p>35 EGP</p>
+                                    </div>
+                                    <div className="item-count  mt-4 flex justify-center w-full">
+                                        <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
+                                            <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
+                                            <p className='cairo text-xl'>2</p>
+                                            <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                                <div className="item p-3 bg-slate-100">
+                                    <div className="item-name-price flex justify-between">
+
+                                        <p className='cairo cairo font-semibold'>فرخة مخلية مشوية - chickn grill</p> <p>250 EGP</p>
+
+                                    </div>
+                                    <div className="item-size">
+                                        <p className='cairo font-medium'></p>
+
+                                    </div>
+                                    <div className="item-extras flex justify-between">
+                                        <p></p> <p></p>
+                                    </div>
+
+                                    <div className="item-count  mt-4 flex justify-center w-full">
+                                        <div className="count flex justify-evenly items-center gap-3 w-28 h-9 border bg-white rounded-lg">
+                                            <i className="fa-solid p-1 rounded-full bg-slate-100 hover:bg-slate-200 fa-plus "></i>
+                                            <p className='cairo text-xl'>2</p>
+                                            <i className="fa-solid fa-minus p-1 rounded-full bg-slate-100 hover:bg-slate-200 "></i>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                            <hr />
+                            <div className="total-price p-3 flex justify-between">
+                                <p className='cairo cairo font-bold'>السعر الكلي </p> <p className='cairo  font-bold'>350 EGP</p>
+
+
+                            </div>
+                            <hr />
+                            <div className="order-way p-3">
+                                <input name="order-group" id={`table`} className="items-button__input" type="radio" />
+                                <label htmlFor={`table`} className="items-button__label w-full">
+                                    <span className="items-button__custom"></span>
+                                    <p className='cairo font-medium cairo'>داخل المطعم</p>
+                                </label>
+                                <input name="order-group" id={`pickup`} className="items-button__input" type="radio" />
+                                <label htmlFor={`pickup`} className="items-button__label w-full">
+                                    <span className="items-button__custom"></span>
+                                    <p className='cairo font-medium cairo'>Pickup</p>
+                                </label>
+                                <input name="order-group" id={`takeaway`} className="items-button__input" type="radio" />
+                                <label htmlFor={`takeaway`} className="items-button__label w-full">
+                                    <span className="items-button__custom"></span>
+                                    <p className='cairo font-medium cairo'>تيك اواي</p>
+                                </label>
+                                <input name="order-group" id={`delivery`} className="items-button__input" type="radio" />
+                                <label htmlFor={`delivery`} className="items-button__label w-full">
+                                    <span className="items-button__custom"></span>
+                                    <p className='cairo font-medium cairo'>دليفري</p>
+                                </label>
+                            </div>
+                            <hr />
+
+                            <div className="proceed flex justify-center mb-7 items-center p-3">
+
+                                <button className='py-2 px-4 bg-green-500 rounded-md cairo font-semibold text-white'>تنفيذ الطلب</button>
+
+                            </div>
+
+                        </div>
 
 
 
-                                </div> */}
+                    </div> */}
 
-            </div>
+                </div>
+            </>
+            )
+
+
+            }
             <div className="powred-by">
 
-                <p className='kufi text-center text-gray-700 '>Powered by <span>Takka</span> </p>
+                <p className='cairo kufi text-center text-gray-700 '>Powered by <span>Takka</span> </p>
 
             </div>
-        </div>
+        </div >
 
 
 

@@ -17,12 +17,22 @@ import NewMenuCreation from '../../Components/NewMenuCreation/NewMenuCreation.js
 
 
 
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+
 
 
 export default function MenuManagement() {
 
 
     const [sections, setSections] = useState([]);
+    //     const [sectionData, setSectionData] = useState([
+
+    // name: "",
+    // note:"",
+
+
+    //     ]);
+
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [isAddFormVisible, setIsAddFormVisible] = useState(false);
@@ -31,16 +41,335 @@ export default function MenuManagement() {
     const [itemName, setItemName] = useState('');
     const [itemDesc, setItemDesc] = useState('');
     const [firstPrice, setFirstPrice] = useState('');
+    const [offerItems, setOfferItems] = useState([]);
+    const [offerSectionId, setOfferSectionId] = useState(null);
+    const [expanded, setExpanded] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const [menuData, setMenuData] = useState(""); // Stored Location URL
 
     const [activeMoreIndex, setActiveMoreIndex] = useState(null); // Tracks which "more" menu is active
     const [activeSectionEditor, setActiveSectionEditor] = useState("items");
     const [activeItemEditor, setActiveItemEditor] = useState("details");
-    const [prices, setPrices] = useState([]);
-    const [extras, setExtras] = useState([]);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [activeItemMoreIndex, setActiveItemMoreIndex] = useState(null);
+    const [activeOfferMoreIndex, setActiveOfferMoreIndex] = useState(null);
+    const [isSectionsLoading, setIsSectionsLoading] = useState(false);
+    const [isMenuLoading, setIsMenuLoading] = useState(true);
+
+    const [activeSectionMoreIndex, setActiveSectionMoreIndex] = useState(null); // Keep your existing section one too
+    const [prices, setPrices] = useState(
+        selectedItem?.item_prices?.map(p => ({
+            label: p.label || '',
+            price: p.price || ''
+        })) || []
+    ); const [extras, setExtras] = useState([]);
     const [phones, setPhones] = useState([]); // First number is default
     const [itemPayload, setItemPayload] = useState({ name: '', description: '', item_price: [], item_extras: [], first_price: '' });
     // payload
 
+
+
+
+
+
+
+
+
+
+
+
+    /////////////////////////
+    // Add these helper functions somewhere in your component
+    const moveItemUp = async (sectionId, itemId) => {
+        const sectionIndex = sections.findIndex(section => section.id === sectionId);
+        if (sectionIndex === -1) return;
+
+        const itemIndex = sections[sectionIndex].items.findIndex(item => item.id === itemId);
+        if (itemIndex <= 0) return; // Can't move up if it's already first
+
+        // Create a new array with the items reordered
+        const newItems = [...sections[sectionIndex].items];
+        [newItems[itemIndex - 1], newItems[itemIndex]] = [newItems[itemIndex], newItems[itemIndex - 1]];
+
+        // Update the state with the new order
+        const newSections = [...sections];
+        newSections[sectionIndex] = {
+            ...newSections[sectionIndex],
+            items: newItems
+        };
+
+        // Generate the output object
+        const output = {
+            section_id: sectionId.toString(),
+            items: newItems.map(item => ({ id: item.id }))
+        };
+
+        console.log("New order:", output); // Or send to your API
+        await reorderingItems(output)
+        setSections(newSections);
+    };
+
+
+    const reorderingItems = async (reorderedData) => {
+
+        try {
+            await axios.post("http://localhost:234/api/items/reorder", reorderedData);
+
+            toast.success("تم الترتيب بنجاح")
+        } catch (error) {
+            console.error("Error updating Location account:", error);
+            alert("Failed to update Location URL.");
+        }
+    };
+
+
+
+    const moveItemDown = async (sectionId, itemId) => {
+        const sectionIndex = sections.findIndex(section => section.id === sectionId);
+        if (sectionIndex === -1) return;
+
+        const itemIndex = sections[sectionIndex].items.findIndex(item => item.id === itemId);
+        if (itemIndex >= sections[sectionIndex].items.length - 1) return; // Can't move down if it's already last
+
+        // Create a new array with the items reordered
+        const newItems = [...sections[sectionIndex].items];
+        [newItems[itemIndex], newItems[itemIndex + 1]] = [newItems[itemIndex + 1], newItems[itemIndex]];
+
+        // Update the state with the new order
+        const newSections = [...sections];
+        newSections[sectionIndex] = {
+            ...newSections[sectionIndex],
+            items: newItems
+        };
+
+        // Generate the output object
+        const output = {
+            section_id: sectionId.toString(),
+            items: newItems.map(item => ({ id: item.id }))
+        };
+
+        console.log("New order:", output); // Or send to your API
+        await reorderingItems(output)
+        setSections(newSections);
+    };
+
+
+
+
+
+    const handleDragEnd = async (result) => {
+        if (!result.destination) return;
+
+        const { source, destination } = result;
+        if (source.droppableId === destination.droppableId && source.index === destination.index) {
+            return;
+        }
+
+        const sectionId = parseInt(source.droppableId);
+        const sectionIndex = sections.findIndex(section => section.id === sectionId);
+
+        const newItems = [...sections[sectionIndex].items];
+        const [removed] = newItems.splice(source.index, 1);
+        newItems.splice(destination.index, 0, removed);
+
+        const newSections = [...sections];
+        newSections[sectionIndex] = {
+            ...newSections[sectionIndex],
+            items: newItems
+        };
+
+        const output = {
+            section_id: sectionId.toString(),
+            items: newItems.map(item => ({ id: item.id }))
+        };
+
+        console.log("New order:", output); // Or send to your API
+        await reorderingItems(output)
+        setSections(newSections);
+    };
+
+    // Then wrap your sections in DragDropContext
+    <DragDropContext onDragEnd={handleDragEnd}>
+        {sections.length > 0 ? (sections.map((section, index) => (
+            <div key={section.id} className={`category mt-2`}>
+                {/* ... your section header code ... */}
+
+                <Droppable droppableId={section.id.toString()}>
+                    {(provided) => (
+                        <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="category-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out"
+                            style={{ maxHeight: expandedCategories[section.id] ? '500px' : '0px' }}
+                        >
+                            {section.items.map((item, itemIndex) => (
+                                <Draggable key={item.id} draggableId={item.id.toString()} index={itemIndex}>
+                                    {(provided) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                            onClick={() => {
+                                                openEditItemForm(item),
+                                                    setSelectedItem(item)
+                                            }}
+                                            className="item p-2 mt-2 hover:bg-slate-200 cursor-pointer rounded-md w-[97%] flex gap-2 justify-between bg-white"
+                                        >
+                                            {/* Your item content */}
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))}
+                            {provided.placeholder}
+                            <div onClick={() => openAddItemForm(section.id)} className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg">
+                                <p> + Add Item </p>
+                            </div>
+                        </div>
+                    )}
+                </Droppable>
+            </div>
+        ))) : (
+            <div className="empty-sections flex flex-col justify-center items-center">
+                <i className="fa-solid fa-arrow-up"></i>
+                <p>No Section add now!</p>
+            </div>
+        )}
+    </DragDropContext>
+
+
+
+
+
+
+
+    /////////////////////////////////////////////////////
+    //section reorder
+    // Section reordering logic
+    const moveSection = (sectionId, direction) => {
+        const sectionIndex = sections.findIndex(s => s.id === sectionId);
+        if (sectionIndex === -1) return;
+
+        // Check move boundaries
+        if ((direction === 'up' && sectionIndex <= 0) ||
+            (direction === 'down' && sectionIndex >= sections.length - 1)) {
+            return;
+        }
+
+        // Calculate new position
+        const newIndex = direction === 'up' ? sectionIndex - 1 : sectionIndex + 1;
+
+        // Create new array with swapped sections
+        const newSections = [...sections];
+        [newSections[sectionIndex], newSections[newIndex]] =
+            [newSections[newIndex], newSections[sectionIndex]];
+
+        // Update state
+        setSections(newSections);
+
+        // Log the new order
+        const menuId = newSections[0]?.menu_id; // Get menu_id from first section
+        const orderLog = {
+            menu_id: menuId ? menuId.toString() : 'unknown',
+            sections: newSections.map(section => ({ id: section.id }))
+        };
+
+        console.log('New section order:', orderLog);
+    };
+
+    // Helper functions for specific directions
+    const moveSectionUp = (sectionId) => moveSection(sectionId, 'up');
+    const moveSectionDown = (sectionId) => moveSection(sectionId, 'down');
+
+
+    ///////////////////
+    // offers reordering
+    // Add these functions to your component
+    const moveOfferItem = async (itemId, direction) => {
+        const itemIndex = offerItems.findIndex(item => item.id === itemId);
+        if (itemIndex === -1) return;
+
+        // Check boundaries
+        if ((direction === 'up' && itemIndex <= 0) ||
+            (direction === 'down' && itemIndex >= offerItems.length - 1)) {
+            return;
+        }
+
+        // Calculate new position
+        const newIndex = direction === 'up' ? itemIndex - 1 : itemIndex + 1;
+
+        // Create new array with swapped items
+        const newOfferItems = [...offerItems];
+        [newOfferItems[itemIndex], newOfferItems[newIndex]] =
+            [newOfferItems[newIndex], newOfferItems[itemIndex]];
+
+        // Update state
+        setOfferItems(newOfferItems);
+        console.log(offerSectionId);
+
+        // Log the new order (similar to regular items)
+        const orderLog = {
+            section_id: offerSectionId, // or your actual offers section ID
+            items: newOfferItems.map(item => ({ id: item.id }))
+        };
+
+        console.log('New offer items order:', orderLog);
+        await reorderingItems(orderLog)
+    };
+
+    // Helper functions
+    const moveOfferItemUp = (itemId) => moveOfferItem(itemId, 'up');
+    const moveOfferItemDown = (itemId) => moveOfferItem(itemId, 'down');
+    ///////////////////////////////
+    const handleItemMoreClick = (index) => {
+        setActiveItemMoreIndex(activeItemMoreIndex === index ? null : index);
+    };
+
+    const handleOfferMoreClick = (index) => {
+        setActiveOfferMoreIndex(activeOfferMoreIndex === index ? null : index);
+    };
+
+    const handleItemDeleteClick = (item) => {
+        // Your delete logic here
+        console.log("Deleting item:", item);
+        setActiveItemMoreIndex(null); // Close the menu after action
+    };
+
+
+    // const handlePriceChange = (index, field, value) => {
+    //     const updatedPrices = [...prices];
+    //     updatedPrices[index][field] = value;
+    //     setPrices(updatedPrices);
+    // };
+
+
+    const filterSections = (sections) => {
+        if (!searchQuery) return sections;
+
+        return sections.filter(section => {
+            const sectionNameMatches = section.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const itemMatches = section.items.some(item =>
+                item.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            return sectionNameMatches || itemMatches;
+        });
+    };
+    const filterItems = (items) => {
+        if (!searchQuery) return items;
+
+        return items.filter(item =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    };
+
+    // Filter offer items
+    const filterOfferItems = (items) => {
+        if (!searchQuery) return items;
+
+        return items.filter(item =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    };
 
 
     const getData = () => {
@@ -80,17 +409,22 @@ export default function MenuManagement() {
     const [openMenu, setOpenMenu] = useState(null);
     const [openItemMenu, setOpenItemMenu] = useState(null);
     const [sectionToDelete, setSectionToDelete] = useState(null); // State to track the section being deleted
+    const [scratchMenu, setScratchMenu] = useState(false); // State to track the section being deleted
+    const [sampleMenu, setSampleMenu] = useState(false); // State to track the section being deleted
 
     const [draggingIndex, setDraggingIndex] = useState(null); // Index of the category being dragged
     const [hoveredIndex, setHoveredIndex] = useState(null); // Index of the category being hovered over
     const dragCategory = useRef(null); // Reference for the dragged category
     const draggedOverCategory = useRef(null); // Reference for the category being dragged over
     const [isAddItemFormVisible, setAddItemFormVisible] = useState(false); // Manage form visibility
+    const [isAddOfferFormVisible, setAddOfferFormVisible] = useState(false); // Manage form visibility
+
     const [selectedSectionId, setSelectedSectionId] = useState(null); // Store the active section ID
     const [selectedSection, setSelectedSection] = useState(null);
 
     const [isEditItemFormVisible, setIsEditItemFormVisible] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
+    const [isEditOfferFormVisible, setIsEditOfferFormVisible] = useState(false);
+
     const [facebookUrl, setFacebookUrl] = useState(""); // Stored Facebook URL
     const [tempFacebookUrl, setTempFacebookUrl] = useState(""); // Temporary input value
     const [isFacebookDisabled, setIsFacebookDisabled] = useState(false);
@@ -111,16 +445,374 @@ export default function MenuManagement() {
     const [isLocationDisabled, setIsLocationDisabled] = useState(false);
     const [isUpdateLocation, setIsUpdateLocation] = useState(false);
     const [loading, setLoading] = useState(true);
-    const menu_id = localStorage.getItem("menu") // Get menu_id dynamically from the URL
-    console.log(menu_id);
+    const menu_id = localStorage.getItem("menu") // Get  dynamically from the URL
+    const m_id = localStorage.getItem("m_id") // Get  dynamically from the URL
+
+    // async function getSections(m_id) {
+    //     try {
+    //         // Fetch sections using 
+    //         const response = await axios.get(`http://localhost:234/api/menusection/${m_id}`);
+    //         console.log(response);
+
+    //         if (response.data) {
+    //             const sectionsWithImages = await Promise.all(
+    //                 response.data.map(async (section) => {
+    //                     let coverImageUrl = null;
+
+    //                     // Fetch section cover image if available
+    //                     if (section.cover_image) {
+    //                         try {
+    //                             const imageResponse = await axios.get(
+    //                                 `http://localhost:234/api/file/${section.cover_image}`,
+    //                                 { responseType: "blob" } // Fetch image as blob
+    //                             );
+    //                             coverImageUrl = URL.createObjectURL(imageResponse.data);
+    //                         } catch (imageError) {
+    //                             console.error(`Error fetching cover image for ${section.cover_image}`, imageError);
+    //                         }
+    //                     }
+
+    //                     // Fetch images for section items
+    //                     const itemsWithImages = await Promise.all(
+    //                         section.items.map(async (item) => {
+    //                             let itemImageUrl = null;
+
+    //                             if (item.image) {
+    //                                 try {
+    //                                     const itemImageResponse = await axios.get(
+    //                                         `http://localhost:234/api/file/${item.image}`,
+    //                                         { responseType: "blob" }
+    //                                     );
+    //                                     itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+    //                                 } catch (itemImageError) {
+    //                                     console.error(`Error fetching item image for ${item.image}`, itemImageError);
+    //                                 }
+    //                             }
+
+    //                             return { ...item, image_url: itemImageUrl };
+    //                         })
+    //                     );
+
+    //                     return {
+    //                         ...section,
+    //                         cover_image_url: coverImageUrl,
+    //                         items: itemsWithImages, // Include updated items with images
+    //                     };
+    //                 })
+    //             );
+
+    //             console.log(sectionsWithImages);
+    //             setSections(sectionsWithImages); // Update state with sections and images
+    //             console.log("sections", sections);
+
+    //         } else if (response.data.message == "Sections not found for the given MenuId") {
+
+    //             console.log("no sections");
+
+
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching sections:", error);
+    //         toast.error("حدث خطأ أثناء جلب الأقسام");
+
+    //         // Fallback dummy data
+    //     }
+    // }
+
+    // async function getSections(m_id) {
+    //     try {
+    //         const response = await axios.get(`http://localhost:234/api/menusection/${m_id}`);
+
+    //         if (!response.data || response.data.message === "Sections not found") {
+    //             console.log("No sections found for this menu");
+    //             setSections([]); // Set empty array
+    //             return;
+    //         }
+
+    //         const sectionsWithImages = await Promise.all(
+    //             response.data.map(async (section) => {
+    //                 let coverImageUrl = null;
+    //                 if (section.cover_image) {
+    //                     try {
+    //                         const imageResponse = await axios.get(
+    //                             `http://localhost:234/api/file/${section.cover_image}`,
+    //                             { responseType: "blob" }
+    //                         );
+    //                         coverImageUrl = URL.createObjectURL(imageResponse.data);
+    //                     } catch (imageError) {
+    //                         console.error("Error fetching cover image:", imageError);
+    //                     }
+    //                 }
+
+    //                 const itemsWithImages = await Promise.all(
+    //                     section.items.map(async (item) => {
+    //                         let itemImageUrl = null;
+    //                         if (item.image) {
+    //                             try {
+    //                                 const itemImageResponse = await axios.get(
+    //                                     `http://localhost:234/api/file/${item.image}`,
+    //                                     { responseType: "blob" }
+    //                                 );
+    //                                 itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+    //                             } catch (itemImageError) {
+    //                                 console.error("Error fetching item image:", itemImageError);
+    //                             }
+    //                         }
+    //                         return { ...item, image_url: itemImageUrl };
+    //                     })
+    //                 );
+
+    //                 return { ...section, cover_image_url: coverImageUrl, items: itemsWithImages };
+    //             })
+    //         );
+
+    //         setSections(sectionsWithImages);
+    //     } catch (error) {
+    //         if (error.response?.status === 404) {
+    //             console.log("Menu or sections not found");
+    //             setSections([]);
+    //         } else {
+    //             console.error("Error fetching sections:", error);
+    //             toast.error("حدث خطأ أثناء جلب الأقسام");
+    //         }
+    //     }
+    // }
+
+    async function getOfferSectionWithItems(m_id) {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menu-offers-owner/${m_id}`);
+
+            if (!response.data || response.data.message === "Sections not found") {
+                console.log("No sections found for this menu");
+                return { sectionId: null, items: [] };
+            }
+
+            // Find the offer section (is_offer = true)
+            const offerSection = response.data[0]
+
+            if (!offerSection) {
+                console.log("No offer section found");
+                return { sectionId: null, items: [] };
+            }
+
+            console.log(offerSection);
+
+            // Save the section ID globally
+            // offerSectionId = offerSection.id;
+
+            // Process items with their images
+            const itemsWithImages = await Promise.all(
+                offerSection.items.map(async (item) => {
+                    let itemImageUrl = null;
+                    if (item.image) {
+                        try {
+                            const itemImageResponse = await axios.get(
+                                `http://localhost:234/api/file/${item.image}`,
+                                { responseType: "blob" }
+                            );
+                            itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+                        } catch (itemImageError) {
+                            console.error("Error fetching item image:", itemImageError);
+                        }
+                    }
+                    return { ...item, image_url: itemImageUrl };
+                })
+            );
+
+            // Log the items before returning
+
+            return {
+                sectionId: offerSection.id,
+                items: itemsWithImages,
+                sectionData: {
+                    name: offerSection.name,
+                    description: offerSection.description
+                }
+            };
+
+        } catch (error) {
+            console.error("Error fetching offer section:", error);
+            toast.error("حدث خطأ أثناء جلب قسم العروض");
+            return { sectionId: null, items: [] };
+        }
+    }
+    async function getSections(m_id) {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menusection-owner/${m_id}`);
+
+            if (!response.data || response.data.message === "Sections not found") {
+                console.log("No sections found for this menu");
+                setSections([]);
+                return;
+            }
+
+            // Filter out sections where is_offer is true
+            const nonOfferSections = response.data
+
+            const sectionsWithImages = await Promise.all(
+                nonOfferSections.map(async (section) => {  // Only process non-offer sections
+                    let coverImageUrl = null;
+                    if (section.cover_image) {
+                        try {
+                            const imageResponse = await axios.get(
+                                `http://localhost:234/api/file/${section.cover_image}`,
+                                { responseType: "blob" }
+                            );
+                            coverImageUrl = URL.createObjectURL(imageResponse.data);
+                        } catch (imageError) {
+                            console.error("Error fetching cover image:", imageError);
+                        }
+                    }
+
+                    const itemsWithImages = await Promise.all(
+                        section.items.map(async (item) => {
+                            let itemImageUrl = null;
+                            if (item.image) {
+                                try {
+                                    const itemImageResponse = await axios.get(
+                                        `http://localhost:234/api/file/${item.image}`,
+                                        { responseType: "blob" }
+                                    );
+                                    itemImageUrl = URL.createObjectURL(itemImageResponse.data);
+                                } catch (itemImageError) {
+                                    console.error("Error fetching item image:", itemImageError);
+                                }
+                            }
+                            return { ...item, image_url: itemImageUrl };
+                        })
+                    );
+
+                    return { ...section, cover_image_url: coverImageUrl, items: itemsWithImages };
+                })
+            );
+
+            console.log("sections", sectionsWithImages);
+
+            setSections(sectionsWithImages);
+
+            setTimeout(() => {
+                setIsMenuLoading(false)
+
+            }, 1500);
+
+        } catch (error) {
+            if (error.response?.status === 404) {
+                console.log("Menu or sections not found");
+                setSections([]);
+            } else {
+                console.error("Error fetching sections:", error);
+                toast.error("حدث خطأ أثناء جلب الأقسام");
+            }
+        }
+    }
+    // let offerSectionId = null; // Global variable to store offer section ID
 
 
 
+    // Usage example:
+    // const { sectionId, items } = await getOfferSectionWithItems(menuId);
+    // console.log("Offer Section ID:", sectionId);
+    // console.log("Offer Items:", items);
+    useEffect(() => {
+        fetchMenuData(menu_id)
+        getSections(m_id);
+        fetchOfferItems(); // Call the function directly
+    }, [menu_id]);
+
+    const fetchOfferItems = async () => {
+        const { sectionId, items } = await getOfferSectionWithItems(m_id);
+        setOfferItems(items);
+        setOfferSectionId(sectionId);
+    };
+
+    useEffect(() => {
+        if (selectedItem) {
+            setPrices(selectedItem.item_prices || []);
+            setExtras(selectedItem.item_extras || []);
+        }
+    }, [selectedItem]);
+
+
+
+    const createSample = async (m_id) => {
+        try {
+            console.log("meeenu id", m_id);
+
+            // First verify we have a valid menu_id
+            if (!m_id) {
+                toast.error("No menu selected");
+                return;
+            }
+
+            // Sample menu structure
+            const sampleMenu = [
+                {
+                    sectionName: "الوجبات الرئيسية - Main Meals",
+                    sectionDescription: "",
+
+                },
+                {
+                    sectionName: "المقبلات - Appetizers",
+                    sectionDescription: "",
+
+                },
+                {
+                    sectionName: " المشروبات - Drinks",
+                    sectionDescription: "",
+
+                },
+                {
+                    sectionName: " الحلويات - Deserts",
+                    sectionDescription: "",
+
+                }
+            ];
+
+            // Create each section with its items
+            for (const section of sampleMenu) {
+                try {
+                    // Create the section
+                    const sectionResponse = await addSectionApi({
+                        menu_id: m_id, // Make sure this is not null
+                        name: section.sectionName,
+                        note: section.sectionDescription
+                    }, null);
+                    // toggleAddFormVisibility()
+
+                    setIsAddFormVisible(false)
+
+                    // Get the section ID from response
+                    // const secId = sectionResponse.data.id;
+
+                    // Create items for this section
+                    // for (const item of section.items) {
+                    //     await addItemApi({
+                    //         menu_id: m_id,
+                    //         section_id: secId,
+                    //         name: item.name,
+                    //         description: item.description,
+                    //         first_price: item.price
+                    //     }, null);
+                    // }
+                } catch (sectionError) {
+                    console.error(`Error creating section ${section.sectionName}:`, sectionError);
+                    toast.error(`Failed to create ${section.sectionName} section`);
+                    continue; // Continue with next section even if one fails
+                }
+            }
+
+            // Refresh the sections to show the new data
+            await getSections(m_id);
+        } catch (error) {
+            console.error("Error creating sample menu:", error);
+            toast.error("Failed to create sample menu");
+        }
+    };
 
 
     const fetchPhones = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/contacts/${menu_id}`);
+            const response = await axios.get(`http://localhost:234/api/contacts/${m_id}`);
             if (response.data.length > 0) {
                 setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
             } else {
@@ -132,173 +824,134 @@ export default function MenuManagement() {
     };
 
 
-    const fetchLocationAccount = async () => {
+
+    const fetchMenuData = async (menu_id) => {
         try {
-            const response = await axios.get(`http://localhost:234/api/location-account/${menu_id}`);
-            if (response.data?.url) {
-                setLocationUrl(response.data.url);
-                setTempLocationUrl(response.data.url); // Sync temp value
-                console.log(tempLocationUrl);
-
-                setIsLocationDisabled(true); // Disable input if URL exists
-                setIsUpdateLocation(true); // Show "Update" button
-            }
-        } catch (err) {
-            console.error("Error fetching Location URL:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchInstagramAccount = async () => {
-        try {
-            const response = await axios.get(`http://localhost:234/api/instagram-account/${menu_id}`);
-            if (response.data?.url) {
-                console.log(response.data?.url);
-
-                setInstagramUrl(response.data.url);
-                setTempInstagramUrl(response.data.url); // Sync temp value
-                setIsInstagramDisabled(true); // Disable input if URL exists
-                setIsUpdateInstagram(true); // Show "Update" button
-            }
-        } catch (err) {
-            console.error("Error fetching Instagram URL:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchFacebookAccount = async (menu_id) => {
-
-
-        try {
+            // Fetch menu settings
             console.log(menu_id);
 
-            const response = await axios.get(`http://localhost:234/api/facebook-account/${menu_id}`);
+            const response = await axios.get(`http://localhost:234/api/menu/${menu_id}`);
+            console.log(response.data);
 
-            if (response.data && response.data.url) {
 
-                setFacebookUrl(response.data.url);
-                setTempFacebookUrl(response.data.url); // Sync temp value
-                setIsFacebookDisabled(true); // Disable input if URL exists
-                setIsUpdateFacebook(true); // Show "Update" button
+            // Check if current time >= end_time (one-time check)
+            // Set menu settings
+            setMenuData(response.data);
+            console.log(menuData);
 
-            } else {
-                console.log("errrrr");
 
-            }
-        } catch (err) {
-            console.log(err);
-
+        } catch (error) {
+            toast.error("er")
+            console.error("Error fetching menu settings or images:", error);
         } finally {
             setLoading(false);
         }
     };
+
+
     const fetchSocialAccounts = async (menu_id) => {
-
-
         try {
-
             const response = await axios.get(`http://localhost:234/api/menusocial/${menu_id}`);
 
             if (response.data) {
 
-                console.log(response.data);
+                // ===== FACEBOOK =====
                 const firstFacebook = response.data.find((item) => item.platform === "facebook");
                 if (firstFacebook) {
-                    console.log(firstFacebook.url);
-
                     setTempFacebookUrl(firstFacebook.url);
-                    setFacebookUrl(firstFacebook.url)
-                    setIsFacebookDisabled(true); // Disable input if URL exists
-                    setIsUpdateFacebook(true); // Show "Update" button
-
+                    setFacebookUrl(firstFacebook.url);
+                    setIsFacebookDisabled(true);
+                    setIsUpdateFacebook(true);
                 }
+
+                // ===== WHATSAPP =====
                 const firstWhatsapp = response.data.find((item) => item.platform === "whatsapp");
                 if (firstWhatsapp) {
-                    console.log(firstWhatsapp.url);
-                    let url = firstWhatsapp.url;
-                    let phoneNumber = url.replace("https://wa.me/", "");
-
-
-
-
+                    const phoneNumber = firstWhatsapp.url.replace("https://wa.me/", "");
                     setTempWhatsAppUrl(phoneNumber);
-                    setWhatsAppUrl(firstWhatsapp.url)
-                    setIsWhatsAppDisabled(true); // Disable input if URL exists
-                    setIsUpdateWhatsApp(true); // Show "Update" button
-
+                    setWhatsAppUrl(firstWhatsapp.url);
+                    setIsWhatsAppDisabled(true);
+                    setIsUpdateWhatsApp(true);
                 }
 
+                // ===== INSTAGRAM =====
+                const firstInstagram = response.data.find((item) => item.platform === "instagram");
+                if (firstInstagram) {
+                    setTempInstagramUrl(firstInstagram.url);
+                    setInstagramUrl(firstInstagram.url);
+                    setIsInstagramDisabled(true);
+                    setIsUpdateInstagram(true);
+                }
 
-                // let url = response.data.url;
-                // let phoneNumber = url.replace("https://wa.me/", "");
+                // ===== LOCATION (Google Maps) =====
+                const firstLocation = response.data.find((item) => item.platform === "location");
+                if (firstLocation) {
+                    // Extract coordinates or place ID if needed
+                    setTempLocationUrl(firstLocation.url);
+                    setLocationUrl(firstLocation.url);
+                    setIsLocationDisabled(true);
+                    setIsUpdateLocation(true);
+                }
 
-                // // setFacebookAccount(response.data);
-                // setWhatsAppUrl(response.data.url);
-                // setTempWhatsAppUrl(phoneNumber); // Sync temp value
-                // setIsWhatsAppDisabled(true); // Disable input if URL exists
-                // setIsUpdateWhatsApp(true); // Show "Update" button            } else {
-
-
-                // setFacebookAccount(null);
+            } else {
+                console.log("No social accounts found for this menu.");
             }
         } catch (err) {
-            console.log(err);
-
-            // setFacebookAccount(null);
+            console.error("Error fetching social accounts:", err);
+            toast.error("حدث خطأ أثناء جلب روابط التواصل");
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchWhatsappAccount = async (menu_id) => {
+    // const fetchWhatsappAccount = async (menu_id) => {
 
 
-        try {
+    //     try {
+    //         console.log("whatsapp-id", menu_id);
 
-            const response = await axios.get(`http://localhost:234/api/whatsapp-account/${menu_id}`);
+    //         const response = await axios.get(`http://localhost:234/api/whatsapp-account/${menu_id}`);
 
-            if (response.data && response.data.url) {
-                let url = response.data.url;
-                let phoneNumber = url.replace("https://wa.me/", "");
+    //         if (response.data && response.data.url) {
+    //             let url = response.data.url;
+    //             let phoneNumber = url.replace("https://wa.me/", "");
 
-                // setFacebookAccount(response.data);
-                setWhatsAppUrl(response.data.url);
-                setTempWhatsAppUrl(phoneNumber); // Sync temp value
-                setIsWhatsAppDisabled(true); // Disable input if URL exists
-                setIsUpdateWhatsApp(true); // Show "Update" button            } else {
+    //             // setFacebookAccount(response.data);
+    //             setWhatsAppUrl(response.data.url);
+    //             setTempWhatsAppUrl(phoneNumber); // Sync temp value
+    //             setIsWhatsAppDisabled(true); // Disable input if URL exists
+    //             setIsUpdateWhatsApp(true); // Show "Update" button            } else {
 
 
-                // setFacebookAccount(null);
-            }
-        } catch (err) {
-            console.log(err);
+    //             // setFacebookAccount(null);
+    //         }
+    //     } catch (err) {
+    //         console.log(err);
 
-            // setFacebookAccount(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+    //         // setFacebookAccount(null);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
     useEffect(() => {
 
-        fetchWhatsappAccount(menu_id);
-        fetchLocationAccount(menu_id);
-        fetchPhones(menu_id);
-        fetchSocialAccounts(menu_id)
-        fetchFacebookAccount(menu_id);
-        fetchInstagramAccount(menu_id);
+        // fetchWhatsappAccount(m_id);
+        // fetchLocationAccount(m_id);
+        fetchPhones(m_id);
+        fetchSocialAccounts(m_id)
+        // fetchFacebookAccount(m_id);
+        // fetchInstagramAccount(m_id);
 
 
-    }, [menu_id]);
+    }, [m_id]);
 
 
     const handleSaveLocationClick = async () => {
         console.log("Saving:", tempLocationUrl);
 
         try {
-            await axios.post("http://localhost:234/api/social", {
-                menu_id,
+            await axios.post("http://localhost:234/api/social/update", {
+                menu_id: m_id,
                 platform: "location",
                 url: tempLocationUrl, // Use tempLocationUrl directly
             });
@@ -323,8 +976,10 @@ export default function MenuManagement() {
     const handleSaveFacebookClick = async () => {
 
         try {
-            await axios.post("http://localhost:234/api/social", {
-                menu_id,
+            console.log(m_id);
+
+            await axios.post("http://localhost:234/api/social/update", {
+                menu_id: m_id,
                 platform: "facebook",
                 url: tempFacebookUrl, // Use tempFacebookUrl directly
             });
@@ -347,9 +1002,12 @@ export default function MenuManagement() {
     const handleSaveWhatsAppClick = async () => {
 
         try {
+
+            // console.log(m_id);
+
             const whatsappNumber = `https://wa.me/${tempWhatsAppUrl}`
-            await axios.post("http://localhost:234/api/social", {
-                menu_id,
+            await axios.post("http://localhost:234/api/social/update", {
+                menu_id: m_id,
                 platform: "whatsapp",
                 url: whatsappNumber, // Use tempWhatsAppUrl directly
             });
@@ -373,8 +1031,8 @@ export default function MenuManagement() {
         console.log("Saving:", tempInstagramUrl);
 
         try {
-            await axios.post("http://localhost:234/api/social", {
-                menu_id,
+            await axios.post("http://localhost:234/api/social/update", {
+                menu_id: m_id,
                 platform: "instagram",
                 url: tempInstagramUrl, // Use tempInstagramUrl directly
             });
@@ -401,48 +1059,82 @@ export default function MenuManagement() {
         setSelectedItem(item);
         setIsEditItemFormVisible(true);
     };
+    const openEditOfferForm = (item) => {
+        console.log(item);
 
-    const closeEditItemForm = () => {
-        setSelectedItem(null);
-        setIsEditItemFormVisible(false);
+        setSelectedItem(item);
+        setIsEditOfferFormVisible(true);
     };
 
 
+    const closeEditItemForm = () => {
+        setSelectedItem(null);
+        setItemFile(null)
+        setIsEditItemFormVisible(false);
+    };
 
-    const addItemApi = async (itemObject, file) => {
-
-        const itemPayload = file ? createFormData(itemObject, file, "image") : itemObject;
-
-
-
-        const response = await axios.post("http://localhost:234/api/item", itemPayload);
-        console.log("Item successfully created:", response.data);
-        toast.success("Item created successfully!");
+    const closeEditOfferForm = () => {
+        setSelectedItem(null);
+        setItemFile(null)
+        setIsEditOfferFormVisible(false);
+    };
 
 
+    async function handleAddOfferSubmit(event) {
+        event.preventDefault();
+        const itemObject = {
+            menu_id: m_id,
+            section_id: offerSectionId,
+            name: itemName,
+            description: itemDesc,
+            first_price: firstPrice
 
+        }
+        let toastMessage = "تم اضافة العرض بنجاح"
+
+        try {
+            // Await the API call to ensure completion
+            await addItemApi(itemObject, itemFile, toastMessage);
+
+
+            // Fetch the updated sections after adding the new section
+            await getOfferSectionWithItems(m_id);
+            await getSections(m_id)
+            // Clear the input fields
+            setItemName('');
+            setItemDesc('');
+            setItemFile(null);
+            setPreview(null)
+            setFirstPrice('')
+            window.location.reload();
+
+
+        } catch (error) {
+            console.error('Error adding section:', error);
+            toast.error('حدث خطأ أثناء اضافة المنتج');
+        }
 
 
     }
 
 
-
     async function handleAddItemSubmit(event) {
         event.preventDefault();
         const itemObject = {
-            menu_id,
+            menu_id: m_id,
             section_id: selectedSectionId,
             name: itemName,
             description: itemDesc,
             first_price: firstPrice
 
         }
+        let toastMessage = "تم اضافة المنتج بنجاح"
 
         try {
             // Await the API call to ensure completion
-            await addItemApi(itemObject, itemFile);
+            await addItemApi(itemObject, itemFile, toastMessage);
             // Fetch the updated sections after adding the new section
-            await getSections(menu_id);
+            await getSections(m_id);
             // Clear the input fields
             setItemName('');
             setItemDesc('');
@@ -455,45 +1147,88 @@ export default function MenuManagement() {
         }
 
 
-        // let itemObject = {name:itemName, description:itemDesc , item_price:[{label:"",price:firstPrice}]}// name, section_id, description , item_price:[{}]}....
-        // let item_file = {} // file object
-        // const itemPayload = file ? createFormData(itemObject, item_file, "image") : itemObject;
-        //send serverPayload to backend
+    }
 
-        // const addItemformData = new FormData(event.target);
 
-        // const payload = {
-        //     menu_id: 1,
-        //     section_id: selectedSectionId,
-        //     name: addItemformData.get("item_name"),
-        //     image: preview, // Use the base64 or file URL preview for the image
-        //     description: addItemformData.get("description"),
-        //     item_price: [
-        //         {
-        //             label: addItemformData.get("price1_label"),
-        //             price: parseFloat(addItemformData.get("price1_value")),
-        //         },
-        //         {
-        //             label: addItemformData.get("price2_label"),
-        //             price: parseFloat(addItemformData.get("price2_value")),
-        //         },
-        //     ],
-        //     item_extras: [
-        //         {
-        //             name: addItemformData.get("extra1_name"),
-        //             price: parseFloat(addItemformData.get("extra1_price")),
-        //         },
-        //         {
-        //             name: addItemformData.get("extra2_name"),
-        //             price: parseFloat(addItemformData.get("extra2_price")),
-        //         },
-        //     ],
-        // };
 
-        // console.log("item Payload to be sent:", itemPayload);
+    const addItemApi = async (itemObject, file, toastMessage) => {
+
+        const itemPayload = file ? createFormData(itemObject, file, "image") : itemObject;
+
+
+
+        const response = await axios.post("http://localhost:234/api/item", itemPayload);
+        console.log("Item successfully created:", response.data);
+        toast.success(toastMessage);
+        closeAddItemForm()
+
+
 
 
     }
+    async function handleUpdateSection(event) {
+        event.preventDefault();
+        // console.log(selectedSection);
+        // console.log(sectionFile);
+
+        const sectionObject = {
+            // menu_id: m_id,
+            // section_id: selectedSectionId,
+            name: selectedSection.name,
+            description: selectedSection.note,
+
+        }
+
+        // console.log(sectionObject);
+        try {
+            // Await the API call to ensure completion
+
+            console.log(sectionObject, sectionFile, selectedSectionId);
+
+
+            await updateSectionApi(sectionObject, sectionFile, selectedSectionId);
+
+            // Fetch the updated sections after adding the new section
+            await getSections(m_id);
+            // Clear the input fields
+            // setItemName('');
+            // setItemDesc('');
+            // setItemFile(null);
+            setSectionFile(null)
+            // setIsFormVisible(null)
+            toggleFormVisibility()
+
+            setPreview(null)
+            // setFirstPrice('')
+        } catch (error) {
+            console.error('Error update section:', error);
+            // toast.error('حدث خطأ أثناء اضافة المنتج');
+        }
+
+
+
+
+
+    }
+
+    const updateSectionApi = async (stateObject, file, sectionId) => {
+
+
+        const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
+        console.log(serverPayload);
+
+
+        const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload);
+        console.log(response)
+        toast.success('تم التعديل بنجاح');
+
+
+    }
+
+
+
+
+
 
 
     function handleItemFileChange(event) {
@@ -507,16 +1242,157 @@ export default function MenuManagement() {
             setItemFile(file)
         }
     }
+    async function handleUpdateItemStatus(itemId, newStatus) {
+        setIsEditItemFormVisible(false)
+        console.log(newStatus);
+
+        try {
+            const payload = {
+                is_available: newStatus,
+                section_id: selectedItem.section_id
+            };
+
+            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload);
+
+            // Update local state
+            setSections(prevSections =>
+                prevSections.map(s => ({
+                    ...s,
+                    items: s.items.map(i =>
+                        i.id === itemId ? { ...i, is_available: newStatus } : i
+                    )
+                }))
+            );
+
+            toast.success(`Item ${newStatus ? 'activated' : 'deactivated'}`);
+        } catch (error) {
+            toast.error("Failed to update item status");
+            console.error("Error:", error.response?.data || error.message);
+        }
+    }
+
+    async function handleUpdateOfferStatus(itemId, newStatus) {
+        try {
+            const payload = {
+                is_available: newStatus,
+                section_id: selectedItem?.section_id || offerSectionId
+            };
+
+            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload);
+
+            // Update local state for offer items
+            setOfferItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === itemId ? { ...item, is_available: newStatus } : item
+                )
+            );
+
+            toast.success(`Offer ${newStatus ? 'activated' : 'deactivated'}`);
+        } catch (error) {
+            toast.error("Failed to update offer status");
+            console.error("Error:", error.response?.data || error.message);
+        }
+    }
+    async function handleUpdateItem(event) {
+        event.preventDefault();
+        // console.log(selectedSection);
+        // console.log(sectionFile);
+
+        const itemId = selectedItem.id
+        console.log(selectedItem.section_id);
+
+        const itemObject = {
+            section_id: selectedItem.section_id,
+            name: selectedItem.name,
+            description: selectedItem.description,
+
+            item_price: prices.map(price => ({
+                label: price.label,
+                price: Number(price.price) // Convert to number if needed
+            })),
+            item_extras: extras.map(extra => ({
+                label: extra.label || extra.name, // Handle both naming cases
+                price: Number(extra.price)
+            }))
+        };
+
+        console.log("item before send", itemObject);
+
+        // console.log("item before send", itemObject);
+
+        try {
+            // Await the API call to ensure completion
+            await updateItemApi(itemId, itemObject, itemFile);
+            // Fetch the updated sections after adding the new section
+            await getSections(m_id);
+            // Clear the input fields
+            toast.success("ssssssssss")
+            // setItemName('');
+            // setItemDesc('');
+            // setItemFile(null);
+            // setPreview(null)
+            // setFirstPrice('')
+        } catch (error) {
+            console.error('Error adding section:', error);
+            toast.error('حدث خطأ أثناء تعديل المنتج');
+        }
+
+
+
+
+
+
+    }
+    const updateItemApi = async (itemId, itemObject, file) => {
+
+        const itemPayload2 = file ? createFormData(itemObject, file, "image") : itemObject;
+
+
+        console.log("payload", itemPayload2);
+
+        const response = await axios.post(`http://localhost:234/api/item/update/${itemId}`, itemPayload2);
+        console.log("Item successfully created:", response.data);
+        toast.success("Item created successfully!");
+
+
+
+
+
+    }
+
+
+    // const updateItemApi = async (stateObject, file, sectionId) => {
+
+
+    //     const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
+    //     console.log(serverPayload);
+
+
+    //     const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload);
+    //     console.log(response)
+    //     toast.success('تم التعديل بنجاح');
+
+
+    // }
+
 
 
     const openAddItemForm = (sectionId) => {
         setSelectedSectionId(sectionId);
         setAddItemFormVisible(true);
     };
+    const openAddOfferForm = () => {
+        // setSelectedSectionId(sectionId);
+        setAddOfferFormVisible(true);
+    };
+
     const closeAddItemForm = () => {
         setSelectedSectionId(null);
         setAddItemFormVisible(false);
+        setAddOfferFormVisible(false)
     };
+
+
 
     const handleMoreClick = (index) => {
         setActiveMoreIndex((prevIndex) => (prevIndex === index ? null : index)); // Toggle the menu for the clicked section
@@ -577,9 +1453,9 @@ export default function MenuManagement() {
         e.stopPropagation();
     };
 
-    const handleDragEnd = () => {
-        setDraggingIndex(null); // Reset dragging state when drag ends
-    };
+    // const handleDragEnd = () => {
+    //     setDraggingIndex(null); // Reset dragging state when drag ends
+    // };
 
 
     const toggleItemMenu = (itemId) => {
@@ -590,8 +1466,10 @@ export default function MenuManagement() {
         setOpenMenu(openMenu === categoryId ? null : categoryId);
     };
 
-    const toggleFormVisibility = () => {
+    const toggleFormVisibility = (sectionId) => {
         setIsFormVisible(!isFormVisible);
+        setSelectedSectionId(sectionId);
+
     };
     const toggleAddFormVisibility = () => {
         setIsAddFormVisible(!isAddFormVisible);
@@ -611,7 +1489,7 @@ export default function MenuManagement() {
                 console.log('Section deleted successfully');
                 setSectionToDelete(null);
                 toast.success("Section Deleted Successfully")
-                getSections()
+                getSections(m_id)
 
             } else {
                 console.error('Failed to delete section:', response.statusText);
@@ -660,243 +1538,49 @@ export default function MenuManagement() {
     };
 
     // Delete item
-    const deleteItem = (categoryId, itemId) => {
-        setCategories(categories.map(category => {
-            if (category.id === categoryId) {
-                return {
-                    ...category,
-                    items: category.items.filter(item => item.id !== itemId),
-                };
+    const deleteItem = async (itemId) => {
+        try {
+            const response = await fetch(`http://localhost:234/api/items/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete item');
             }
-            return category;
-        }));
+
+            // 1. Optimistic UI Update (immediate visual feedback)
+            setOfferItems(prev => prev.filter(item => item.id !== itemId));
+
+            // 2. Show success message
+            toast.success("تم الحذف بنجاح");
+            setActiveItemMoreIndex(null)
+            setActiveOfferMoreIndex(null)
+
+            // 3. Refresh data from server (to ensure consistency)
+            await getSections(m_id);
+            const { items } = await getOfferSectionWithItems(m_id);
+            setOfferItems(items);
+
+        } catch (error) {
+            console.error('Error deleting item:', error);
+            toast.error("حدث خطأ أثناء الحذف");
+
+            // 4. Revert optimistic update if error occurs
+            const { items } = await getOfferSectionWithItems(m_id);
+            setOfferItems(items);
+        }
     };
+
+
     const handleMouseEnter = () => setIsHovered(true);
     const handleMouseLeave = () => setIsHovered(false);
     const openModal = (event) => {
         event.stopPropagation();  // Prevent the event from propagating and closing modal on click
         setIsModalOpen(true);
     }; const closeModal = () => setIsModalOpen(false);
-
-    //////////////////////////////////////
-    // async function getSections() {
-    //     try {
-    //         const response = await axios.get('http://localhost:234/api/sections'); // Fetch sections data
-    //         console.log(response);
-
-    //         if (response.data) {
-    //             const sectionsWithImages = await Promise.all(
-    //                 response.data.map(async (section) => {
-    //                     // If a cover_image exists, fetch the image URL
-    //                     if (section.cover_image) {
-    //                         try {
-    //                             const imageResponse = await axios.get(
-    //                                 `http://localhost:234/api/file/${section.cover_image}`,
-    //                                 { responseType: 'blob' } // Fetch the image as a blob
-    //                             );
-    //                             const imageUrl = URL.createObjectURL(imageResponse.data); // Create a URL for the blob
-    //                             return { ...section, cover_image_url: imageUrl }; // Add the URL to the section object
-    //                         } catch (imageError) {
-    //                             console.error(`Error fetching image for ${section.cover_image}`, imageError);
-    //                             return { ...section, cover_image_url: null }; // Fallback to null if image fetch fails
-    //                         }
-    //                     }
-    //                     return { ...section, cover_image_url: null }; // No image case
-    //                 })
-    //             );
-    //             console.log(sectionsWithImages);
-
-
-    //             setSections(sectionsWithImages); // Update the state with sections including image URLs
-    //         }
-    //     } catch (error) {
-    //         console.error('Error fetching sections:', error);
-    //         toast.error('حدث خطأ أثناء جلب الأقسام');
-    //         const dummyData = [
-    //             {
-    //                 id: 15,
-    //                 menu_id: 1,
-    //                 name: 'fssssssssssaaaaaaaaaaassssssssf',
-    //                 note: '',
-    //                 badge: null,
-    //                 cover_image: null,
-    //                 is_available: true,
-    //                 is_offer: false,
-    //                 items: [],
-    //                 cover_image_url: 'blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f'
-    //             },
-    //             {
-    //                 id: 16,
-    //                 menu_id: 1,
-    //                 name: 'dsdsd',
-    //                 note: '',
-    //                 badge: null,
-    //                 cover_image: null,
-    //                 is_available: true,
-    //                 is_offer: false,
-    //                 items: [],
-    //                 cover_image_url: null
-    //             },
-    //             {
-    //                 id: 17,
-    //                 menu_id: 1,
-    //                 name: 'Mohamed ',
-    //                 note: 'gamed ',
-    //                 badge: null,
-    //                 cover_image: null,
-    //                 is_available: true,
-    //                 is_offer: false,
-    //                 items: [],
-    //                 cover_image_url: 'blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4'
-    //             }
-    //         ];
-    //         setSections(dummyData);
-    //     }
-    // }
-    // useEffect(() => {
-
-
-    //     getSections();
-    // }, []);
-    async function getSections(menu_id) {
-        try {
-            // Fetch sections using menu_id
-            const response = await axios.get(`http://localhost:234/api/menusection/${menu_id}`);
-            console.log(response);
-
-            if (response.data) {
-                const sectionsWithImages = await Promise.all(
-                    response.data.map(async (section) => {
-                        let coverImageUrl = null;
-
-                        // Fetch section cover image if available
-                        if (section.cover_image) {
-                            try {
-                                const imageResponse = await axios.get(
-                                    `http://localhost:234/api/file/${section.cover_image}`,
-                                    { responseType: "blob" } // Fetch image as blob
-                                );
-                                coverImageUrl = URL.createObjectURL(imageResponse.data);
-                            } catch (imageError) {
-                                console.error(`Error fetching cover image for ${section.cover_image}`, imageError);
-                            }
-                        }
-
-                        // Fetch images for section items
-                        const itemsWithImages = await Promise.all(
-                            section.items.map(async (item) => {
-                                let itemImageUrl = null;
-
-                                if (item.image) {
-                                    try {
-                                        const itemImageResponse = await axios.get(
-                                            `http://localhost:234/api/file/${item.image}`,
-                                            { responseType: "blob" }
-                                        );
-                                        itemImageUrl = URL.createObjectURL(itemImageResponse.data);
-                                    } catch (itemImageError) {
-                                        console.error(`Error fetching item image for ${item.image}`, itemImageError);
-                                    }
-                                }
-
-                                return { ...item, image_url: itemImageUrl };
-                            })
-                        );
-
-                        return {
-                            ...section,
-                            cover_image_url: coverImageUrl,
-                            items: itemsWithImages, // Include updated items with images
-                        };
-                    })
-                );
-
-                console.log(sectionsWithImages);
-                setSections(sectionsWithImages); // Update state with sections and images
-            }
-        } catch (error) {
-            console.error("Error fetching sections:", error);
-            toast.error("حدث خطأ أثناء جلب الأقسام");
-
-            // Fallback dummy data
-            const dummyData = [
-                {
-                    id: 15,
-                    menu_id: menu_id,
-                    name: "Sample Section 1",
-                    note: "",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [
-                        {
-                            id: 101,
-                            name: "Sample Item 1",
-                            image: null,
-                            image_url: "blob:http://localhost:5173/item1-placeholder",
-                        },
-                    ],
-                    cover_image_url: "blob:http://localhost:5173/ef391261-b773-46e5-b1c4-b44e174bd44f",
-                },
-                {
-                    id: 16,
-                    menu_id: menu_id,
-                    name: "Sample Section 2",
-                    note: "",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [],
-                    cover_image_url: null,
-                },
-                {
-                    id: 17,
-                    menu_id: menu_id,
-                    name: "Sample Section 3",
-                    note: "Note for section 3",
-                    badge: null,
-                    cover_image: null,
-                    is_available: true,
-                    is_offer: false,
-                    items: [
-                        {
-                            id: 102,
-                            name: "Sample Item 2",
-                            image: null,
-                            image_url: "blob:http://localhost:5173/item2-placeholder",
-                        },
-                    ],
-                    cover_image_url: "blob:http://localhost:5173/57972719-e9be-4752-9b36-399961d135b4",
-                },
-            ];
-            setSections(dummyData);
-        }
-    }
-
-
-    useEffect(() => {
-
-        getSections(menu_id);
-
-    }, [menu_id]); // Runs when menu_id changes
-
-
-
-    const addSectionApi = async (stateObject, file) => {
-
-
-        const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
-
-
-        const response = await axios.post('http://localhost:234/api/section', serverPayload);
-        console.log(response)
-        toast.success('تم الأضافة بنجاح');
-
-
-    }
-
 
     const addSection = async (event) => {
         event.preventDefault();
@@ -925,7 +1609,7 @@ export default function MenuManagement() {
         }
 
         const stateObject = {
-            menu_id,
+            menu_id: m_id,
             name: categoryName,
             note: categoryDescription
         };
@@ -934,7 +1618,7 @@ export default function MenuManagement() {
             // Await the API call to ensure completion
             await addSectionApi(stateObject, sectionFile);
             // Fetch the updated sections after adding the new section
-            await getSections(menu_id);
+            await getSections(m_id);
             // Clear the input fields
             setCategoryName('');
             setCategoryDescription('');
@@ -945,6 +1629,25 @@ export default function MenuManagement() {
             toast.error('حدث خطأ أثناء إضافة القسم');
         }
     };
+
+
+
+    const addSectionApi = async (stateObject, file) => {
+
+
+        const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
+
+
+        const response = await axios.post('http://localhost:234/api/section', serverPayload);
+        console.log(response)
+        toast.success('تم الأضافة بنجاح');
+        toggleAddFormVisibility()
+
+
+    }
+
+
+
 
 
 
@@ -960,6 +1663,9 @@ export default function MenuManagement() {
 
 
         setSectionFile(selectedFile); // Storing file in state
+        setItemFile(selectedFile); // Storing file in state
+
+        console.log(selectedFile);
 
         createPreview(selectedFile); // Update the preview
 
@@ -1017,7 +1723,7 @@ export default function MenuManagement() {
     const savePhones = async () => {
         try {
             await axios.post("http://localhost:234/api/contacts", {
-                menu_id,
+                menu_id: m_id,
                 phones, // Sending all phone numbers
             });
 
@@ -1028,39 +1734,97 @@ export default function MenuManagement() {
     };
 
 
-
-    const addPrice = () => {
-        setPrices([...prices, { name: "", price: "" }]);
+    const addPrice = (e) => {
+        e.preventDefault()
+        setSelectedItem(prev => ({
+            ...prev,
+            item_prices: [...prev.item_prices, { label: '', price: '' }]
+        }));
     };
+
+    const deletePrice = (index) => {
+        setSelectedItem(prev => ({
+            ...prev,
+            item_prices: prev.item_prices.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handlePriceChange = (index, field, value) => {
+        setSelectedItem(prev => {
+            const newPrices = [...prev.item_prices];
+            newPrices[index] = { ...newPrices[index], [field]: value };
+            return { ...prev, item_prices: newPrices };
+        });
+    };
+
+
 
     const addExtra = () => {
-        setExtras([...extras, { name: "", price: "" }]);
-    };
-    const deletePrice = (index) => {
-        const updatedPrices = prices.filter((_, i) => i !== index);
-        setPrices(updatedPrices);
+        setExtras(prev => [...prev, { name: '', price: '' }]);
     };
 
     const deleteExtra = (index) => {
-        const updatedExtras = extras.filter((_, i) => i !== index);
-        setExtras(updatedExtras);
+        setExtras(prev => prev.filter((_, i) => i !== index));
     };
+
+    const handleExtraChange = (index, field, value) => {
+        setExtras(prev => {
+            const newExtras = [...prev];
+            newExtras[index] = { ...newExtras[index], [field]: value };
+            return newExtras;
+        });
+    };
+
+
+
+    // const addPrice = (e) => {
+    //     e.preventDefault()
+    //     setPrices([...prices, { label: "", price: "" }]);
+    // };
+
+    // const addExtra = () => {
+    //     setExtras([...extras, { label: "", price: "" }]);
+    // };
+    // // const deletePrice = (index) => {
+    // //     const updatedPrices = prices.filter((_, i) => i !== index);
+    // //     setPrices(updatedPrices);
+    // // };
+
+    // const deleteExtra = (index) => {
+    //     const updatedExtras = extras.filter((_, i) => i !== index);
+    //     setExtras(updatedExtras);
+    // };
 
 
     return <>
 
-        {menu_id ? (<div onClick={handleMoreClose} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
+        {isMenuLoading ? (<>
+            <div className="menu-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
+                <div className="text-center">
+                    <div
+                        className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-red-500 mx-auto"
+                    ></div>
+
+                </div>
+
+
+
+            </div>
+
+        </>
+
+        ) : scratchMenu || sections.length > 0 ? (<div dir='rtl' onClick={handleMoreClose} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
             <Toaster></Toaster>
-            <div className={`edit-section-form  fixed p-3 rounded-s-lg z-20 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out 
+            <div className={`edit-section-form  fixed p-3 rounded-s-lg z-20 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out 
                 ${isFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
             >
                 <div className="section-name  p-3 flex gap-2 items-center">
-                    <i onClick={toggleFormVisibility} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Edit Section</p>
+                    <i onClick={toggleFormVisibility} className="close-form cursor-pointer  fa-solid fa-x cairo text-gray-500"></i> <p className='font-medium cairo'>تعديل القسم</p>
                 </div>
                 <hr className='w-full ' />
                 <div className="edit-section px-2 mt-4">
                     <div className="category-name">
-                        <p className='text-sm'><span><i className="fa-solid fa-asterisk text-red-500 text-sm"></i></span> Name</p>
+                        <p className='text-sm cairo'> اسم الصنف <span><i className="fa-solid fa-asterisk text-red-500 text-sm"></i></span></p>
                         <input className='w-full text-sm p-1 mt-2 rounded-md border-2 h-9' type="text" placeholder="Category name" value={selectedSection?.name || ''} // Use selectedSection's name
                             onChange={(e) =>
                                 setSelectedSection((prev) => ({ ...prev, name: e.target.value }))
@@ -1069,7 +1833,7 @@ export default function MenuManagement() {
 
                     </div>
                     <div className="category-description mt-4">
-                        <p className='text-sm'> Description</p>
+                        <p className='text-sm cairo'> الوصف</p>
                         <textarea
                             rows="3"
                             style={{ resize: "none" }}
@@ -1083,30 +1847,43 @@ export default function MenuManagement() {
 
                     </div>
                     <div className="category-image">
-                        <p className='text-sm'> Image</p>
-                        <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100">
-                            {selectedSection?.cover_image_url ? (
-                                <img
-                                    src={selectedSection.cover_image_url}
-                                    alt="Selected"
-                                    className="w-full h-full object-cover rounded-md"
-                                />
-                            ) : (
-                                <>
-                                    <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
-                                    <p className="mt-3">Upload</p>
-                                    <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
-                                </>
-                            )}
-                        </div>
-
-
+                        <p className='text-sm cairo'>الصورة</p>
+                        <label htmlFor="section-image-upload" className="cursor-pointer">
+                            <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
+                                {selectedSection?.cover_image_url || sectionFile ? (
+                                    <>
+                                        <img
+                                            src={sectionFile ? URL.createObjectURL(sectionFile) : selectedSection.cover_image_url}
+                                            alt="Selected"
+                                            className="w-full h-full object-cover rounded-md"
+                                        />
+                                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
+                                            <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
+                                            <p className="text-white mt-8">Change Image</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
+                                        <p className="mt-3">Upload</p>
+                                        <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
+                                    </>
+                                )}
+                            </div>
+                        </label>
+                        <input
+                            id="section-image-upload"
+                            type="file"
+                            accept="image/jpeg, image/png, image/jpg"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
                     </div>
 
                 </div>
                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
                     <button onClick={toggleFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>Cancel </button>
-                    <button className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
+                    <button onClick={handleUpdateSection} className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
 
 
 
@@ -1138,7 +1915,7 @@ export default function MenuManagement() {
                 </div>
             )}
 
-            <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
+            <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
                 <div className="section-name  p-3 flex gap-2 items-center">
                     <i onClick={toggleAddFormVisibility} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Add New Section</p>
                 </div>
@@ -1221,25 +1998,25 @@ export default function MenuManagement() {
 
                     </div>
                     <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                        <button onClick={toggleFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>Cancel </button>
-                        <button onClick={toggleAddFormVisibility} type='submit' className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
+                        <button onClick={toggleAddFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>Cancel </button>
+                        <button type='submit' className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
 
 
 
                     </div>
                 </form>
             </div>
-            {/* {
+            {
 
                 isEditItemFormVisible && (
-                    <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
+                    <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
                         <div className="item-name  p-3 flex gap-2 items-center">
-                            <i onClick={closeAddItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Edit item</p>
+                            <i onClick={closeEditItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Edit item</p>
                         </div>
                         <hr className='w-full ' />
 
                         <div className="overflow-y-scroll h-5/6">
-                            <form >
+                            <form onSubmit={handleUpdateItem} >
 
 
                                 <div className="flex bg-white mb-4 border-b border-gray-200 pt-2  ">
@@ -1251,12 +2028,7 @@ export default function MenuManagement() {
                                     </div>
 
 
-                                    <div
-                                        className={itemTab("more")}
-                                        onClick={() => setActiveItemEditor("more")}
-                                    >
-                                        Morerr
-                                    </div>
+
                                 </div>
                                 {activeItemEditor === "details" && (
                                     <div>
@@ -1267,10 +2039,14 @@ export default function MenuManagement() {
                                             </label>
                                             <input
                                                 type="text"
-                                                name="edit_item_name"
+                                                name="name"
+
                                                 className="w-full text-sm p-1 mt-2 rounded-md border-2 h-9"
                                                 placeholder="Item name"
                                                 value={selectedItem?.name || ""}
+                                                onChange={(e) =>
+                                                    setSelectedItem((prev) => ({ ...prev, name: e.target.value }))
+                                                }
 
                                                 required
                                             />
@@ -1280,28 +2056,33 @@ export default function MenuManagement() {
                                             <p className="text-sm">Description</p>
                                             <textarea
                                                 rows="3"
-                                                name="edit_description"
+                                                name="description"
                                                 style={{ resize: "none" }}
                                                 className="w-full text-sm mt-3 p-3 border rounded-md"
                                                 placeholder="Describe your item ..."
                                                 value={selectedItem?.description || ""}
+                                                onChange={(e) =>
+                                                    setSelectedItem((prev) => ({ ...prev, description: e.target.value }))
+                                                }
 
                                             ></textarea>
                                         </div>
-                                        <div className="item-image mt-4">
-                                            <p className="text-sm">Image</p>
-                                            <input
-                                                type="file"
-                                                name="item_image"
-                                                accept="image/jpeg, image/png"
-
-                                                className="hidden"
-                                                id="edit_item_image_upload"
-                                            />
-                                            <label htmlFor="edit_item_image_upload">
-                                                <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 cursor-pointer">
-                                                    {preview ? (
-                                                        <img src={preview} alt="Preview" className="w-full h-full rounded-md" />
+                                        <div className="item-image">
+                                            <p className='text-sm'>Image</p>
+                                            <label htmlFor="section-image-upload" className="cursor-pointer">
+                                                <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
+                                                    {selectedItem?.image || itemFile ? (
+                                                        <>
+                                                            <img
+                                                                src={itemFile ? URL.createObjectURL(itemFile) : selectedItem.image_url}
+                                                                alt="Selected"
+                                                                className="w-full h-full object-cover rounded-md"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
+                                                                <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
+                                                                <p className="text-white mt-8">Change Image</p>
+                                                            </div>
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
@@ -1311,9 +2092,16 @@ export default function MenuManagement() {
                                                     )}
                                                 </div>
                                             </label>
+                                            <input
+                                                id="section-image-upload"
+                                                type="file"
+                                                accept="image/jpeg, image/png, image/jpg"
+                                                className="hidden"
+                                                onChange={handleFileChange}
+                                            />
                                         </div>
 
-                                        <div className="item-first-price my-4 " >
+                                        {/* <div className="item-first-price my-4 " >
                                             <label className="block mb-3" htmlFor="">
                                                 Price
                                             </label>
@@ -1325,16 +2113,9 @@ export default function MenuManagement() {
 
 
                                             />
-                                        </div>
+                                        </div> */}
 
 
-
-
-                                    </div>
-                                )}
-
-                                {activeItemEditor === "more" && (
-                                    <div>
                                         <div className="prices-labels mt-5">
                                             <p className="text-[#1b5067] text-lg font-medium">Prices</p>
                                             <div className="price-instructions mb-4">
@@ -1345,43 +2126,51 @@ export default function MenuManagement() {
                                             </div>
 
                                             <div className="add-new-price-btn">
-                                                {prices.map((price, index) => (
-                                                    <div className="new-price flex gap-2" key={index}>
-                                                        <div className="add-price-name mb-3">
-                                                            <label className="block mb-3" htmlFor="">
-                                                                Name
-                                                            </label>
-                                                            <input
-                                                                className="rounded-md w-44 h-9 px-2 border-2"
-                                                                placeholder="Small"
-                                                                type="text"
-                                                                value={price.name}
-
-                                                            />
-                                                        </div>
-                                                        <div className="add-price-price">
-                                                            <label className="block mb-3" htmlFor="">
-                                                                Price
-                                                            </label>
-                                                            <input
-                                                                className="rounded-md w-44 h-9 border-2 px-2"
-                                                                placeholder="0,00"
-                                                                type="text"
-                                                                value={price.price}
-
-                                                            />
-                                                        </div>
-                                                        <div
-                                                            className="delete-price ms-3 mt-5 flex items-center cursor-pointer"
-                                                            onClick={() => deletePrice(index)}
-                                                        >
-                                                            <i className="fa-solid text-gray-600 fa-x"></i>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                {selectedItem.item_prices && selectedItem.item_prices.length > 0 ? (
+                                                    [...selectedItem.item_prices].sort((a, b) => new Date(a.id) - new Date(b.id))
+                                                        .map((price, index) => (
+                                                            <div className="new-price flex gap-4 items-end mb-4" key={index}>
+                                                                <div className="add-price-name">
+                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="Small"
+                                                                        type="text"
+                                                                        value={price.label || ''}
+                                                                        onChange={(e) => handlePriceChange(index, 'label', e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                <div className="add-price-price">
+                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                        Price
+                                                                    </label>
+                                                                    <input
+                                                                        className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="0.00"
+                                                                        type="text"
+                                                                        // step="0.01"
+                                                                        // min="0"
+                                                                        value={price.price.toString() || ''}
+                                                                        onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
+                                                                    onClick={() => deletePrice(index)}
+                                                                    title="Delete price"
+                                                                >
+                                                                    <i className="fa-solid fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        ))
+                                                ) : (
+                                                    <p className="text-gray-500 text-sm mb-4">No prices added yet</p>
+                                                )}
 
                                                 <button
-                                                    className="flex gap-2 items-center text-[#2a7696]"
+                                                    className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067] mt-2"
                                                     onClick={addPrice}
                                                 >
                                                     <i className="fa-solid fa-plus"></i>
@@ -1392,64 +2181,82 @@ export default function MenuManagement() {
 
                                         <hr className="mt-2" />
 
-                                        <div className="Extras-labels mt-5">
+                                        <div className="extras-labels mt-5">
                                             <p className="text-[#1b5067] text-lg font-medium">Extras</p>
-                                            <div className="Extra-instructions mb-4">
+                                            <div className="extra-instructions mb-4">
                                                 <p className="text-xs leading-5 text-gray-500">
                                                     Items can have Extra options. If the item has one Extra option, you
                                                     can't leave the name blank.
                                                 </p>
                                             </div>
 
-                                            <div className="add-new-Extra-btn">
-                                                {extras.map((extra, index) => (
-                                                    <div className="new-Extra flex gap-2" key={index}>
-                                                        <div className="add-Extra-name mb-3">
-                                                            <label className="block mb-3" htmlFor="">
-                                                                Name
-                                                            </label>
-                                                            <input
-                                                                className="rounded-md w-44 h-9 px-2 border-2"
-                                                                placeholder="Add Cheese"
-                                                                type="text"
-                                                                value={extra.name}
-
-                                                            />
+                                            <div className="add-new-extra-btn">
+                                                {extras && extras.length > 0 ? (
+                                                    [...extras].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((extra, index) => (
+                                                        <div className="new-extra flex gap-4 items-end mb-4" key={index}>
+                                                            <div className="add-extra-name">
+                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                    Name
+                                                                </label>
+                                                                <input
+                                                                    className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    placeholder="Add Cheese"
+                                                                    type="text"
+                                                                    value={extra.label || ''}
+                                                                    onChange={(e) => handleExtraChange(index, 'label', e.target.value)}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="add-extra-price">
+                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                    Price
+                                                                </label>
+                                                                <input
+                                                                    className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    placeholder="0.00"
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    min="0"
+                                                                    value={extra.price || ''}
+                                                                    onChange={(e) => handleExtraChange(index, 'price', e.target.value)}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
+                                                                onClick={() => deleteExtra(index)}
+                                                                title="Delete extra"
+                                                            >
+                                                                <i className="fa-solid fa-trash"></i>
+                                                            </button>
                                                         </div>
-                                                        <div className="add-Extra-Extra">
-                                                            <label className="block mb-3" htmlFor="">
-                                                                Price
-                                                            </label>
-                                                            <input
-                                                                className="rounded-md w-44 h-9 border-2 px-2"
-                                                                placeholder="0,00"
-                                                                type="text"
-                                                                value={extra.price}
+                                                    ))
+                                                ) : (
+                                                    <p className="text-gray-500 text-sm mb-4">No extras added yet</p>
+                                                )}
 
-                                                            />
-                                                        </div>
-                                                        <div
-                                                            className="delete-Extra ms-3 mt-5 flex items-center cursor-pointer"
-                                                            onClick={() => deleteExtra(index)}
-                                                        >
-                                                            <i className="fa-solid text-gray-600 fa-x"></i>
-                                                        </div>
-                                                    </div>
-                                                ))}
-
-                                                <button
-                                                    className="flex gap-2 items-center text-[#2a7696]"
-                                                    onClick={addExtra}
-                                                >
-                                                    <i className="fa-solid fa-plus"></i>
-                                                    Add Extra
-                                                </button>
+                                                <div className="flex justify-between mt-6">
+                                                    <button
+                                                        className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067]"
+                                                        onClick={addExtra}
+                                                    >
+                                                        <i className="fa-solid fa-plus"></i>
+                                                        Add Extra
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
+
+
+
+
                                     </div>
+
                                 )}
+
+
                                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                                    <button type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
+                                    <button onClick={closeEditItemForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
                                         Cancel
                                     </button>
                                     <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
@@ -1461,16 +2268,279 @@ export default function MenuManagement() {
                         </div>
                     </div>
                 )
-            } */}
+            }
+            {
+
+                isEditOfferFormVisible && (
+                    <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
+                        <div className="item-name  p-3 flex gap-2 items-center">
+                            <i onClick={closeEditOfferForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>تعديل العرض</p>
+                        </div>
+                        <hr className='w-full ' />
+
+                        <div className="overflow-y-scroll h-5/6">
+                            <form onSubmit={handleUpdateItem} >
+
+
+                                <div className="flex bg-white mb-4 border-b border-gray-200 pt-2  ">
+                                    <div
+                                        className={itemTab("details")}
+                                        onClick={() => setActiveItemEditor("details")}
+                                    >
+                                        Details
+                                    </div>
+
+
+
+                                </div>
+                                {activeItemEditor === "details" && (
+                                    <div>
+
+                                        <div className="item-name mt-4">
+                                            <label htmlFor="edit_item_name" className="block">
+                                                <span className="text-red-500">*</span> Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="name"
+
+                                                className="w-full text-sm p-1 mt-2 rounded-md border-2 h-9"
+                                                placeholder="Item name"
+                                                value={selectedItem?.name || ""}
+                                                onChange={(e) =>
+                                                    setSelectedItem((prev) => ({ ...prev, name: e.target.value }))
+                                                }
+
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="category-description mt-4">
+                                            <p className="text-sm">Description</p>
+                                            <textarea
+                                                rows="3"
+                                                name="description"
+                                                style={{ resize: "none" }}
+                                                className="w-full text-sm mt-3 p-3 border rounded-md"
+                                                placeholder="Describe your item ..."
+                                                value={selectedItem?.description || ""}
+                                                onChange={(e) =>
+                                                    setSelectedItem((prev) => ({ ...prev, description: e.target.value }))
+                                                }
+
+                                            ></textarea>
+                                        </div>
+                                        <div className="item-image">
+                                            <p className='text-sm'>Image</p>
+                                            <label htmlFor="section-image-upload" className="cursor-pointer">
+                                                <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
+                                                    {selectedItem?.image || itemFile ? (
+                                                        <>
+                                                            <img
+                                                                src={itemFile ? URL.createObjectURL(itemFile) : selectedItem.image_url}
+                                                                alt="Selected"
+                                                                className="w-full h-full object-cover rounded-md"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
+                                                                <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
+                                                                <p className="text-white mt-8">Change Image</p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
+                                                            <p className="mt-3">Upload</p>
+                                                            <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </label>
+                                            <input
+                                                id="section-image-upload"
+                                                type="file"
+                                                accept="image/jpeg, image/png, image/jpg"
+                                                className="hidden"
+                                                onChange={handleFileChange}
+                                            />
+                                        </div>
+
+                                        {/* <div className="item-first-price my-4 " >
+                            <label className="block mb-3" htmlFor="">
+                                Price
+                            </label>
+                            <input
+                                className="rounded-md w-44 h-9 border-2 px-2"
+                                placeholder="0,00"
+                                type="text"
+                                value={selectedItem.item_prices[0]?.price}
+
+
+                            />
+                        </div> */}
+
+
+                                        <div className="prices-labels mt-5">
+                                            <p className="text-[#1b5067] text-lg font-medium">Prices</p>
+                                            <div className="price-instructions mb-4">
+                                                <p className="text-xs leading-5 text-gray-500">
+                                                    Items can have price options according to their sizes, servings etc.
+                                                    If the item has one price option, you can leave the name blank.
+                                                </p>
+                                            </div>
+
+                                            <div className="add-new-price-btn">
+                                                {selectedItem.item_prices && selectedItem.item_prices.length > 0 ? (
+                                                    [...selectedItem.item_prices].sort((a, b) => new Date(a.id) - new Date(b.id))
+                                                        .map((price, index) => (
+                                                            <div className="new-price flex gap-4 items-end mb-4" key={index}>
+                                                                <div className="add-price-name">
+                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                        Name
+                                                                    </label>
+                                                                    <input
+                                                                        className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="Small"
+                                                                        type="text"
+                                                                        value={price.label || ''}
+                                                                        onChange={(e) => handlePriceChange(index, 'label', e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                <div className="add-price-price">
+                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                        Price
+                                                                    </label>
+                                                                    <input
+                                                                        className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                        placeholder="0.00"
+                                                                        type="text"
+                                                                        // step="0.01"
+                                                                        // min="0"
+                                                                        value={price.price.toString() || ''}
+                                                                        onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
+                                                                    onClick={() => deletePrice(index)}
+                                                                    title="Delete price"
+                                                                >
+                                                                    <i className="fa-solid fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        ))
+                                                ) : (
+                                                    <p className="text-gray-500 text-sm mb-4">No prices added yet</p>
+                                                )}
+
+                                                <button
+                                                    className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067] mt-2"
+                                                    onClick={addPrice}
+                                                >
+                                                    <i className="fa-solid fa-plus"></i>
+                                                    Add Price
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <hr className="mt-2" />
+
+                                        <div className="extras-labels mt-5">
+                                            <p className="text-[#1b5067] text-lg font-medium">Extras</p>
+                                            <div className="extra-instructions mb-4">
+                                                <p className="text-xs leading-5 text-gray-500">
+                                                    Items can have Extra options. If the item has one Extra option, you
+                                                    can't leave the name blank.
+                                                </p>
+                                            </div>
+
+                                            <div className="add-new-extra-btn">
+                                                {extras && extras.length > 0 ? (
+                                                    [...extras].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((extra, index) => (
+                                                        <div className="new-extra flex gap-4 items-end mb-4" key={index}>
+                                                            <div className="add-extra-name">
+                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                    Name
+                                                                </label>
+                                                                <input
+                                                                    className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    placeholder="Add Cheese"
+                                                                    type="text"
+                                                                    value={extra.label || ''}
+                                                                    onChange={(e) => handleExtraChange(index, 'label', e.target.value)}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="add-extra-price">
+                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                                    Price
+                                                                </label>
+                                                                <input
+                                                                    className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    placeholder="0.00"
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    min="0"
+                                                                    value={extra.price || ''}
+                                                                    onChange={(e) => handleExtraChange(index, 'price', e.target.value)}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
+                                                                onClick={() => deleteExtra(index)}
+                                                                title="Delete extra"
+                                                            >
+                                                                <i className="fa-solid fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-gray-500 text-sm mb-4">No extras added yet</p>
+                                                )}
+
+                                                <div className="flex justify-between mt-6">
+                                                    <button
+                                                        className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067]"
+                                                        onClick={addExtra}
+                                                    >
+                                                        <i className="fa-solid fa-plus"></i>
+                                                        Add Extra
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+
+                                    </div>
+
+                                )}
+
+
+                                <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
+                                    <button onClick={closeEditItemForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
+                                        Save
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </div>
+                )
+            }
 
             {isAddItemFormVisible && (
 
-                <div className={`add-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 right-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddItemFormVisible
+                <div className={`add-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddItemFormVisible
                     ? "opacity-100 translate-x-0 pointer-events-auto"
                     : "opacity-0 translate-x-full pointer-events-none"
                     }`} >
                     <div className="item-name  p-3 flex gap-2 items-center">
-                        <i onClick={closeAddItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Add New item</p>
+                        <i onClick={closeAddItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium cairo'>اضافة صنف جديد</p>
                     </div>
                     <hr className='w-full ' />
 
@@ -1483,7 +2553,7 @@ export default function MenuManagement() {
                                     className={itemTab("details")}
                                     onClick={() => setActiveItemEditor("details")}
                                 >
-                                    Details
+                                    تفاصيل
                                 </div>
 
 
@@ -1498,34 +2568,34 @@ export default function MenuManagement() {
                                 <div>
 
                                     <div className="item-name mt-4">
-                                        <label htmlFor="item_name" className="block">
-                                            <span className="text-red-500">*</span> Name
+                                        <label htmlFor="item_name" className="block cairo">
+                                            اسم الصنف <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             name="item_name"
                                             value={itemName}
                                             onChange={(e) => setItemName(e.target.value)}
-                                            className="w-full text-sm p-1 mt-2 rounded-md border-2 h-9"
-                                            placeholder="Item name"
+                                            className="w-full cairo text-sm p-1 mt-2 rounded-md border-2 h-9"
+                                            placeholder="مكرونة"
                                             required
                                         />
                                     </div>
 
                                     <div className="item-description mt-4">
-                                        <p className="text-sm">Description</p>
+                                        <p className="text-sm cairo">الوصف</p>
                                         <textarea
                                             rows="3"
                                             name="description"
                                             value={itemDesc}
                                             style={{ resize: "none" }}
-                                            className="w-full text-sm mt-3 p-3 border rounded-md"
-                                            placeholder="Describe your item ..."
+                                            className="w-full cairo text-sm mt-3 p-3 border rounded-md"
+                                            placeholder="اضف وصف لمنتجك ..."
                                             onChange={(e) => setItemDesc(e.target.value)}
                                         ></textarea>
                                     </div>
                                     <div className="item-image mt-4">
-                                        <p className="text-sm">Image</p>
+                                        <p className="text-sm cairo">الصورة</p>
                                         <input
                                             type="file"
                                             name="item_image"
@@ -1550,11 +2620,11 @@ export default function MenuManagement() {
                                     </div>
 
                                     <div className="item-first-price my-4 " >
-                                        <label className="block mb-3" htmlFor="">
-                                            Price
+                                        <label className="block cairo mb-3" htmlFor="">
+                                            السعر
                                         </label>
                                         <input
-                                            className="rounded-md w-44 h-9 border-2 px-2"
+                                            className="rounded-md w-44 h-9 cairo border-2 px-2"
                                             placeholder="0,00"
                                             type="text"
                                             value={firstPrice}
@@ -1569,136 +2639,14 @@ export default function MenuManagement() {
                                 </div>
                             )}
 
-                            {activeItemEditor === "more" && (
-                                <div>
-                                    <div className="prices-labels mt-5">
-                                        <p className="text-[#1b5067] text-lg font-medium">Prices</p>
-                                        <div className="price-instructions mb-4">
-                                            <p className="text-xs leading-5 text-gray-500">
-                                                Items can have price options according to their sizes, servings etc.
-                                                If the item has one price option, you can leave the name blank.
-                                            </p>
-                                        </div>
 
-                                        <div className="add-new-price-btn">
-                                            {prices.map((price, index) => (
-                                                <div className="new-price flex gap-2" key={index}>
-                                                    <div className="add-price-name mb-3">
-                                                        <label className="block mb-3" htmlFor="">
-                                                            Name
-                                                        </label>
-                                                        <input
-                                                            className="rounded-md w-44 h-9 px-2 border-2"
-                                                            placeholder="Small"
-                                                            type="text"
-                                                            value={price.name}
-                                                            onChange={(e) =>
-                                                                updatePrice(index, "name", e.target.value)
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="add-price-price">
-                                                        <label className="block mb-3" htmlFor="">
-                                                            Price
-                                                        </label>
-                                                        <input
-                                                            className="rounded-md w-44 h-9 border-2 px-2"
-                                                            placeholder="0,00"
-                                                            type="text"
-                                                            value={price.price}
-                                                            onChange={(e) =>
-                                                                updatePrice(index, "price", e.target.value)
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div
-                                                        className="delete-price ms-3 mt-5 flex items-center cursor-pointer"
-                                                        onClick={() => deletePrice(index)}
-                                                    >
-                                                        <i className="fa-solid text-gray-600 fa-x"></i>
-                                                    </div>
-                                                </div>
-                                            ))}
-
-                                            <button
-                                                className="flex gap-2 items-center text-[#2a7696]"
-                                                onClick={addPrice}
-                                            >
-                                                <i className="fa-solid fa-plus"></i>
-                                                Add Price
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <hr className="mt-2" />
-
-                                    <div className="Extras-labels mt-5">
-                                        <p className="text-[#1b5067] text-lg font-medium">Extras</p>
-                                        <div className="Extra-instructions mb-4">
-                                            <p className="text-xs leading-5 text-gray-500">
-                                                Items can have Extra options. If the item has one Extra option, you
-                                                can't leave the name blank.
-                                            </p>
-                                        </div>
-
-                                        <div className="add-new-Extra-btn">
-                                            {extras.map((extra, index) => (
-                                                <div className="new-Extra flex gap-2" key={index}>
-                                                    <div className="add-Extra-name mb-3">
-                                                        <label className="block mb-3" htmlFor="">
-                                                            Name
-                                                        </label>
-                                                        <input
-                                                            className="rounded-md w-44 h-9 px-2 border-2"
-                                                            placeholder="Add Cheese"
-                                                            type="text"
-                                                            value={extra.name}
-                                                            onChange={(e) =>
-                                                                updateExtra(index, "name", e.target.value)
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="add-Extra-Extra">
-                                                        <label className="block mb-3" htmlFor="">
-                                                            Price
-                                                        </label>
-                                                        <input
-                                                            className="rounded-md w-44 h-9 border-2 px-2"
-                                                            placeholder="0,00"
-                                                            type="text"
-                                                            value={extra.price}
-                                                            onChange={(e) =>
-                                                                updateExtra(index, "price", e.target.value)
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div
-                                                        className="delete-Extra ms-3 mt-5 flex items-center cursor-pointer"
-                                                        onClick={() => deleteExtra(index)}
-                                                    >
-                                                        <i className="fa-solid text-gray-600 fa-x"></i>
-                                                    </div>
-                                                </div>
-                                            ))}
-
-                                            <button
-                                                className="flex gap-2 items-center text-[#2a7696]"
-                                                onClick={addExtra}
-                                            >
-                                                <i className="fa-solid fa-plus"></i>
-                                                Add Extra
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                             {/* Submit Buttons */}
                             <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                                <button type="button" onClick={toggleFormVisibility} className="close-form py-2 px-4 bg-gray-200 rounded-md">
-                                    Cancel
+                                <button type="button" onClick={closeAddItemForm} className="close-form cairo py-2 px-4 bg-gray-200 rounded-md">
+                                    الغاء
                                 </button>
-                                <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
-                                    Save
+                                <button type="submit" className="py-2 cairo px-6 rounded-md text-white bg-green-600">
+                                    حفظ
                                 </button>
                             </div>
                         </form>
@@ -1706,6 +2654,127 @@ export default function MenuManagement() {
                     </div>
                 </div>
             )}
+            {isAddOfferFormVisible && (
+                <div className={`add-offer-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddOfferFormVisible
+                    ? "opacity-100 translate-x-0 pointer-events-auto"
+                    : "opacity-0 translate-x-full pointer-events-none"
+                    }`} >
+                    <div className="offer-name  p-3 flex gap-2 items-center">
+                        <i onClick={closeAddItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium cairo'>اضافة عرض جديد</p>
+                    </div>
+                    <hr className='w-full ' />
+
+                    <div className="overflow-y-scroll h-5/6">
+                        <form onSubmit={handleAddOfferSubmit}>
+                            {/* <input type="hidden" name="section_id" value={selectedSectionId} /> */}
+
+                            <div className="flex bg-white mb-4 border-b border-gray-200 pt-2  ">
+                                <div
+                                    className={itemTab("details")}
+                                    onClick={() => setActiveItemEditor("details")}
+                                >
+                                    تفاصيل
+                                </div>
+
+
+                                {/* <div
+                                    className={itemTab("more")}
+                                    onClick={() => setActiveItemEditor("more")}
+                                >
+                                    More
+                                </div> */}
+                            </div>
+                            {activeItemEditor === "details" && (
+                                <div>
+
+                                    <div className="item-name mt-4">
+                                        <label htmlFor="item_name" className="block cairo">
+                                            اسم العرض <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="item_name"
+                                            value={itemName}
+                                            onChange={(e) => setItemName(e.target.value)}
+                                            className="w-full cairo text-sm p-1 mt-2 rounded-md border-2 h-9"
+                                            placeholder="عرض الجامدين"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="item-description mt-4">
+                                        <p className="text-sm cairo">الوصف</p>
+                                        <textarea
+                                            rows="3"
+                                            name="description"
+                                            value={itemDesc}
+                                            style={{ resize: "none" }}
+                                            className="w-full cairo text-sm mt-3 p-3 border rounded-md"
+                                            placeholder="اضف وصف لعرضك ..."
+                                            onChange={(e) => setItemDesc(e.target.value)}
+                                        ></textarea>
+                                    </div>
+                                    <div className="item-image mt-4">
+                                        <p className="text-sm cairo">الصورة</p>
+                                        <input
+                                            type="file"
+                                            name="item_image"
+                                            accept="image/jpeg, image/png"
+                                            onChange={handleItemFileChange}
+                                            className="hidden"
+                                            id="item_image_upload"
+                                        />
+                                        <label htmlFor="item_image_upload">
+                                            <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 cursor-pointer">
+                                                {preview ? (
+                                                    <img src={preview} alt="Preview" className="w-full h-full rounded-md" />
+                                                ) : (
+                                                    <>
+                                                        <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
+                                                        <p className="mt-3">Upload</p>
+                                                        <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div className="item-first-price my-4 " >
+                                        <label className="block cairo mb-3" htmlFor="">
+                                            السعر
+                                        </label>
+                                        <input
+                                            className="rounded-md w-44 h-9 cairo border-2 px-2"
+                                            placeholder="0,00"
+                                            type="text"
+                                            value={firstPrice}
+                                            onChange={(e) => setFirstPrice(e.target.value)}
+
+                                        />
+                                    </div>
+
+
+
+
+                                </div>
+                            )}
+
+
+                            {/* Submit Buttons */}
+                            <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
+                                <button type="button" onClick={closeAddItemForm} className="close-form cairo py-2 px-4 bg-gray-200 rounded-md">
+                                    الغاء
+                                </button>
+                                <button type="submit" className="py-2 cairo px-6 rounded-md text-white bg-green-600">
+                                    حفظ
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            )}
+
             <div className="container md:px-0 md:w-4/5 w-full px-2 pt-3">
                 {sectionToDelete && (
                     <div className="confirm-delete-modal fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
@@ -1730,7 +2799,7 @@ export default function MenuManagement() {
                         className={sectionTab("items")}
                         onClick={() => setActiveSectionEditor("items")}
                     >
-                        Menu
+                        المنيو
                     </div>
 
 
@@ -1738,7 +2807,7 @@ export default function MenuManagement() {
                         className={sectionTab("pay")}
                         onClick={() => setActiveSectionEditor("pay")}
                     >
-                        Social Media
+                        السوشيال ميديا
                     </div>
                 </div>
 
@@ -1746,160 +2815,407 @@ export default function MenuManagement() {
                 {activeSectionEditor === "items" && (
                     <div>
                         <div className="live-menu shadow-md flex justify-between bg-white p-3 rounded-lg">
-
-                            <p>Live Menu </p>
+                            <p className='cairo'>نشاط المنيو</p>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" value="" />
-                                <div className="group peer bg-gray-300 rounded-full duration-300 w-8 h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute after:h-4 after:w-4 after:top-1 after:left-0 after:flex after:justify-center after:items-center peer-checked:after:translate-x-4 peer-hover:after:scale-95"></div>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={menuData?.is_active || false}
+                                    onChange={async () => {
+                                        try {
+                                            const newStatus = !menuData?.is_active;
+                                            await axios.post(`http://localhost:234/api/menu/update/${menu_id}`, {
+                                                is_active: newStatus
+                                            });
+                                            setMenuData(prev => ({ ...prev, is_active: newStatus }));
+                                            toast.success(newStatus ? "Menu activated" : "Menu deactivated");
+                                        } catch (error) {
+                                            toast.error("Failed to update menu status");
+                                            console.error("Error updating menu status:", error);
+                                        }
+                                    }}
+                                />
+                                <div className={`
+      group peer rounded-full duration-300 w-8 h-4 ring-2 
+      ${menuData?.is_active ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+      after:duration-300 after:bg-white after:rounded-xl after:absolute 
+      after:h-4 after:w-4 after:top-1 after:left-0 
+      after:flex after:justify-center after:items-center
+      ${menuData?.is_active ? 'after:translate-x-4' : ''}
+      peer-hover:after:scale-95
+    `}></div>
                             </label>
                         </div>
-                        <div className="search shadow-sm mt-4 relative"  >
-                            <input className="w-full rounded-lg p-3 pl-10" type="search" placeholder="Search..." />
+                        <div className="search shadow-sm mt-4 relative">
+                            <input
+                                className="w-full rounded-lg p-3 pl-10"
+                                type="search"
+                                placeholder="Search..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                             <i className="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                         </div>
-                        <div onClick={toggleAddFormVisibility} className="add-category hover:bg-slate-50 cursor-pointer hover:shadow-md mt-4 shadow-sm flex justify-between bg-white p-3 rounded-lg">
-                            <p> + Add Section </p>
-                        </div>
 
-                        <div className="categories mt-6">
-                            {sections.length > 0 ? (sections.map((section, index) => (
-                                <div
-                                    key={section.id}
-                                    className={`category mt-2 ${draggingIndex === index ? 'opacity-50' : ''}`}
-                                    onDragEnter={() => handleDragEnter(index)}
-                                    onDragLeave={handleDragLeave}
-                                    onDragOver={handleDragOver}
-                                    onDragEnd={handleSort}
-                                    style={{
-                                        borderTop: hoveredIndex === index ? '2px dashed #4CAF50' : '',
-                                        transition: 'border 0.3s ease',
-                                        transform: draggingIndex === index ? 'scale(1.05)' : '',
-                                        boxShadow: draggingIndex === index ? '0 4px 10px rgba(0, 0, 0, 0.2)' : '',
-                                    }}
-                                >
+                        <p className='cairo text-sky-700 font-semibold text-lg mt-3'>الأقسام</p>
+
+                        <div onClick={toggleAddFormVisibility} className="add-category hover:bg-slate-50 cursor-pointer hover:shadow-md mt-4 shadow-sm flex justify-between bg-white p-3 rounded-lg">
+                            <p className='cairo'> اضافة قسم +  </p>
+                        </div>
+                        {isSectionsLoading ? (<>
+                            <div className="sections-loading bg-slate-200/60 animate-pulse min-h-screen">
+
+
+
+                            </div>
+                        </>) : (
+
+                            <div className="categories mt-6">
+                                {sections.length > 0 ? (
+                                    filterSections(sections).map((section, index) => (
+                                        <div
+                                            key={section.id}
+                                            className={`category mt-2 `}
+                                        >
+                                            <div
+                                                onClick={() => {
+                                                    toggleFormVisibility(section.id);
+                                                    toggleCategoryItems(section.id);
+                                                    toggleCategoryMenu();
+                                                    setSelectedSection(section);
+
+                                                }}
+                                                className="category-parent cursor-pointer hover:bg-slate-50 shadow-lg flex justify-between p-3 bg-white rounded-lg"
+                                            >
+                                                <div className="left flex items-center gap-2">
+
+                                                    <div className="flex flex-col mr-2">
+                                                        <i
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                moveSectionUp(section.id);
+                                                            }}
+                                                            className={`fa-solid fa-chevron-up text-xs ${index === 0 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                                }`}
+                                                        ></i>
+                                                        <i
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                moveSectionDown(section.id);
+                                                            }}
+                                                            className={`fa-solid fa-chevron-down text-xs ${index === sections.length - 1 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                                }`}
+                                                        ></i>
+                                                    </div>
+
+                                                    <img className="w-10 h-10 rounded-md" src={section.cover_image_url ? section.cover_image_url : def} alt='' />
+
+                                                    <p className="truncate md:max-w-[400px] sm:max-w-80 max-w-24 text-ellipsis overflow-hidden whitespace-nowrap" > {section.name}</p>
+                                                </div>
+                                                <div className="right flex gap-4 items-center">
+
+
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="sr-only peer"
+                                                            checked={section.is_available}
+                                                            onChange={async (e) => {
+                                                                try {
+                                                                    const newStatus = !section.is_available;
+                                                                    await axios.post(`http://localhost:234/api/section/update/${section.id}`, {
+                                                                        is_available: newStatus
+                                                                    });
+                                                                    // Update local state
+                                                                    setSections(prev => prev.map(s =>
+                                                                        s.id === section.id ? { ...s, is_available: newStatus } : s
+                                                                    ));
+                                                                    toast.success(newStatus ? "Section activated" : "Section deactivated");
+                                                                } catch (error) {
+                                                                    toast.error("Failed to update section status");
+                                                                    console.error("Error:", error);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <div className={`
+group peer rounded-full duration-300 w-8 h-4 ring-2 
+${section.is_available ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+after:duration-300 after:bg-white after:rounded-xl after:absolute 
+after:h-4 after:w-4 after:top-0 after:left-0 
+after:flex after:justify-center after:items-center
+${section.is_available ? 'after:translate-x-4' : ''}
+peer-hover:after:scale-95
+`}></div>
+                                                    </label>
+                                                    <div className="more relative">
+                                                        <i onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleMoreClick(index); // Toggle the "more" menu for this section
+                                                        }} className="fa-solid px-2 text-slate-700 fa-ellipsis-vertical"></i>
+                                                        {activeMoreIndex === index && (
+                                                            <div className="dropdn absolute md:-right-20 -right-11  z-10 w-32 h-fit border bg-white rounded-md">
+                                                                <p className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className=" text-gray-500 fa-solid fa-clone"></i> dupplicate</p>
+                                                                <p onClick={(e) => {
+                                                                    e.stopPropagation(); // Prevent parent click events
+                                                                    handleDeleteClick(section); // Call the delete handler
+                                                                }} className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className="text-gray-500 fa-regular fa-trash-can"></i> Delete</p>
+
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <i
+                                                        className="fa-solid fa-chevron-down cursor-pointer transform transition-transform duration-300"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleCategoryItems(section.id);
+                                                        }}
+                                                    ></i>
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                className="category-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out"
+                                                style={{ maxHeight: expandedCategories[section.id] ? '500px' : '0px' }}
+                                            >
+                                                {filterItems(section.items).map((item, itemIndex) => (
+                                                    <div
+                                                        onClick={() => {
+                                                            openEditItemForm(item),
+                                                                setSelectedItem(item)
+                                                        }}
+                                                        key={item.id}
+                                                        className="item p-2 mt-2 hover:bg-slate-200 cursor-pointer rounded-md w-[97%] flex gap-2 justify-between bg-white"
+                                                    >
+                                                        <div className="left md:w-2/3 w-1/2 flex items-center gap-2">
+                                                            <div className="flex flex-col gap-2">
+                                                                <i
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        moveItemUp(section.id, item.id);
+                                                                    }}
+                                                                    className={`fa-solid fa-chevron-up  bg-slate-100 p-1 rounded-md text-gray-400 hover:text-gray-600 ${itemIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                ></i>
+                                                                <i
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        moveItemDown(section.id, item.id);
+                                                                    }}
+                                                                    className={`fa-solid fa-chevron-down bg-slate-100 p-1 rounded-md text-gray-400 hover:text-gray-600 ${itemIndex === section.items.length - 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                ></i>
+                                                            </div>
+                                                            {/* Placeholder for item image */}
+                                                            <img
+                                                                className="w-7 h-7 rounded-md"
+                                                                src={item.image_url ? item.image_url : def}
+                                                                alt={item.name}
+                                                            />
+                                                            <span className={`text-sm font-medium ${item.is_available ? 'text-green-600' : 'text-red-600'
+                                                                }`}>
+                                                                {item.is_available ? 'Active' : 'Inactive'}
+                                                            </span>                                                    <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
+                                                        </div>                                                <div className="right flex md:gap-4 gap-2 items-center">
+                                                            <div className="price-edit border flex p-1 rounded-md gap-2">
+                                                                <p className='md:text-base text-sm'>EGP</p>
+                                                                <input dir='ltr' className="md:w-14 w-12 md:text-base text-sm" type="text" value={item?.item_prices?.[0]?.price || "0"} readOnly />
+                                                            </div>
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only peer"
+                                                                    checked={item.is_available}
+                                                                    onChange={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        await handleUpdateItemStatus(item.id, !item.is_available);
+                                                                    }}
+                                                                />
+                                                                <div className={`
+    group peer rounded-full duration-300 md:w-8 w-6 h-3 md:h-4 ring-2 
+    ${item.is_available ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+    after:duration-300 after:bg-white after:rounded-xl after:absolute 
+    md:after:h-4 after:h-3 md:after:w-4 after:w-3 after:top-0 after:left-0 
+    after:flex after:justify-center after:items-center
+    ${item.is_available ? 'md:after:translate-x-4 after:translate-x-3' : ''}
+    peer-hover:after:scale-95
+  `}></div>
+                                                            </label>
+
+
+                                                            <div className="more relative">
+                                                                <i
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleItemMoreClick(itemIndex);
+                                                                    }}
+                                                                    className="fa-solid px-2 bg-green-400 text-slate-700 fa-ellipsis-vertical cursor-pointer"
+                                                                ></i>
+
+                                                                {activeItemMoreIndex === itemIndex && (
+                                                                    <div className="dropdn absolute md:-right-20 -right-11 z-30 w-32 h-fit border bg-white rounded-md shadow-md">
+                                                                        <p
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                // handleItemDuplicate(item); // Uncomment when you implement this
+                                                                            }}
+                                                                            className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                                        >
+                                                                            <i className="text-gray-500 fa-solid fa-clone"></i> Duplicate
+                                                                        </p>
+                                                                        <p
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                deleteItem(item.id);
+                                                                            }}
+                                                                            className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                                        >
+                                                                            <i
+                                                                                className="text-gray-500 fa-regular fa-trash-can"></i> Delete
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div onClick={() => openAddItemForm(section.id)} className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg">
+                                                    <p> + Add Item </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))) : (
+
+                                    <div className="empty-sections flex flex-col justify-center items-center">
+                                        <i className="fa-solid fa-arrow-up"></i>
+                                        <p>No Section add now!</p>
+
+                                    </div>
+
+
+                                )}
+                            </div>
+                        )}
+
+
+
+                        <p className='cairo text-sky-700 font-semibold text-lg mt-3'>العروض</p>
+                        <div className="offer-section">
+                            <div className="offer-section-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out">
+                                {filterOfferItems(offerItems).map((item, itemIndex) => (
                                     <div
                                         onClick={() => {
-                                            toggleFormVisibility();
-                                            toggleCategoryItems(section.id);
-                                            toggleCategoryMenu();
-                                            setSelectedSection(section); // Set the selected section data
-
+                                            openEditOfferForm(item);
+                                            setSelectedItem(item);
                                         }}
-                                        draggable
-                                        onDragStart={() => handleDragStart(index)}
-                                        className="category-parent cursor-pointer hover:bg-slate-50 shadow-lg flex justify-between p-3 bg-white rounded-lg"
+                                        key={item.id}
+                                        className="item p-2 mt-2 hover:bg-slate-200 cursor-pointer rounded-md w-[97%] flex gap-2 justify-between bg-white"
                                     >
-                                        <div className="left flex items-center gap-2">
-                                            <div className="drag-btns md:hidden flex gap-2">
-                                                <button
+                                        <div className="left md:w-2/3 w-1/2 flex items-center gap-2">
+                                            {/* Add reorder arrows here */}
+                                            <div className="flex flex-col">
+                                                <i
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (index > 0) {
-                                                            handleMoveSection(index, index - 1);
-                                                        }
+                                                        moveOfferItemUp(item.id);
                                                     }}
-                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
-                                                >
-                                                    <i className="fa-solid fa-arrow-up"></i>
-                                                </button>
-                                                <button
+                                                    className={`fa-solid fa-chevron-up text-xs ${itemIndex === 0 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                        }`}
+                                                ></i>
+                                                <i
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (index < sections.length - 1) {
-                                                            handleMoveSection(index, index + 1);
-                                                        }
+                                                        moveOfferItemDown(item.id);
                                                     }}
-                                                    className="arrow-btn bg-slate-200 w-6 text-gray-500 hover:text-green-500"
-                                                >
-                                                    <i className="fa-solid fa-arrow-down"></i>
-
-                                                </button>
+                                                    className={`fa-solid fa-chevron-down text-xs ${itemIndex === offerItems.length - 1 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                        }`}
+                                                ></i>
                                             </div>
-                                            <i className="drag-btn fa-solid fa-bars md:flex hidden text-sm text-gray-400 cursor-grab"></i>
-                                            <img className="w-10 h-10 rounded-md" src={section.cover_image_url ? section.cover_image_url : def} alt='' />
 
-                                            <p className="truncate md:max-w-[400px] sm:max-w-80 max-w-24 text-ellipsis overflow-hidden whitespace-nowrap" > {section.name}</p>
+                                            <i className="fa-solid fa-bars text-sm text-gray-400"></i>
+                                            <img
+                                                className="w-7 h-7 rounded-md"
+                                                src={item?.image_url || def} // Make sure 'def' is defined
+                                                alt={item?.name}
+                                            />
+                                            <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>
+                                                {item?.name}
+                                            </p>
                                         </div>
-                                        <div className="right flex gap-4 items-center">
-
-
+                                        <div className="right flex md:gap-4 gap-2 items-center">
+                                            <div className="price-edit border flex p-1 rounded-md gap-2">
+                                                <p className='md:text-base text-sm'>EGP</p>
+                                                <input
+                                                    dir='ltr'
+                                                    className="md:w-14 w-12 md:text-base text-sm"
+                                                    type="text"
+                                                    value={item?.item_prices?.[0]?.price || "0"}
+                                                    readOnly
+                                                />
+                                            </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" className="sr-only peer" value="" />
-                                                <div className="group peer bg-gray-300 rounded-full duration-300 w-8 h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute after:h-4 after:w-4 after:top-0 after:left-0 after:flex after:justify-center after:items-center peer-checked:after:translate-x-4 peer-hover:after:scale-95"></div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={item.is_available}
+                                                    onChange={async (e) => {
+                                                        e.stopPropagation();
+                                                        await handleUpdateOfferStatus(item.id, !item.is_available);
+                                                    }}
+                                                />
+                                                <div className={`
+          group peer rounded-full duration-300 md:w-8 w-6 h-3 md:h-4 ring-2 
+          ${item.is_available ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+          after:duration-300 after:bg-white after:rounded-xl after:absolute 
+          md:after:h-4 after:h-3 md:after:w-4 after:w-3 after:top-0 after:left-0 
+          after:flex after:justify-center after:items-center
+          ${item.is_available ? 'md:after:translate-x-4 after:translate-x-3' : ''}
+          peer-hover:after:scale-95
+        `}></div>
                                             </label>
                                             <div className="more relative">
-                                                <i onClick={(e) => {
-                                                    e.stopPropagation(); // Prevent closing the menu when clicking inside it
-                                                    handleMoreClick(index); // Toggle the "more" menu for this section
-                                                }} className="fa-solid px-2 text-slate-700 fa-ellipsis-vertical"></i>
-                                                {activeMoreIndex === index && (
-                                                    <div className="dropdn absolute md:-right-20 -right-11  z-10 w-32 h-fit border bg-white rounded-md">
-                                                        <p className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className=" text-gray-500 fa-solid fa-clone"></i> dupplicate</p>
-                                                        <p onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent parent click events
-                                                            handleDeleteClick(section); // Call the delete handler
-                                                        }} className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className="text-gray-500 fa-regular fa-trash-can"></i> Delete</p>
-
+                                                <i
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOfferMoreClick(itemIndex);
+                                                    }}
+                                                    className="fa-solid px-2 bg-green-400 text-slate-700 fa-ellipsis-vertical cursor-pointer"
+                                                ></i>
+                                                {activeOfferMoreIndex === itemIndex && (
+                                                    <div className="dropdn absolute md:-right-20 -right-11 z-30 w-32 h-fit border bg-white rounded-md shadow-md">
+                                                        <p
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // handleItemDuplicate(item);
+                                                            }}
+                                                            className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                        >
+                                                            <i className="text-gray-500 fa-solid fa-clone"></i> Duplicate
+                                                        </p>
+                                                        <p
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteItem(item.id);
+                                                            }}
+                                                            className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2 cursor-pointer'
+                                                        >
+                                                            <i className="text-gray-500 fa-regular fa-trash-can"></i> Delete
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
-
-                                            <i
-                                                className="fa-solid fa-chevron-down cursor-pointer transform transition-transform duration-300"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleCategoryItems(section.id);
-                                                }}
-                                            ></i>
                                         </div>
                                     </div>
-
-                                    <div
-                                        className="category-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out"
-                                        style={{ maxHeight: expandedCategories[section.id] ? '500px' : '0px' }}
-                                    >
-                                        {section.items.map((item) => (
-                                            <div onClick={() => openEditItemForm(item)} key={item.id} className="item p-2 mt-2 rounded-md w-[97%] flex gap-2 justify-between bg-white">
-                                                <div className="left md:w-2/3 w-1/2   flex items-center gap-2">
-                                                    <i className="fa-solid fa-bars text-sm text-gray-400"></i>
-                                                    {/* Placeholder for item image */}
-                                                    <img
-                                                        className="w-7 h-7 rounded-md"
-                                                        src={item.image_url ? item.image_url : def}
-                                                        alt={item.name}
-                                                    />
-                                                    <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
-                                                </div>
-                                                <div className="right flex md:gap-4 gap-2 items-center">
-                                                    <div className="price-edit border flex p-1 rounded-md gap-2">
-                                                        <p className='md:text-base text-sm'>EGP</p>
-                                                        <input className="md:w-14 w-12 md:text-base text-sm" type="text" value={item?.item_prices?.[0]?.price || "0"} readOnly />
-                                                    </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" value="" />
-                                                        <div className="group peer bg-gray-300 rounded-full duration-300 md:w-8 w-6 h-3 md:h-4 ring-2 ring-gray-300 peer-checked:bg-green-500 after:duration-300 after:bg-white peer-checked:after:bg-white  after:rounded-xl after:absolute md:after:h-4 after:h-3 md:after:w-4 after:w-3 after:top-0 after:left-0 after:flex after:justify-center after:items-center md:peer-checked:after:translate-x-4 peer-checked:after:translate-x-3 peer-hover:after:scale-95"></div>
-                                                    </label>
-                                                    <i className="fa-solid px-2 text-slate-700 fa-ellipsis-vertical"></i>
-
-                                                </div>
-                                            </div>
-                                        ))}
-                                        <div onClick={() => openAddItemForm(section.id)} className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg">
-                                            <p> + Add Item </p>
-                                        </div>
-                                    </div>
+                                ))}
+                                <div
+                                    onClick={() => openAddOfferForm()}
+                                    className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg"
+                                >
+                                    <p className='cairo'>
+                                        اضافة عرض + </p>
                                 </div>
-                            ))) : (
-
-                                <div className="empty-sections flex flex-col justify-center items-center">
-                                    <i className="fa-solid fa-arrow-up"></i>
-                                    <p>No Section add now!</p>
-
-                                </div>
-
-
-                            )}
+                            </div>
                         </div>
+
+
 
                     </div>
                 )}
@@ -2102,8 +3418,16 @@ export default function MenuManagement() {
 
 
             </div>
-        </div >) : (<NewMenuCreation />
-        )}
+        </div >) : (<NewMenuCreation onMenuSelect={(type) => {
+            if (type === "scratch") {
+                setIsMenuLoading(false)
+                setScratchMenu(true);
+            }
+            if (type === "sample") {
+                setSampleMenu(true);
+                createSample(m_id); // Call your function here
+            }
+        }} />)}
 
 
     </>
