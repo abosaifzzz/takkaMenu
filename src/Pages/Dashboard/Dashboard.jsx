@@ -6,7 +6,7 @@ import rev from "../../assets/rev.png"
 import rev2 from "../../assets/rev2.png"
 
 import axios from 'axios';
-import eats from '../../assets/eats-logo.PNG'
+import eats from '../../assets/eats-logo.png'
 
 // const mockReviewsData = [
 //     { id: 1, name: 'Mohamed Tarek Abo Saif', date: 'Friday 25 October', text: '"....الأكل حلو جدا و المكان شكله حلو و "', rating: 4 },
