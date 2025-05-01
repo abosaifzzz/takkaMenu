@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react'
 import rev2 from "../../assets/rev2.png"
-import eats from '../../assets/eats-logo.PNG'
+import eats from '../../assets/eats-logo.png'
 import toast from 'react-hot-toast';
 
 const mockReviewsData = [
