@@ -1,10 +1,17 @@
 import React, { useEffect } from 'react'
 import { useRef, useState } from 'react';
 import def from '../../assets/download.png'
+import eats from '../../assets/eats-logo.png'
+import eats2 from '../../assets/eats2.png'
+
+
 
 import cover from "../../assets/cover.jpeg"
+import cover3 from "../../assets/cover3.jpg"
+
 import reslogo from "../../assets/res-logo.jpg"
 import kofta from "../../assets/kofta.jpg"
+import reslogo2 from "../../assets/relogo2.png"
 
 import fb from "../../assets/fb.png"
 import wp from "../../assets/wp.png"
@@ -19,16 +26,25 @@ import massenger from "../../assets/massenger.png"
 
 import instapay from "../../assets/instapay.png"
 import instagram from "../../assets/instagram.png"
-import location from "../../assets/location.png"
+import locationImg from "../../assets/location.png"
 
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { FaStar, FaTimes, FaPaperclip } from 'react-icons/fa';
 
 
 
 export default function Menu() {
+    const location = useLocation();
+    const pathName = location.pathname
+    const id_hash = pathName.split("/")[2];
+    localStorage.setItem("menu_id", id_hash)
+
+    const [displayEndTime, setDisplayEndTime] = useState(null);
+
+
+
     const navigate = useNavigate();
 
     const handleItemDetailsClick = (item) => {
@@ -52,6 +68,7 @@ export default function Menu() {
     const [menuLive, setMenuLive] = useState(true); // Stored Location URL
 
     const [toggleReview, setToggleReview] = useState(false); // Stored Location URL
+    const [imageLoaded, setImageLoaded] = useState(true);
 
     const [locationUrl, setLocationUrl] = useState(""); // Stored Location URL
     const [instagramUrl, setInstagramUrl] = useState(""); // Stored Instagram URL
@@ -69,7 +86,7 @@ export default function Menu() {
 
 
     const [error, setError] = useState(null);
-    const [phones, setPhones] = useState(""); // Stored Facebook URL
+    const [phones, setPhones] = useState([]); // Initialize as empty array
 
 
     const [review, setReview] = useState({
@@ -77,7 +94,6 @@ export default function Menu() {
         comment: '',
         client_name: '',
         client_phone: '',
-        attachment: null
     });
     const [hoverRating, setHoverRating] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +101,123 @@ export default function Menu() {
 
     const [offerItems, setOfferItems] = useState([]);
     const [offerSectionId, setOfferSectionId] = useState(null);
+    const [selectedSectionId, setSelectedSectionId] = useState(null);
+    const sectionRefs = useRef({});
+
+    // Function to handle section click
+    const handleSectionClick = (sectionId) => {
+        setSelectedSectionId(sectionId);
+        const sectionElement = sectionRefs.current[sectionId];
+        if (sectionElement) {
+            sectionElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    };
+
+    // Intersection Observer for auto-highlighting while scrolling
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setSelectedSectionId(entry.target.id);
+                    }
+                });
+            },
+            { threshold: 0.5 } // Adjust as needed
+        );
+
+        Object.values(sectionRefs.current).forEach(el => {
+            if (el) observer.observe(el);
+        });
+
+        return () => {
+            Object.values(sectionRefs.current).forEach(el => {
+                if (el) observer.unobserve(el);
+            });
+        };
+    }, [sections]);
+
+
+    const fetchMenuData = async () => {
+        try {
+            const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
+            console.log(id_hash);
+
+            console.log("API response menu data:", response.data);
+            let menu_id = response.data.id
+
+            localStorage.setItem("m_id", menu_id)
+            console.log(menu_id);
+
+
+            // Update all state at once
+            setMenuData(response.data);
+
+            // Extract other values you need
+            const { is_closed, end_time } = response.data;
+            setMenuLive(!is_closed);
+            if (end_time) {
+                // Store original 24-hour format for calculations
+                setEndTime(end_time);
+
+                // Convert to 12-hour format for display
+                const [hours, minutes] = end_time.split(':').map(Number);
+                const period = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+                const displayTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+                setDisplayEndTime(displayTime); // You'll need to add this state
+
+                // Time check logic (using original 24-hour format)
+                const now = new Date();
+                const endTimeToday = new Date();
+                endTimeToday.setHours(hours, minutes, 0, 0);
+                setIsClosed(now >= endTimeToday);
+            } else {
+                setDisplayEndTime(null);
+            }
+
+
+        } catch (error) {
+            toast.error("Error loading menu");
+            console.error("Fetch error:", error);
+            setError("Failed to load menu data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    let menu_id = localStorage.getItem("m_id")
+
+    // const coverImageUrl = menuData.cover_image
+    //     ? `http://localhost:234/api/file/${menuData.cover_image}`
+    //     : '';
+
+
+    const profileImageUrl = menuData.profile_image
+        ? `http://localhost:234/api/file/${menuData.profile_image}`
+        : '';
+
+
+
+    useEffect(() => {
+        setTimeout(() => {
+            setImageLoaded(false)
+        }, 300);
+        fetchSocialLinks(id_hash);
+        fetchMenuData()
+        fetchPhones(id_hash);
+        getSections(id_hash)
+        fetchOfferItems(id_hash); // Call the function directly
+
+
+
+    }, [id_hash]);
+
+
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -131,7 +264,15 @@ export default function Menu() {
                     'Content-Type': 'application/json'
                 }
             });
-            alert('Review submitted successfully!');
+            toast.success('تم ارسال التقييم بنجاح');
+            setReview({
+                rate: 0,
+                comment: '',
+                client_name: '',
+                client_phone: '',
+
+            })
+            setToggleReview(false)
         } catch (error) {
             console.error('Error submitting review:', error);
             alert('Failed to submit review. Please try again.');
@@ -142,24 +283,29 @@ export default function Menu() {
 
 
 
-    const menu_id = localStorage.getItem("m_id"); // Get menu_id dynamically from the URL
-    const id_hash = localStorage.getItem("menu"); // Get menu_id dynamically from the URL
+    // const menu_id = localStorage.getItem("m_id"); // Get menu_id dynamically from the URL
 
 
     const fetchOfferItems = async () => {
-        const { sectionId, items } = await getOfferSectionWithItems(menu_id);
 
-        setOfferItems(items);
-        await console.log(offerItems);
+        const { sectionId, items } = await getOfferSectionWithItems(id_hash);
+        if (sectionId, items) {
+            setOfferItems(items);
+            // await console.log(offerItems);
 
-        setOfferSectionId(sectionId);
+            setOfferSectionId(sectionId);
+
+        } else {
+            console.log("no section id or items");
+
+
+        }
     };
 
 
-    async function getOfferSectionWithItems(m_id) {
+    async function getOfferSectionWithItems(id_hash) {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu-offers-client/${m_id}`);
-            console.log("offers", response);
+            const response = await axios.get(`http://localhost:234/api/menu-offers-client/${id_hash}`);
 
             if (!response.data || response.data.message === "Sections not found") {
                 console.log("No sections found for this menu");
@@ -176,7 +322,6 @@ export default function Menu() {
 
             // Save the section ID globally
             // offerSectionId = offerSection.id;
-            console.log("Offer Section ID:", offerSectionId);
 
             // Process items with their images
             const itemsWithImages = await Promise.all(
@@ -198,7 +343,6 @@ export default function Menu() {
             );
 
             // Log the items before returning
-            console.log("Offer Section Items:", itemsWithImages);
 
             return {
                 sectionId: offerSection.id,
@@ -210,101 +354,32 @@ export default function Menu() {
             };
 
         } catch (error) {
+            if (error.response.data && error.response.data.message === "Sections not found for the given MenuId") {
+                return console.log("Specific error: Sections not found");
+                // Handle this specific case
+            }
+
             console.error("Error fetching offer section:", error);
             toast.error("حدث خطأ أثناء جلب قسم العروض");
             return { sectionId: null, items: [] };
         }
     }
 
-    const fetchLocationAccount = async () => {
-        try {
-            const response = await axios.get(`http://localhost:234/api/location-account/${id_hash}`);
-            if (response.data?.url) {
-                setLocationUrl(response.data.url);
-            } else {
-                console.log("No location");
 
 
-            }
-        } catch (err) {
-            console.error("Error fetching Location URL:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchInstagramAccount = async () => {
-        try {
-            const response = await axios.get(`http://localhost:234/api/instagram-account/${menu_id}`);
-            if (response.data?.url) {
-                console.log(response.data?.url);
-
-                setInstagramUrl(response.data.url);
-            }
-        } catch (err) {
-            console.error("Error fetching Instagram URL:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchFacebookAccount = async (menu_id) => {
 
 
-        try {
-
-            const response = await axios.get(`http://localhost:234/api/facebook-account/${menu_id}`);
-
-            if (response.data && response.data.url) {
-
-                setFacebookUrl(response.data.url);
-
-            } else {
-                console.log("errrrr");
-
-            }
-        } catch (err) {
-            console.log(err);
-
-        } finally {
-            setLoading(false);
-        }
-    };
-    const fetchWhatsappAccount = async (menu_id) => {
 
 
-        try {
-
-            const response = await axios.get(`http://localhost:234/api/whatsapp-account/${menu_id}`);
-
-            if (response.data && response.data.url) {
-                let url = response.data.url;
-                let phoneNumber = url.replace("https://wa.me/", "");
-
-                // setFacebookAccount(response.data);
-                setWhatsAppUrl(response.data.url);
-                setTempWhatsAppUrl(phoneNumber); // Sync temp value
-                setIsWhatsAppDisabled(true); // Disable input if URL exists
-                setIsUpdateWhatsApp(true); // Show "Update" button            } else {
-
-
-                // setFacebookAccount(null);
-            }
-        } catch (err) {
-            console.log(err);
-
-            // setFacebookAccount(null);
-        } finally {
-            setLoading(false);
-        }
-    };
     const fetchPhones = async () => {
-        try {
-            const response = await axios.get(`http://localhost:234/api/contacts/${menu_id}`);
-            if (response.data.length > 0) {
-                console.log(response.data);
 
-                setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
+        try {
+
+            const response = await axios.get(`http://localhost:234/api/contacts-client/${id_hash}`);
+
+            if (response.data.contacts.length > 0) {
+
+                setPhones(response.data.contacts.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
 
 
             } else {
@@ -315,11 +390,10 @@ export default function Menu() {
         }
     };
 
-    async function getSections(menu_id) {
+    async function getSections(id_hash) {
         try {
             // Fetch sections using menu_id
-            const response = await axios.get(`http://localhost:234/api/menusection-client/${menu_id}`);
-            console.log(response);
+            const response = await axios.get(`http://localhost:234/api/menusection-client/${id_hash}`);
 
             if (response.data) {
                 const sectionsWithImages = await Promise.all(
@@ -368,10 +442,15 @@ export default function Menu() {
                     })
                 );
 
-                console.log(sectionsWithImages);
                 setSections(sectionsWithImages); // Update state with sections and images
             }
         } catch (error) {
+            if (error.response.data && error.response.data.message === "Sections not found for the given MenuId") {
+                return console.log("Specific error: Sections not found");
+                // Handle this specific case
+            }
+
+
             console.error("Error fetching sections:", error);
             toast.error("حدث خطأ أثناء جلب الأقسام");
 
@@ -382,13 +461,15 @@ export default function Menu() {
     }
     const fetchSocialLinks = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menusocial/${menu_id}`);
+
+            const response = await axios.get(`http://localhost:234/api/menusocial-client/${id_hash}`);
             const updatedLinks = {
                 whatsapp: "",
                 facebook: "",
                 instagram: "",
                 location: "",
             };
+
 
             // ✅ Loop through the response and set each platform dynamically
             response.data.forEach((item) => {
@@ -398,6 +479,7 @@ export default function Menu() {
             });
 
             setSocialLinks(updatedLinks); // ✅ Update state
+
 
         } catch (error) {
             console.error("Error fetching social links:", error);
@@ -414,8 +496,8 @@ export default function Menu() {
     //         console.log("menu-data", response.data);
     //         setMenuData(response.data);
 
-    //         const { is_active } = response.data
-    //         if (is_active) {
+    //         const { is_closed } = response.data
+    //         if (is_closed) {
     //             setMenuLive(false)
 
     //         }
@@ -469,55 +551,6 @@ export default function Menu() {
     //     }
     // };
 
-
-    const fetchMenuData = async () => {
-        try {
-            const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
-            console.log("API response:", response.data);
-
-            // Update all state at once
-            setMenuData(response.data);
-
-            // Extract other values you need
-            const { is_active, end_time } = response.data;
-            setMenuLive(!is_active);
-            setEndTime(end_time);
-
-            // Time check logic
-            if (end_time) {
-                const now = new Date();
-                const [endHour, endMinute] = end_time.split(':').map(Number);
-                const endTimeToday = new Date();
-                endTimeToday.setHours(endHour, endMinute, 0, 0);
-                setIsClosed(now >= endTimeToday);
-            }
-
-            toast.success("Menu loaded successfully");
-        } catch (error) {
-            toast.error("Error loading menu");
-            console.error("Fetch error:", error);
-            setError("Failed to load menu data");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-
-
-    useEffect(() => {
-        fetchSocialLinks(menu_id);
-        fetchMenuData(menu_id)
-        fetchWhatsappAccount(menu_id);
-        fetchLocationAccount(menu_id);
-        fetchPhones(menu_id);
-        getSections(menu_id)
-        fetchFacebookAccount(menu_id);
-        fetchInstagramAccount(menu_id);
-        fetchOfferItems(menu_id); // Call the function directly
-
-
-
-    }, [menu_id]);
 
 
 
@@ -812,19 +845,53 @@ export default function Menu() {
         }
     ];
 
+    // const getPriceRange = (item) => {
+    //     console.log(item);
+
+    //     if (item.item_prices && item.item_prices.length > 1) {
+    //         const prices = item.item_prices.map(itemPrice => parseFloat(itemPrice.price.replace('EGP ', '')));
+    //         const minPrice = Math.min(...prices);
+    //         const maxPrice = Math.max(...prices);
+    //         return `EGP ${minPrice} - EGP ${maxPrice}`;
+    //     }
+    //     return item.price; // Return the base price if no multiple sizes
+    // };
+
     const getPriceRange = (item) => {
+        // If no price information exists at all
+        if ((!item.item_prices || item.item_prices.length === 0) && !item.price) {
+            return null; // or return '' if you prefer an empty string
+        }
+
+        // Case 1: Multiple prices in item_prices array
         if (item.item_prices && item.item_prices.length > 1) {
-            const prices = item.item_prices.map(itemPrice => parseFloat(itemPrice.price.replace('EGP ', '')));
+            const prices = item.item_prices.map(itemPrice => {
+                const priceStr = itemPrice.price || itemPrice;
+                return parseFloat(priceStr.toString().replace('EGP ', ''));
+            });
             const minPrice = Math.min(...prices);
             const maxPrice = Math.max(...prices);
             return `EGP ${minPrice} - EGP ${maxPrice}`;
         }
-        return item.price; // Return the base price if no multiple sizes
+
+        // Case 2: Single price in item_prices array
+        if (item.item_prices && item.item_prices.length === 1) {
+            const price = item.item_prices[0].price || item.item_prices[0];
+            return price.toString().includes('EGP') ? price : `EGP ${price}`;
+        }
+
+        // Case 3: Direct price property
+        if (item.price) {
+            return item.price.toString().includes('EGP') ? item.price : `EGP ${item.price}`;
+        }
+
+        // If we get here, return null (no price available)
+        return null;
     };
 
-
     return <>
-        <div dir='ltr' className="menu  bg-slate-100">
+        <Toaster></Toaster>
+        <div dir='ltr' className="menu bg-white">
 
 
             {toggleReview && (
@@ -942,15 +1009,12 @@ export default function Menu() {
 
 
 
-            <div
-                className="contact-us-button fixed z-40 bottom-4 right-4 cursor-pointer"
+            <div className="contact-us-button fixed z-40 bottom-4 right-4 cursor-pointer"
                 onClick={() => setShowContacts(!showContacts)}
             >
                 <img src={call} className={`w-11 h-11 border-2 rounded-full ${showContacts ? 'border-sky-300' : 'border-white'}`} alt="Call" />
             </div>
-            <div onClick={() => setToggleReview(true)}
-
-                className="review-us-button fixed z-40 bottom-20 right-4 cursor-pointer"
+            <div onClick={() => setToggleReview(true)} className="review-us-button fixed z-40 bottom-20 right-4 cursor-pointer"
             >
                 <img src={rev} className={`w-11 h-11 bg-white  p-1 rounded-full `} alt="Call" />
 
@@ -960,11 +1024,10 @@ export default function Menu() {
             </div>
 
             {/* Contact Numbers with CSS Transition */}
-            {/* <div
-                className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts
-                    ? 'opacity-100 translate-y-0 scale-100'
-                    : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
-                    }`}
+            <div className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts
+                ? 'opacity-100 translate-y-0 scale-100'
+                : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
+                }`}
             >
                 <i className="fa-solid absolute -bottom-3 right-3 text-2xl text-white fa-sort-down"></i>
 
@@ -974,60 +1037,87 @@ export default function Menu() {
                         <p className='cairo text-lg'>{phone}</p>
                     </div>
                 ))}
-            </div> */}
-            <div className="menu-cover-pic relative h-44 shadow-xl shadow-slate-200  bg-red-100 flex justify-center items-center">
+            </div>
+            <div className="menu-cover-pic relative h-44 shadow-xl shadow-slate-200 rounded-b-3xl flex justify-center items-center">
                 {isClosed && (
                     <div className="close-label bg-red-500 flex justify-center items-center absolute top-0 left-0 right-0 h-8">
                         <p className='cairo text-white'>
                             <i className="fa-solid fa-circle-exclamation text-gray-400 mr-2"></i>
-                            Closed at {endTime}
+                            Closed at {displayEndTime}
                         </p>
                     </div>
-                )}                <img className='w-full h-full object-cover' src={cover} alt="" />
+                )}
+                <img className='w-full h-full rounded-b-3xl object-cover' src={cover3}
+                    alt="Restaurant cover"
+
+                />
                 <div className="profile-pic absolute -bottom-1/3 border-4 border-white shadow-lg md:w-44 md:h-44 w-36 h-36 rounded-full overflow-hidden">
-                    <img src={reslogo} alt="" className="w-full h-full object-cover" />
+                    {/* Show spinner only while loading */}
+                    {imageLoaded && (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500"></div>
+                        </div>
+                    )}
+
+                    {/* Show profile image if available and loaded */}
+                    {!imageLoaded && profileImageUrl ? (
+                        <img
+                            src={profileImageUrl}
+                            alt="Profile"
+                            className="w-full bg-white h-full object-cover"
+                        // onLoad={() => setImageLoaded(true)}
+                        // onError={() => setImageLoaded(false)}
+                        />
+                    ) : (
+                        /* Default image if no profile image or error */
+                        <img src={reslogo2} alt="Default Profile" className="w-full bg-white h-full object-cover" />
+                    )}
                 </div>
             </div>
             <div className="name-bio  flex flex-col items-center mt-20">
 
-                <p className='cairo name text-xl font-medium' dir="rtl">
+                <p className='cairo name text-center text-xl font-medium' dir="rtl">
                     {menuData.name}
                 </p>
 
-                <p className='bio cairo px-3 text-center md:text-base text-sm text-gray-600'> {menuData.bio} </p>
+                <p dir='rtl' className='bio cairo px-3 text-center md:text-base text-sm text-gray-600'> {menuData.bio} </p>
 
             </div>
             <div className="contact-icons w-72 mx-auto mt-3 gap-2 flex justify-center">
 
 
                 {socialLinks.whatsapp && (
-                    <div className="whatsapp w-8 h-8 flex justify-center items-center bg-green-50 rounded-full">
+                    <div className="whatsapp w-8 h-8 flex justify-center items-center bg-sky-700 rounded-full">
                         <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer">
-                            <img className="w-full h-full rounded-full" src={wp} alt="WhatsApp" />
+                            {/* <img className="w-full h-full rounded-full" src={wp} alt="WhatsApp" /> */}
+                            <i className="fa-brands text-white fa-whatsapp"></i>
                         </a>
                     </div>
                 )}
 
                 {socialLinks.facebook && (
-                    <div className="face w-8 h-8 flex justify-center items-center bg-blue-50 rounded-full">
+                    <div className="face w-8 h-8 flex justify-center items-center bg-sky-700 rounded-full">
                         <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-                            <img className="w-full h-full rounded-full" src={fb} alt="Facebook" />
+                            {/* <img className="w-full h-full rounded-full" src={fb} alt="Facebook" /> */}
+                            <i className="fa-brands text-white fa-facebook-f"></i>
                         </a>
                     </div>
                 )}
 
                 {socialLinks.instagram && (
-                    <div className="insta w-8 h-8 flex justify-center items-center bg-pink-50 rounded-full">
+                    <div className="insta w-8 h-8 flex justify-center items-center bg-sky-700 rounded-full">
                         <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
-                            <img className="w-full h-full rounded-full" src={instagram} alt="Instagram" />
+                            <i className="fa-brands text-white fa-instagram"></i>
+                            {/* <img className="w-full h-full rounded-full" src={instagram} alt="Instagram" /> */}
                         </a>
                     </div>
                 )}
 
                 {socialLinks.location && (
-                    <div className="location w-8 h-8 flex justify-center items-center bg-gray-50 rounded-full">
+                    <div className="location w-8 h-8 flex justify-center items-center bg-sky-700 rounded-full">
                         <a href={socialLinks.location} target="_blank" rel="noopener noreferrer">
-                            <img className="w-full h-full rounded-full" src={location} alt="Location" />
+                            {/* <img className="w-full h-full rounded-full" src={locationImg} alt="Location" /> */}
+                            <i className="fa-solid text-white fa-location-dot"></i>
                         </a>
                     </div>
                 )}
@@ -1072,10 +1162,10 @@ export default function Menu() {
                     <div className="  mt-4  md:pb-28 pb-20 relative  rounded-md">
                         {activeSection === "menu" && (
                             <div className="menu">
-                                <div className="search-categories flex items-center mt-1 h-11">
+                                <div className="search-categories flex items-center mx-2 border-2 rounded-s-full mt-1 h-11">
                                     {/* Search Icon */}
                                     <div
-                                        className="search-icon flex justify-center items-center bg-slate-50 rounded-s-full border-e-2 w-11 h-11 cursor-pointer"
+                                        className="search-icon flex justify-center items-center bg-slate-50   rounded-s-full  border-e-2 w-11 h-11 cursor-pointer"
                                         onClick={toggleSearch}
                                     >
                                         <i className="fa-solid fa-magnifying-glass"></i>
@@ -1092,10 +1182,8 @@ export default function Menu() {
                                         />
                                     </div>
 
-                                    {/* Categories Section with Horizontal Scroll */}
                                     <div
-                                        className={`categories  h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'
-                                            }`}
+                                        className={`categories h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'}`}
                                         ref={scrollRef}
                                         onMouseDown={handleMouseDown}
                                         onMouseMove={handleMouseMove}
@@ -1103,125 +1191,103 @@ export default function Menu() {
                                         onMouseUp={handleMouseUp}
                                         style={{
                                             cursor: isDragging ? 'grabbing' : 'grab',
-                                            scrollbarWidth: 'none', // for Firefox
-                                            msOverflowStyle: 'none' // for IE and Edge
+                                            scrollbarWidth: 'none',
+                                            msOverflowStyle: 'none'
                                         }}
-
                                     >
-
                                         {sections.map((section) => (
-                                            <div key={section.id} className="category-section border border-red-500 bg-white px-4 py-1 rounded-2xl">
+                                            <div
+                                                key={section.id}
+                                                onClick={() => handleSectionClick(section.id)}
+                                                className={`category-section border px-4 py-1 rounded-2xl ${selectedSectionId === section.id
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-slate-200 hover:bg-slate-300'
+                                                    } transition-colors duration-200 cursor-pointer`}
+                                            >
                                                 <p className='cairo md:text-base text-sm'>{section.name}</p>
                                             </div>
-
-
                                         ))}
-
-
-                                        {/* Add more items as needed */}
                                     </div>
+
 
                                 </div>
 
-                                <div className="menu-categories-items p-4 ">
-
-                                    {/* Item Size Form */}
-                                    {isFormVisible && selectedItem && (
-                                        <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
-                                            <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
-                                                <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
-                                                    X
+                                <div className="menu-categories-items p-4">
+                                    {sections.length > 0 ? (
+                                        sections.map((section) => (
+                                            <div
+                                                key={section.id}
+                                                id={section.id}
+                                                ref={(el) => (sectionRefs.current[section.id] = el)}
+                                                className="category-and-items border shadow-lg shadow-sky-50 rounded-t-3xl mt-5 rounded-md"
+                                            >
+                                                <div className="category bg-slate-100 rounded-md rounded-t-3xl shadow-md border-2 pb-3">
+                                                    <img
+                                                        className='w-full object-cover bg-white h-28 rounded-md rounded-t-3xl'
+                                                        src={section.cover_image_url ? section.cover_image_url : def}
+                                                        alt={section.name}
+                                                    />
+                                                    <div className="category-name text-center mt-2">
+                                                        <p className='cairo font-semibold'>{section.name}</p>
+                                                        <p className='cairo text-sm pt-5 text-sky-800'>{section.note}</p>
+                                                    </div>
                                                 </div>
-                                                <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
-                                                <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
-                                                <hr />
-                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
 
-                                                {/* Sizes */}
-                                                <div className="sizes items-buttons-container pb-2 px-3">
-                                                    {selectedItem.sizes.map((size, index) => (
-                                                        <div className="Size items-button w-full" key={index}>
-                                                            <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
-                                                            <label htmlFor={`size${index}`} className="items-button__label w-full">
-                                                                <span className="items-button__custom"></span>
-                                                                <div className="item-option w-full justify-between flex">
-                                                                    <p className='cairo font-medium'>{size.name}</p>
-                                                                    <p className='cairo font-medium'>{size.price}</p>
-                                                                </div>
-                                                            </label>
+                                                {section.items.map((item) => (
+                                                    <div
+                                                        key={item.id}
+                                                        onClick={() => handleItemDetailsClick(item)}
+                                                        className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer"
+                                                    >
+                                                        <div className="left-side w-3/4 h-full p-1">
+                                                            <div className="item-name">
+                                                                <p className='cairo font-medium text-sm kufi'>{item.name}</p>
+                                                            </div>
+                                                            <div className="item-price-and-add w-full h-full flex justify-between">
+                                                                <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>
+                                                                    {getPriceRange(item)}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                                <hr />
-
-                                                {/* Extras */}
-                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
-                                                <div className="extras items-buttons-container px-3">
-                                                    {selectedItem.extras.map((extra, index) => (
-                                                        <div className="extra items-button w-full" key={index}>
-                                                            <input name="extras-group" id={`extra${index}`} className="items-button__input" type="radio" />
-                                                            <label htmlFor={`extra${index}`} className="items-button__label w-full">
-                                                                <span className="items-button__custom"></span>
-                                                                <div className="item-option w-full justify-between flex">
-                                                                    <p className='cairo font-medium'>{extra.name}</p>
-                                                                    <p className='cairo font-medium'>{extra.price}</p>
-                                                                </div>
-                                                            </label>
+                                                        <div className="right-side relative h-full">
+                                                            <img
+                                                                className='h-full w-24 object-cover rounded-md'
+                                                                src={item.image_url ? item.image_url : def}
+                                                                alt={item.name}
+                                                            />
+                                                            <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                                <button
+                                                                    onClick={(e) => handleItemClick(e, item)}
+                                                                    title="Add New"
+                                                                    className="group cursor-pointer outline-none hover:rotate-90 duration-300"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
+                                                                        <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
+                                                                        <path d="M8 12H16" strokeWidth="1.5"></path>
+                                                                        <path d="M12 16V8" strokeWidth="1.5"></path>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="add-to-cart flex justify-center mt-4">
-                                                    <button className={`button ${loading ? 'loading' : ''}`} onClick={handleClick}>
-                                                        <span onClick={addToCart}>Add to cart</span>
-                                                        <div className="cart">
-                                                            <svg viewBox="0 0 36 26">
-                                                                <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
-                                                                <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
-                                                            </svg>
-                                                        </div>
-                                                    </button>
-                                                </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </div>
+                                        ))
+
+
+                                    ) : (
+
+                                        <>
+                                            <div className="no-sections w-full h-16 flex   justify-center items-center">
+                                                <p className=' cairo p-12'>لا يوجد اقسام</p>
+
+
+                                            </div>
+
+                                        </>
                                     )}
 
-                                    {/* Categories and Items */}
-                                    {sections.map((section) => (
-                                        <div key={section.id} className="category-and-items mt-5 rounded-md">
-                                            <div className="category bg-white rounded-md shadow-lg pb-3">
-                                                <img className='w-full object-cover h-28 rounded-md' src={section.cover_image_url ? section.cover_image_url : def} alt={section.name} />
-                                                <div className="category-name text-center mt-2">
-                                                    <p className='cairo cairo font-semibold'>{section.name}</p>
-                                                </div>
-                                            </div>
 
-                                            {section.items.map((item) => (
-                                                <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
-                                                    <div className="left-side w-3/4 h-full p-1">
-                                                        <div className="item-name">
-                                                            <p className='cairo font-medium text-sm kufi'>{item.name}</p>
-                                                        </div>
-                                                        <div className="item-price-and-add w-full h-full flex justify-between">
-                                                            <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>{getPriceRange(item)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="right-side relative h-full">
-                                                        <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
-                                                        <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
-                                                            <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
-                                                                    <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
-                                                                    <path d="M8 12H16" strokeWidth="1.5"></path>
-                                                                    <path d="M12 16V8" strokeWidth="1.5"></path>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))}
 
 
 
@@ -1239,7 +1305,7 @@ export default function Menu() {
                             <div className="contact mt-3 flex flex-col items-center  rounded-md ">
                                 <div className="contact-tools  w-full p-4 flex justify-center gap-3">
                                     <div className="facebook w-32 h-32  flex justify-center items-center bg-blue-50 rounded-md">
-                                        <img src={fb} alt="" />
+                                        {/* <img src={fb} alt="" /> */}
                                         {/* <i className="fa-brands text-3xl  fa-facebook-f"></i> */}
                                     </div>
                                     <div className="call w-32 h-32 flex justify-center items-center bg-green-50 rounded-md">
@@ -1513,9 +1579,14 @@ export default function Menu() {
 
 
             }
-            <div className="powred-by">
+            <div className="powred-by flex justify-center items-center pb-3 gap-2">
 
-                <p className='cairo kufi text-center text-gray-700 '>Powered by <span>Takka</span> </p>
+                <p className='cairo kufi text-center text-gray-700 '>Powered by  </p>
+                <Link to={"/"}>
+                    <span>
+                        <img className='w-16 shadow' src={eats2} alt="" /></span>
+
+                </Link>
 
             </div>
         </div >

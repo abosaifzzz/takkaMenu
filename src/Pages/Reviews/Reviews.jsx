@@ -1,6 +1,9 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react'
 import rev2 from "../../assets/rev2.png"
+import eats from '../../assets/eats-logo.PNG'
+import toast from 'react-hot-toast';
+
 const mockReviewsData = [
     {
         id: 1,
@@ -114,6 +117,7 @@ const mockReviewsData = [
 export default function Reviews() {
     const [reviews, setReviews] = useState([]); // State to hold reviews data
     const [reviewsLoading, setReviewsLoading] = useState(true); // State to handle loading state
+    const [isSelectedReview, setIsSelectedReview] = useState(null); // Initialize as null
 
 
     let m_id = localStorage.getItem("m_id")
@@ -144,6 +148,33 @@ export default function Reviews() {
     }, [m_id]);
 
 
+    const deleteReview = (reviewId) => {
+        setIsSelectedReview(reviewId);
+    }
+
+    const deleteReviewApi = async (reviewId) => {
+        try {
+            await axios.delete(`http://localhost:234/api/menu/reviews/${reviewId}`);
+
+            // After successful deletion:
+            // Option 1: Refresh the reviews list
+            fetchReviews(); // Assuming you have a function to refetch reviews
+
+            // Option 2: Optimistically update the UI by removing the review from state
+            setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
+
+            setIsSelectedReview(null); // Reset selection
+            // Optional: Show success notification
+            toast.success('تم حذف التقييم بنجاح!');
+        } catch (error) {
+            setIsSelectedReview(null);
+            console.error('Error deleting review:', error);
+            // Show error notification
+            alert('فشل حذف التقييم. الرجاء المحاولة مرة أخرى.');
+        }
+    }
+
+
 
 
 
@@ -152,22 +183,55 @@ export default function Reviews() {
             <div className="reviews-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
                 <div className="text-center">
                     <div
-                        className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-red-500 mx-auto"
-                    ></div>
+                        className="w-32 h-32 border-4 flex p-2 justify-center items-center border-dashed rounded-full animate-spin border-red-500 mx-auto"
+                    >
+
+                        <img src={eats} alt="" />
+
+
+                    </div>
 
                 </div>
-
 
 
             </div>
 
         </>) : (
-            <div className="reviews-page min-h-screen relative pb-20 flex flex-col md:p-10 p-5 bg-gray-50">
+            <div className="reviews-page min-h-screen  relative pb-20 flex flex-col md:p-10 p-5 bg-gray-50">
+                {isSelectedReview && (
+                    <div className={`delete-review-modal flex justify-center absolute inset-0 bg-black/25`}>
+                        <div className="confirm-delete-modal-section fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
+                            <div className="confirm-delete-form w-1/4 h-fit p-8 flex flex-col justify-center items-center animate-slide-down bg-white rounded-md shadow-lg">
+                                <i className="text-gray-500 text-3xl fa-regular fa-trash-can"></i>
+                                <p className='cairo text-center'>هل انت متأكد من حذف التقييم ؟</p>
+                                <div className="action-btns flex gap-2 mt-4">
+                                    <button
+                                        onClick={() => deleteReviewApi(isSelectedReview)}
+                                        className='bg-red-500 text-white text-sm rounded-sm cairo py-2 px-4'
+                                    >
+                                        نعم متأكد
+                                    </button>
+                                    <button
+                                        onClick={() => setIsSelectedReview(null)}
+                                        className='bg-slate-50 border text-sm rounded-sm cairo py-2 px-4'
+                                    >
+                                        لا , تراجع
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+
+
+
                 <h2 className='text-2xl pb-4 font-semibold cairo text-gray-800 border-b border-gray-200'>
                     تقييمات العملاء
                     {reviews.length > 0 && (
-                        <span className="text-sm font-normal text-gray-500 ml-2">
-                            ({reviews.length} reviews)
+                        <span className="text-sm font-normal cairo ms-2 text-gray-500 ml-2">
+                            ({reviews.length} تقييمات)
                         </span>
                     )}
                 </h2>
@@ -178,7 +242,7 @@ export default function Reviews() {
                             <div key={review.id} className="review mb-6 p-4 rounded-md shadow-md bg-white">
                                 {/* Review Header */}
                                 <div className="flex justify-between items-start mb-2">
-                                    <p className='font-medium text-gray-800'>
+                                    <p className='font-medium whitespace-nowrap overflow-hidden text-ellipsis  md:max-w-full max-w-[200px]  text-gray-800'>
                                         {review.client_name || 'Anonymous Customer'}
                                     </p>
                                     <div className="flex">
@@ -192,7 +256,7 @@ export default function Reviews() {
                                 </div>
 
                                 {/* Review Content */}
-                                <p className='text-sm text-gray-600 mb-3'>{review.comment}</p>
+                                <p className='text-sm text-gray-600 w-full break-words whitespace-pre-line mb-3'>{review.comment}</p>
                                 <p className='text-xs text-gray-500 mb-4'>
                                     {new Date(review.createdAt).toLocaleDateString('en-US', {
                                         year: 'numeric',
@@ -217,8 +281,11 @@ export default function Reviews() {
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <button className='py-1 px-3 bg-red-500 text-white hover:bg-red-600 rounded-md text-sm'>
-                                            Remove
+                                        <button onClick={(e) => {
+                                            deleteReview(review.id),
+                                                e.preventDefault()
+                                        }} className='py-1 px-3 bg-red-500 cairo text-white hover:bg-red-600 rounded-md text-sm'>
+                                            حذف
                                         </button>
                                     </div>
                                 </div>

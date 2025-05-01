@@ -17,6 +17,7 @@ import ConfirmEmail from './Pages/ConfirmEmail/ConfirmEmail.jsx';
 import StartForm from './Pages/StartForm/StartForm.jsx';
 import Home from './Pages/Home/Home.jsx';
 import Layout from './Components/Layout/Layout.jsx';
+import Notefound from './Pages/NotFound/Notefound.jsx';
 
 
 function App() {
@@ -106,6 +107,10 @@ function App() {
       path: "proceed",
       element: <CartProceed />
 
+    },
+    {
+      path: "*",
+      element: <Notefound />
     }
 
   ])

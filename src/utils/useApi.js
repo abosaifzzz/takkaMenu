@@ -47,6 +47,7 @@ const useFetchData = () => {
           cancelToken: axiosSource.current.token,
         });
         setData(response.data?.result);
+        console.log(response);
 
         if (response?.data?.message) {
           let msgType = response.data.success ? "success" : "error";
@@ -64,6 +65,8 @@ const useFetchData = () => {
           cancelToken: axios.CancelToken.source().token,
           params: data.params || {},
         });
+        console.log(response);
+
         setData(response.data?.result);
         if (response?.data?.message) {
           let msgType = response.data.success ? "success" : "error";

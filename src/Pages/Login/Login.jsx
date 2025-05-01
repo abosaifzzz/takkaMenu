@@ -104,6 +104,7 @@ export default function Login() {
                 localStorage.setItem('token', response.data.accessToken);
                 console.log(response.data.user.name);
                 localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
+                localStorage.setItem("uId", response.data.user.id)
 
 
             } else {

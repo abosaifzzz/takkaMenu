@@ -6,6 +6,8 @@ import rev from "../../assets/rev.png"
 import rev2 from "../../assets/rev2.png"
 
 import axios from 'axios';
+import eats from '../../assets/eats-logo.PNG'
+
 // const mockReviewsData = [
 //     { id: 1, name: 'Mohamed Tarek Abo Saif', date: 'Friday 25 October', text: '"....الأكل حلو جدا و المكان شكله حلو و "', rating: 4 },
 //     { id: 2, name: 'Sara Ali', date: 'Saturday 26 October', text: '"....المكان نظيف و الطعام ممتاز"', rating: 5 },
@@ -116,11 +118,15 @@ export default function Dashboard() {
                 <div className="dashboard-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
                     <div className="text-center">
                         <div
-                            className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-red-500 mx-auto"
-                        ></div>
+                            className="w-32 h-32 border-4 flex p-2 justify-center items-center border-dashed rounded-full animate-spin border-red-500 mx-auto"
+                        >
+
+                            <img src={eats} alt="" />
+
+
+                        </div>
 
                     </div>
-
 
 
                 </div>
@@ -129,7 +135,7 @@ export default function Dashboard() {
             </>
 
 
-        ) : (<div className="dashboard min-h-screen px-12 py-8 ">
+        ) : (<div className="dashboard min-h-screen sm:px-12 px-6 pb-16 py-8 ">
             <div className="first">
 
                 <div className="name text-xl font-medium font-sans cairo"> اهلأ و سهلا <span className='text-sky-900'>{userName}</span>  </div>
@@ -138,9 +144,9 @@ export default function Dashboard() {
 
 
                 </div>
-                <div className="second mt-14 flex">
-                    <div className="w-4/5 flex gap-5">
-                        <div className="reports-reservations w-1/2">
+                <div className="second mt-14 w-full  flex">
+                    <div className="w-full   flex lg:flex-row flex-col  gap-5">
+                        <div className="reports-reservations lg:w-1/2">
                             <div className="reports-section  p-3 bg-white rounded-lg ">
                                 <div className="view-reports flex justify-between">
                                     <p className='mb-2 cairo'>اليوم</p>
@@ -149,29 +155,29 @@ export default function Dashboard() {
                                 </div>
                                 <hr />
                                 <div className="options">
-                                    <div className="f-row w-full justify-between gap-6  flex mt-3">
-                                        <div className="f-col pb-4 border-b w-1/2 justify-between flex ">
+                                    <div className="f-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
+                                        <div className="f-col pb-4 border-b  sm:w-1/2 justify-between flex  ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans text-lg cairo text-gray-500'>الطلبات</span>
-                                                <p className='mt-2 text-3xl font-[450]'>195</p>
+                                                <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo text-gray-500'>الطلبات</span>
+                                                <p className='mt-2 md:text-3xl sm:text-xl text-2xl font-[450]'>195</p>
 
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
                                                 <i className="fa-solid fa-arrow-down"></i>
 
-                                                <p className='text-red-500 text-lg'>23.5 %</p>
+                                                <p className='text-red-500 sm:text-lg text-xl'>23.5 %</p>
 
 
                                             </div>
                                         </div>
-                                        <div className="f-col pb-4 border-b w-1/2 justify-between flex ">
+                                        <div className="f-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans text-lg cairo  text-gray-500'>عائد الطلبات</span>
-                                                <p className='mt-2 text-2xl font-[450]'>EGP 42,600</p>
+                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>عائد الطلبات</span>
+                                                <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>EGP 42,600</p>
 
                                             </div>
                                             <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 text-lg'>68 %</p>
+                                                <p className='text-gray-500 sm:text-lg text-xl'>68 %</p>
 
 
                                             </div>
@@ -180,21 +186,21 @@ export default function Dashboard() {
 
 
                                     </div>
-                                    <div className="s-row w-full justify-between gap-6  flex mt-3">
-                                        <div className="th-col pb-4 border-b w-1/2 justify-between flex ">
+                                    <div className="s-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
+                                        <div className="th-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans text-lg cairo  text-gray-500'>الزائرين</span>
-                                                <p className='mt-2 text-3xl font-[450]'>236</p>
+                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>الزائرين</span>
+                                                <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>236</p>
 
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
                                                 <i className="fa-solid fa-arrow-up"></i>
-                                                <p className='text-green-500 text-lg'>73.2 %</p>
+                                                <p className='text-green-500 sm:text-lg text-xl'>73.2 %</p>
 
 
                                             </div>
                                         </div>
-                                        <div className="s-col pb-4 border-b w-1/2 justify-between flex ">
+                                        <div className="s-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span><i className="fa-solid fa-chart-column text-gray-500 me-2"></i></span><span className=' font-sans text-lg cairo text-gray-500'>التقييمات</span>
                                                 <p className='mt-2 text-3xl font-[450]'>56</p>
@@ -226,7 +232,7 @@ export default function Dashboard() {
 
                         </div>
 
-                        <div className="reviews-sections h-fit relative p-3 bg-white rounded-lg w-1/2">
+                        <div className="reviews-sections h-fit relative p-3 bg-white rounded-lg lg:w-1/2">
                             <div className="view-reviews flex justify-between">
                                 <p className='mb-2 cairo'>التقييمات الأخيرة</p>
                                 <Link to={"/customer-reviews"}>
@@ -236,7 +242,7 @@ export default function Dashboard() {
                                 </Link>
                             </div>
                             <hr />
-                            <div className="reviews h-96 overflow-hidden pt-3">
+                            <div className="reviews max-h-[300px] overflow-hidden pt-3">
                                 {loading ? (
                                     <>
 
@@ -273,11 +279,11 @@ export default function Dashboard() {
 
                                     // Show loading text while data is being fetched
                                 ) : (
-                                    <div className="personal-info bg-slate-100 w-full mt-6">
+                                    <div className="personal-info flex-col gap-3  w-full mt-6">
                                         {reviews.length > 0 ? (
                                             reviews.slice(0, 12).map((review) => (
-                                                <div key={review.id} className="review mb-6 p-4 rounded-md shadow-md ">
-                                                    <div className="flex justify-between items-start mb-2">
+                                                <div key={review.id} className="review bg-slate-100 border-2 mb-5 p-4 rounded-md shadow-md ">
+                                                    <div className="flex justify-between items-start  mb-2">
                                                         <p className='font-medium text-gray-800'>
                                                             {review.client_name || 'Anonymous Customer'}
                                                         </p>
@@ -291,8 +297,8 @@ export default function Dashboard() {
                                                         </div>
                                                     </div>
 
-                                                    <p className='text-sm text-gray-600 mb-3 cairo'>{review.comment}</p>
-                                                    <p className='text-xs text-gray-500 cairo  mb-4'>
+                                                    <p className='text-sm text-gray-600 w-full  break-words whitespace-pre-line mb-3 cairo'>{review.comment}</p>
+                                                    <p className='text-xs text-gray-500 cairo  '>
                                                         {new Date(review.createdAt).toLocaleDateString('ar-EG', {
                                                             year: 'numeric',
                                                             month: 'long',
@@ -314,11 +320,7 @@ export default function Dashboard() {
                                                             )}
                                                         </div>
 
-                                                        <div className="flex gap-2">
-                                                            <button className='py-1 px-3 bg-red-500 text-white hover:bg-red-600 rounded-md text-sm'>
-                                                                Remove
-                                                            </button>
-                                                        </div>
+
                                                     </div>
                                                 </div>
                                             ))
@@ -341,7 +343,6 @@ export default function Dashboard() {
                         </div>
 
                     </div>
-                    <div className="w-1/5"></div>
 
 
 

@@ -67,8 +67,9 @@ export default function Signup() {
         try {
             console.log("Making the API request...");
 
+            console.log("Before axios.post");
             const response = await axios.post('http://localhost:234/auth/signup', data);
-
+            console.log("After axios.post");
             console.log("Response received");
             console.log(response.data);
             toast.success("تم التسجبل بنجاح")

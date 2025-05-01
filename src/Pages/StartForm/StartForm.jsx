@@ -26,6 +26,18 @@ export default function StartForm() {
     // State to track the current step
     const [currentStep, setCurrentStep] = useState(1);
 
+    function authHeader() {
+        const accessToken = localStorage.getItem("token");
+        //  if (user && user.accessToken) {
+        if (accessToken) {
+            // return { Authorization: 'Bearer ' + user.accessToken }; // for Spring Boot back-end
+            return { "x-access-token": accessToken }; // for Node.js Express back-end
+        } else {
+            return {};
+        }
+    }
+
+
     // Function to handle input change
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -111,7 +123,9 @@ export default function StartForm() {
 
 
 
-        const response = await axios.post('http://localhost:234/api/section', stateObject);
+        const response = await axios.post('http://localhost:234/api/section', stateObject, {
+            headers: authHeader(),
+        });
         console.log(response)
         toast.success('تم الأضافة بنجاح');
         // toggleAddFormVisibility()

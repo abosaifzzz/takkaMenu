@@ -12,7 +12,7 @@ export default function ItemDetails() {
     // Scroll to the top of the page on component mount
     window.scrollTo(0, 0);
   }, []);
-
+  let menu_id = localStorage.getItem("menu_id")
 
   if (!item) {
     // If item is undefined, redirect back to menu
@@ -27,7 +27,7 @@ export default function ItemDetails() {
         style={{ backgroundImage: `url(${item.image_url || def})` }}
       >
         <div className="back-btn flex justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
-          <Link to={"/menu/1"}>
+          <Link to={`/menu/${menu_id}`}>
             <i className="fa-solid fa-arrow-left"></i>
           </Link>
         </div>
@@ -39,7 +39,7 @@ export default function ItemDetails() {
       <div className="item-data relative">
         <div className="data w-full h-screen pt-9 rounded-t-3xl absolute -top-11 bg-slate-100 shadow-2xl p-6 ">
           <p className='w-full text-center cairo text-lg font-semibold '>{item.name}</p>
-          <div dir='rtl' className="item-desc kufi font-medium mt-5">
+          <div dir='rtl' className="item-desc text-center kufi text-slate-600  mt-5">
             {item.description || ''}
           </div>
           {item.item_prices && item.item_prices.length > 0 && (
@@ -47,8 +47,8 @@ export default function ItemDetails() {
               <p className="text-lg font-medium kufi text-blue-900">الخيارات</p>
               {item.item_prices.map((price, index) => (
                 <div key={index} className="item-size mt-2 flex justify-between">
-                  <p className="size-name font-medium">{price.label}</p>
-                  <p className="size-price font-medium">{price.price} EGP</p>
+                  <p className="size-name text-slate-700 ">{price.label}</p>
+                  <p className="size-price text-slate-700 font-medium">{price.price} EGP</p>
                 </div>
               ))}
             </div>
@@ -59,8 +59,8 @@ export default function ItemDetails() {
               <p className="text-lg font-medium kufi text-blue-900">الأضافات</p>
               {item.item_extras.map((extra, index) => (
                 <div key={index} className="item-extra mt-2 flex justify-between">
-                  <p className="extra-name font-medium">{extra.label}</p>
-                  <p className="extra-price font-medium">{extra.price} EGP</p>
+                  <p className="extra-name text-slate-700 ">{extra.label}</p>
+                  <p className="extra-price text-slate-700 font-medium">{extra.price} EGP</p>
                 </div>
               ))}
             </div>

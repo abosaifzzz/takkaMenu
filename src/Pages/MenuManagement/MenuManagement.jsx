@@ -12,8 +12,12 @@ import add from '../../assets/add.png'
 
 import call from '../../assets/call.png'
 import minus from '../../assets/minus.png'
+import eats from '../../assets/eats-logo.PNG'
+
 import { useParams } from 'react-router-dom';
 import NewMenuCreation from '../../Components/NewMenuCreation/NewMenuCreation.jsx';
+
+import useFetchData from '../../utils/useApi.js';
 
 
 
@@ -23,6 +27,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 export default function MenuManagement() {
 
+    const { isLoading, error, fetchData, data } = useFetchData();
 
     const [sections, setSections] = useState([]);
     //     const [sectionData, setSectionData] = useState([
@@ -34,8 +39,8 @@ export default function MenuManagement() {
     //     ]);
 
     const [expandedCategories, setExpandedCategories] = useState({});
-    const [isFormVisible, setIsFormVisible] = useState(false);
-    const [isAddFormVisible, setIsAddFormVisible] = useState(false);
+    const [isEditSectionFormVisible, setIsEditSectionFormVisible] = useState(false);
+    const [isAddSectionFormVisible, setIsAddSectionFormVisible] = useState(false);
     const [categoryName, setCategoryName] = useState('');
     const [categoryDescription, setCategoryDescription] = useState('');
     const [itemName, setItemName] = useState('');
@@ -110,11 +115,23 @@ export default function MenuManagement() {
         setSections(newSections);
     };
 
+    const reorderingSections = async (reorderedData) => {
+
+        try {
+            await fetchData("/api/sections/reorder", reorderedData);
+
+            toast.success("تم الترتيب بنجاح")
+        } catch (error) {
+            console.error("Error updating Location account:", error);
+            alert("Failed to update Location URL.");
+        }
+    };
+
 
     const reorderingItems = async (reorderedData) => {
 
         try {
-            await axios.post("http://localhost:234/api/items/reorder", reorderedData);
+            await fetchData("/api/items/reorder", reorderedData);
 
             toast.success("تم الترتيب بنجاح")
         } catch (error) {
@@ -211,7 +228,7 @@ export default function MenuManagement() {
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
                                             onClick={() => {
-                                                openEditItemForm(item),
+                                                openEditItemForm(event, item),
                                                     setSelectedItem(item)
                                             }}
                                             className="item p-2 mt-2 hover:bg-slate-200 cursor-pointer rounded-md w-[97%] flex gap-2 justify-between bg-white"
@@ -246,7 +263,7 @@ export default function MenuManagement() {
     /////////////////////////////////////////////////////
     //section reorder
     // Section reordering logic
-    const moveSection = (sectionId, direction) => {
+    const moveSection = async (sectionId, direction) => {
         const sectionIndex = sections.findIndex(s => s.id === sectionId);
         if (sectionIndex === -1) return;
 
@@ -275,6 +292,8 @@ export default function MenuManagement() {
         };
 
         console.log('New section order:', orderLog);
+        await reorderingSections(orderLog)
+
     };
 
     // Helper functions for specific directions
@@ -321,6 +340,11 @@ export default function MenuManagement() {
     const moveOfferItemUp = (itemId) => moveOfferItem(itemId, 'up');
     const moveOfferItemDown = (itemId) => moveOfferItem(itemId, 'down');
     ///////////////////////////////
+    const closeMoreClick = () => {
+        setActiveItemMoreIndex(null)
+        setActiveOfferMoreIndex(null)
+
+    }
     const handleItemMoreClick = (index) => {
         setActiveItemMoreIndex(activeItemMoreIndex === index ? null : index);
     };
@@ -329,11 +353,9 @@ export default function MenuManagement() {
         setActiveOfferMoreIndex(activeOfferMoreIndex === index ? null : index);
     };
 
-    const handleItemDeleteClick = (item) => {
-        // Your delete logic here
-        console.log("Deleting item:", item);
-        setActiveItemMoreIndex(null); // Close the menu after action
-    };
+    // const handleItemDeleteClick = (item) => {
+    //     // Your delete logic here
+    // };
 
 
     // const handlePriceChange = (index, field, value) => {
@@ -341,6 +363,17 @@ export default function MenuManagement() {
     //     updatedPrices[index][field] = value;
     //     setPrices(updatedPrices);
     // };
+
+    function authHeader() {
+        const accessToken = localStorage.getItem("token");
+        //  if (user && user.accessToken) {
+        if (accessToken) {
+            // return { Authorization: 'Bearer ' + user.accessToken }; // for Spring Boot back-end
+            return { "x-access-token": accessToken }; // for Node.js Express back-end
+        } else {
+            return {};
+        }
+    }
 
 
     const filterSections = (sections) => {
@@ -409,6 +442,8 @@ export default function MenuManagement() {
     const [openMenu, setOpenMenu] = useState(null);
     const [openItemMenu, setOpenItemMenu] = useState(null);
     const [sectionToDelete, setSectionToDelete] = useState(null); // State to track the section being deleted
+    const [itemToDelete, setItemToDelete] = useState(null); // State to track the section being deleted
+
     const [scratchMenu, setScratchMenu] = useState(false); // State to track the section being deleted
     const [sampleMenu, setSampleMenu] = useState(false); // State to track the section being deleted
 
@@ -448,142 +483,14 @@ export default function MenuManagement() {
     const menu_id = localStorage.getItem("menu") // Get  dynamically from the URL
     const m_id = localStorage.getItem("m_id") // Get  dynamically from the URL
 
-    // async function getSections(m_id) {
-    //     try {
-    //         // Fetch sections using 
-    //         const response = await axios.get(`http://localhost:234/api/menusection/${m_id}`);
-    //         console.log(response);
 
-    //         if (response.data) {
-    //             const sectionsWithImages = await Promise.all(
-    //                 response.data.map(async (section) => {
-    //                     let coverImageUrl = null;
-
-    //                     // Fetch section cover image if available
-    //                     if (section.cover_image) {
-    //                         try {
-    //                             const imageResponse = await axios.get(
-    //                                 `http://localhost:234/api/file/${section.cover_image}`,
-    //                                 { responseType: "blob" } // Fetch image as blob
-    //                             );
-    //                             coverImageUrl = URL.createObjectURL(imageResponse.data);
-    //                         } catch (imageError) {
-    //                             console.error(`Error fetching cover image for ${section.cover_image}`, imageError);
-    //                         }
-    //                     }
-
-    //                     // Fetch images for section items
-    //                     const itemsWithImages = await Promise.all(
-    //                         section.items.map(async (item) => {
-    //                             let itemImageUrl = null;
-
-    //                             if (item.image) {
-    //                                 try {
-    //                                     const itemImageResponse = await axios.get(
-    //                                         `http://localhost:234/api/file/${item.image}`,
-    //                                         { responseType: "blob" }
-    //                                     );
-    //                                     itemImageUrl = URL.createObjectURL(itemImageResponse.data);
-    //                                 } catch (itemImageError) {
-    //                                     console.error(`Error fetching item image for ${item.image}`, itemImageError);
-    //                                 }
-    //                             }
-
-    //                             return { ...item, image_url: itemImageUrl };
-    //                         })
-    //                     );
-
-    //                     return {
-    //                         ...section,
-    //                         cover_image_url: coverImageUrl,
-    //                         items: itemsWithImages, // Include updated items with images
-    //                     };
-    //                 })
-    //             );
-
-    //             console.log(sectionsWithImages);
-    //             setSections(sectionsWithImages); // Update state with sections and images
-    //             console.log("sections", sections);
-
-    //         } else if (response.data.message == "Sections not found for the given MenuId") {
-
-    //             console.log("no sections");
-
-
-    //         }
-    //     } catch (error) {
-    //         console.error("Error fetching sections:", error);
-    //         toast.error("حدث خطأ أثناء جلب الأقسام");
-
-    //         // Fallback dummy data
-    //     }
-    // }
-
-    // async function getSections(m_id) {
-    //     try {
-    //         const response = await axios.get(`http://localhost:234/api/menusection/${m_id}`);
-
-    //         if (!response.data || response.data.message === "Sections not found") {
-    //             console.log("No sections found for this menu");
-    //             setSections([]); // Set empty array
-    //             return;
-    //         }
-
-    //         const sectionsWithImages = await Promise.all(
-    //             response.data.map(async (section) => {
-    //                 let coverImageUrl = null;
-    //                 if (section.cover_image) {
-    //                     try {
-    //                         const imageResponse = await axios.get(
-    //                             `http://localhost:234/api/file/${section.cover_image}`,
-    //                             { responseType: "blob" }
-    //                         );
-    //                         coverImageUrl = URL.createObjectURL(imageResponse.data);
-    //                     } catch (imageError) {
-    //                         console.error("Error fetching cover image:", imageError);
-    //                     }
-    //                 }
-
-    //                 const itemsWithImages = await Promise.all(
-    //                     section.items.map(async (item) => {
-    //                         let itemImageUrl = null;
-    //                         if (item.image) {
-    //                             try {
-    //                                 const itemImageResponse = await axios.get(
-    //                                     `http://localhost:234/api/file/${item.image}`,
-    //                                     { responseType: "blob" }
-    //                                 );
-    //                                 itemImageUrl = URL.createObjectURL(itemImageResponse.data);
-    //                             } catch (itemImageError) {
-    //                                 console.error("Error fetching item image:", itemImageError);
-    //                             }
-    //                         }
-    //                         return { ...item, image_url: itemImageUrl };
-    //                     })
-    //                 );
-
-    //                 return { ...section, cover_image_url: coverImageUrl, items: itemsWithImages };
-    //             })
-    //         );
-
-    //         setSections(sectionsWithImages);
-    //     } catch (error) {
-    //         if (error.response?.status === 404) {
-    //             console.log("Menu or sections not found");
-    //             setSections([]);
-    //         } else {
-    //             console.error("Error fetching sections:", error);
-    //             toast.error("حدث خطأ أثناء جلب الأقسام");
-    //         }
-    //     }
-    // }
 
     async function getOfferSectionWithItems(m_id) {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu-offers-owner/${m_id}`);
+            const response = await fetchData(`/api/menu-offers-owner/${m_id}`);
 
             if (!response.data || response.data.message === "Sections not found") {
-                console.log("No sections found for this menu");
+                console.log("No offer sections found for this menu");
                 return { sectionId: null, items: [] };
             }
 
@@ -608,7 +515,9 @@ export default function MenuManagement() {
                         try {
                             const itemImageResponse = await axios.get(
                                 `http://localhost:234/api/file/${item.image}`,
-                                { responseType: "blob" }
+                                { responseType: "blob" }, {
+                                headers: authHeader(),
+                            }
                             );
                             itemImageUrl = URL.createObjectURL(itemImageResponse.data);
                         } catch (itemImageError) {
@@ -638,7 +547,11 @@ export default function MenuManagement() {
     }
     async function getSections(m_id) {
         try {
-            const response = await axios.get(`http://localhost:234/api/menusection-owner/${m_id}`);
+            const response = await axios.get(`http://localhost:234/api/menusection-owner/${m_id}`, {
+                headers: authHeader(),
+            }
+
+            );
 
             if (!response.data || response.data.message === "Sections not found") {
                 console.log("No sections found for this menu");
@@ -648,6 +561,7 @@ export default function MenuManagement() {
 
             // Filter out sections where is_offer is true
             const nonOfferSections = response.data
+            console.log(nonOfferSections);
 
             const sectionsWithImages = await Promise.all(
                 nonOfferSections.map(async (section) => {  // Only process non-offer sections
@@ -671,7 +585,9 @@ export default function MenuManagement() {
                                 try {
                                     const itemImageResponse = await axios.get(
                                         `http://localhost:234/api/file/${item.image}`,
-                                        { responseType: "blob" }
+                                        { responseType: "blob" }, {
+                                        headers: authHeader(),
+                                    }
                                     );
                                     itemImageUrl = URL.createObjectURL(itemImageResponse.data);
                                 } catch (itemImageError) {
@@ -705,14 +621,6 @@ export default function MenuManagement() {
             }
         }
     }
-    // let offerSectionId = null; // Global variable to store offer section ID
-
-
-
-    // Usage example:
-    // const { sectionId, items } = await getOfferSectionWithItems(menuId);
-    // console.log("Offer Section ID:", sectionId);
-    // console.log("Offer Items:", items);
     useEffect(() => {
         fetchMenuData(menu_id)
         getSections(m_id);
@@ -733,6 +641,15 @@ export default function MenuManagement() {
     }, [selectedItem]);
 
 
+    useEffect(() => {
+        // Set a timer for 3 seconds
+        const timer = setTimeout(() => {
+            setIsMenuLoading(false);
+        }, 1500);
+
+        // Clean up the timer when component unmounts
+        return () => clearTimeout(timer);
+    }, []);
 
     const createSample = async (m_id) => {
         try {
@@ -779,7 +696,7 @@ export default function MenuManagement() {
                     }, null);
                     // toggleAddFormVisibility()
 
-                    setIsAddFormVisible(false)
+                    setIsAddSectionFormVisible(false)
 
                     // Get the section ID from response
                     // const secId = sectionResponse.data.id;
@@ -812,7 +729,7 @@ export default function MenuManagement() {
 
     const fetchPhones = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/contacts/${m_id}`);
+            const response = await axios.get(`http://localhost:234/api/contacts/${m_id}`,);
             if (response.data.length > 0) {
                 setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
             } else {
@@ -830,8 +747,10 @@ export default function MenuManagement() {
             // Fetch menu settings
             console.log(menu_id);
 
-            const response = await axios.get(`http://localhost:234/api/menu/${menu_id}`);
-            console.log(response.data);
+            const response = await axios.get(`http://localhost:234/api/menu/${menu_id}`, {
+                headers: authHeader(),
+            });
+            console.log("menu dataaa", response.data);
 
 
             // Check if current time >= end_time (one-time check)
@@ -851,9 +770,12 @@ export default function MenuManagement() {
 
     const fetchSocialAccounts = async (menu_id) => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menusocial/${menu_id}`);
+            const response = await axios.get(`http://localhost:234/api/menusocial-owner/${menu_id}`, {
+                headers: authHeader(),
+            });
 
             if (response.data) {
+                console.log("social media", response.data);
 
                 // ===== FACEBOOK =====
                 const firstFacebook = response.data.find((item) => item.platform === "facebook");
@@ -904,35 +826,9 @@ export default function MenuManagement() {
         }
     };
 
-    // const fetchWhatsappAccount = async (menu_id) => {
 
 
-    //     try {
-    //         console.log("whatsapp-id", menu_id);
 
-    //         const response = await axios.get(`http://localhost:234/api/whatsapp-account/${menu_id}`);
-
-    //         if (response.data && response.data.url) {
-    //             let url = response.data.url;
-    //             let phoneNumber = url.replace("https://wa.me/", "");
-
-    //             // setFacebookAccount(response.data);
-    //             setWhatsAppUrl(response.data.url);
-    //             setTempWhatsAppUrl(phoneNumber); // Sync temp value
-    //             setIsWhatsAppDisabled(true); // Disable input if URL exists
-    //             setIsUpdateWhatsApp(true); // Show "Update" button            } else {
-
-
-    //             // setFacebookAccount(null);
-    //         }
-    //     } catch (err) {
-    //         console.log(err);
-
-    //         // setFacebookAccount(null);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
     useEffect(() => {
 
         // fetchWhatsappAccount(m_id);
@@ -950,10 +846,14 @@ export default function MenuManagement() {
         console.log("Saving:", tempLocationUrl);
 
         try {
-            await axios.post("http://localhost:234/api/social/update", {
+
+            let socialData = {
                 menu_id: m_id,
                 platform: "location",
                 url: tempLocationUrl, // Use tempLocationUrl directly
+            }
+            await axios.post("http://localhost:234/api/social/update", socialData, {
+                headers: authHeader(),
             });
 
             setLocationUrl(tempLocationUrl); // Update stored URL
@@ -977,12 +877,12 @@ export default function MenuManagement() {
 
         try {
             console.log(m_id);
-
-            await axios.post("http://localhost:234/api/social/update", {
+            let socialData = {
                 menu_id: m_id,
                 platform: "facebook",
                 url: tempFacebookUrl, // Use tempFacebookUrl directly
-            });
+            }
+            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
 
             setFacebookUrl(tempFacebookUrl); // Update stored URL
             setIsFacebookDisabled(true); // Disable input after saving
@@ -1004,13 +904,14 @@ export default function MenuManagement() {
         try {
 
             // console.log(m_id);
-
-            const whatsappNumber = `https://wa.me/${tempWhatsAppUrl}`
-            await axios.post("http://localhost:234/api/social/update", {
+            let socialData = {
                 menu_id: m_id,
                 platform: "whatsapp",
                 url: whatsappNumber, // Use tempWhatsAppUrl directly
-            });
+            }
+
+            const whatsappNumber = `https://wa.me/${tempWhatsAppUrl}`
+            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
 
             setWhatsAppUrl(tempWhatsAppUrl); // Update stored URL
             setIsWhatsAppDisabled(true); // Disable input after saving
@@ -1031,11 +932,13 @@ export default function MenuManagement() {
         console.log("Saving:", tempInstagramUrl);
 
         try {
-            await axios.post("http://localhost:234/api/social/update", {
+
+            let socialData = {
                 menu_id: m_id,
                 platform: "instagram",
                 url: tempInstagramUrl, // Use tempInstagramUrl directly
-            });
+            }
+            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
 
             setInstagramUrl(tempInstagramUrl); // Update stored URL
             setIsInstagramDisabled(true); // Disable input after saving
@@ -1053,14 +956,63 @@ export default function MenuManagement() {
         setIsUpdateInstagram(false); // Hide "Update", show "Save"
     };
 
-    const openEditItemForm = (item) => {
+    const openEditSectionForm = async (sectionId) => {
+        console.log(" section id ", sectionId);
+        setSelectedSectionId(sectionId)
+
+        setIsEditSectionFormVisible(true);
+        setIsAddSectionFormVisible(false)
+        setIsEditItemFormVisible(false)
+        setAddItemFormVisible(false)
+        // setSelectedSectionId(sectionId);
+
+
+        closeAddOfferForm()
+        closeAddItemForm()
+        closeAddSectionForm()
+        closeEditItemForm()
+        closeEditOfferForm()
+
+
+    }
+
+
+    const closeEditSectionForm = () => {
+        console.log("clossseeees");
+
+        setIsEditSectionFormVisible(false)
+        setSectionFile(null)
+
+
+    }
+
+
+    const openEditItemForm = (event, item) => {
         console.log(item);
+        event.preventDefault()
 
         setSelectedItem(item);
         setIsEditItemFormVisible(true);
+        // closeAddOfferForm()
+        setAddOfferFormVisible(false)
+        // closeAddItemForm()
+        setAddItemFormVisible(false)
+        // closeAddSectionForm()
+        setIsAddSectionFormVisible(false)
+        // closeEditOfferForm()
+        setIsEditOfferFormVisible(false)
+        // closeEditSectionForm()
+        setIsEditSectionFormVisible()
+
     };
     const openEditOfferForm = (item) => {
         console.log(item);
+        closeAddOfferForm()
+        closeAddItemForm()
+        closeAddSectionForm()
+        closeEditItemForm()
+        closeEditSectionForm()
+
 
         setSelectedItem(item);
         setIsEditOfferFormVisible(true);
@@ -1070,12 +1022,15 @@ export default function MenuManagement() {
     const closeEditItemForm = () => {
         setSelectedItem(null);
         setItemFile(null)
+        setPreview(null)
         setIsEditItemFormVisible(false);
     };
 
     const closeEditOfferForm = () => {
         setSelectedItem(null);
         setItemFile(null)
+        setPreview(null)
+
         setIsEditOfferFormVisible(false);
     };
 
@@ -1096,7 +1051,7 @@ export default function MenuManagement() {
             // Await the API call to ensure completion
             await addItemApi(itemObject, itemFile, toastMessage);
 
-
+            await fetchOfferItems()
             // Fetch the updated sections after adding the new section
             await getOfferSectionWithItems(m_id);
             await getSections(m_id)
@@ -1106,7 +1061,6 @@ export default function MenuManagement() {
             setItemFile(null);
             setPreview(null)
             setFirstPrice('')
-            window.location.reload();
 
 
         } catch (error) {
@@ -1157,7 +1111,9 @@ export default function MenuManagement() {
 
 
 
-        const response = await axios.post("http://localhost:234/api/item", itemPayload);
+        const response = await axios.post("http://localhost:234/api/item", itemPayload, {
+            headers: authHeader(),
+        });
         console.log("Item successfully created:", response.data);
         toast.success(toastMessage);
         closeAddItemForm()
@@ -1168,22 +1124,27 @@ export default function MenuManagement() {
     }
     async function handleUpdateSection(event) {
         event.preventDefault();
-        // console.log(selectedSection);
+        console.log(selectedSection);
         // console.log(sectionFile);
 
+        if (!selectedSection?.name) {
+            toast.error("يجب اضافة اسم للقسم")
+            return; // Prevent saving if name is empty
+        }
+
+
         const sectionObject = {
-            // menu_id: m_id,
-            // section_id: selectedSectionId,
             name: selectedSection.name,
-            description: selectedSection.note,
+            note: selectedSection.note,
 
         }
 
         // console.log(sectionObject);
         try {
             // Await the API call to ensure completion
+            console.log(selectedSectionId);
 
-            console.log(sectionObject, sectionFile, selectedSectionId);
+            console.log("upd data 00 ", sectionObject, sectionFile, selectedSectionId);
 
 
             await updateSectionApi(sectionObject, sectionFile, selectedSectionId);
@@ -1195,7 +1156,7 @@ export default function MenuManagement() {
             // setItemDesc('');
             // setItemFile(null);
             setSectionFile(null)
-            // setIsFormVisible(null)
+            // setIsEditSectionFormVisible(null)
             toggleFormVisibility()
 
             setPreview(null)
@@ -1215,10 +1176,15 @@ export default function MenuManagement() {
 
 
         const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
-        console.log(serverPayload);
+        console.log("section updaaaaaaate before send", serverPayload);
+        console.log("heloooooooooo", sectionId);
 
 
-        const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload);
+        const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload,
+            {
+                headers: authHeader(),
+            }
+        );
         console.log(response)
         toast.success('تم التعديل بنجاح');
 
@@ -1252,7 +1218,9 @@ export default function MenuManagement() {
                 section_id: selectedItem.section_id
             };
 
-            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload);
+            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload, {
+                headers: authHeader(),
+            });
 
             // Update local state
             setSections(prevSections =>
@@ -1264,7 +1232,7 @@ export default function MenuManagement() {
                 }))
             );
 
-            toast.success(`Item ${newStatus ? 'activated' : 'deactivated'}`);
+            toast.success(`المنتج ${newStatus ? 'نشط' : 'غير نشط'}`);
         } catch (error) {
             toast.error("Failed to update item status");
             console.error("Error:", error.response?.data || error.message);
@@ -1272,13 +1240,17 @@ export default function MenuManagement() {
     }
 
     async function handleUpdateOfferStatus(itemId, newStatus) {
+        setIsEditOfferFormVisible(false)
+
         try {
             const payload = {
                 is_available: newStatus,
                 section_id: selectedItem?.section_id || offerSectionId
             };
 
-            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload);
+            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload, {
+                headers: authHeader()
+            });
 
             // Update local state for offer items
             setOfferItems(prevItems =>
@@ -1287,7 +1259,7 @@ export default function MenuManagement() {
                 )
             );
 
-            toast.success(`Offer ${newStatus ? 'activated' : 'deactivated'}`);
+            toast.success(`العرض ${newStatus ? 'نشط' : 'غير نشط'}`);
         } catch (error) {
             toast.error("Failed to update offer status");
             console.error("Error:", error.response?.data || error.message);
@@ -1326,7 +1298,6 @@ export default function MenuManagement() {
             // Fetch the updated sections after adding the new section
             await getSections(m_id);
             // Clear the input fields
-            toast.success("ssssssssss")
             // setItemName('');
             // setItemDesc('');
             // setItemFile(null);
@@ -1343,16 +1314,48 @@ export default function MenuManagement() {
 
 
     }
+    async function handleUpdateOffer(event) {
+        event.preventDefault();
+
+        const offerId = selectedItem.id;
+
+        const offerObject = {
+            section_id: selectedItem.section_id,
+            name: selectedItem.name,
+            description: selectedItem.description,
+            item_price: [{
+                price: Number(selectedItem.item_prices[0].price),// أخذ السعر الأول فقط
+                label: ""
+            }]
+            // لا نحتاج إلى extras في العرض
+        };
+
+        console.log("Offer before send", offerObject);
+
+        try {
+            await updateItemApi(offerId, offerObject, itemFile);
+            await fetchOfferItems()
+            await getSections(m_id);
+            toast.success("تم تحديث العرض بنجاح");
+            closeEditOfferForm();
+        } catch (error) {
+            console.error('Error updating offer:', error);
+            toast.error('حدث خطأ أثناء تعديل العرض');
+        }
+    }
     const updateItemApi = async (itemId, itemObject, file) => {
 
         const itemPayload2 = file ? createFormData(itemObject, file, "image") : itemObject;
 
 
-        console.log("payload", itemPayload2);
+        console.log("payload for item", itemPayload2);
 
-        const response = await axios.post(`http://localhost:234/api/item/update/${itemId}`, itemPayload2);
-        console.log("Item successfully created:", response.data);
-        toast.success("Item created successfully!");
+        const response = await axios.post(`http://localhost:234/api/item/update/${itemId}`, itemPayload2, {
+            headers: authHeader(),
+        });
+        closeEditItemForm()
+        console.log("تم تعديل الصنف بنجاح", response.data);
+        toast.success("تم تعديل الصنف بنجاح");
 
 
 
@@ -1378,16 +1381,47 @@ export default function MenuManagement() {
 
 
     const openAddItemForm = (sectionId) => {
-        setSelectedSectionId(sectionId);
-        setAddItemFormVisible(true);
-    };
-    const openAddOfferForm = () => {
+        console.log(sectionId);
+        setSelectedSectionId(sectionId)
+
         // setSelectedSectionId(sectionId);
-        setAddOfferFormVisible(true);
+        setAddItemFormVisible(true);
+        closeEditSectionForm()
+        closeEditOfferForm()
+
+
+        setIsEditSectionFormVisible(false);
+        closeEditItemForm()
+        setIsEditItemFormVisible(false)
+        closeAddSectionForm()
+        setIsAddSectionFormVisible(false)
+
     };
 
+    const openAddOfferForm = () => {
+        console.log("opeendd");
+
+        // setSelectedSectionId(sectionId);
+        setAddOfferFormVisible(true);
+        setAddItemFormVisible(false)
+        // closeAddItemForm()
+        setIsEditSectionFormVisible(false)
+        closeEditSectionForm()
+        setIsAddSectionFormVisible(false)
+        closeAddSectionForm()
+        setIsEditItemFormVisible(false)
+        closeEditItemForm()
+
+    };
+    const closeAddOfferForm = () => {
+        setItemFile(null)
+        setAddOfferFormVisible(false)
+
+    }
+
     const closeAddItemForm = () => {
-        setSelectedSectionId(null);
+        // setSelectedSectionId(null);
+        setItemFile(null)
         setAddItemFormVisible(false);
         setAddOfferFormVisible(false)
     };
@@ -1405,74 +1439,55 @@ export default function MenuManagement() {
         setSectionToDelete(section); // Set the section to be deleted
     };
 
+    const handleItemDeleteClick = (item) => {
+        setItemToDelete(item); // Set the section to be deleted
+
+    };
+
+
     const handleCloseDeleteModal = () => {
         setSectionToDelete(null); // Close the modal by clearing the state
-    };
-
-
-    // Function to handle the category reordering after drag end
-    const handleMoveSection = (fromIndex, toIndex) => {
-        const updatedSections = [...sections];
-        const [movedSection] = updatedSections.splice(fromIndex, 1); // Remove the section from its current position
-        updatedSections.splice(toIndex, 0, movedSection); // Insert the section at the new position
-        setSections(updatedSections); // Update the state
-    };
-
-
-    const handleSort = () => {
-        const reorderedCategories = [...sections];
-        const draggedItem = reorderedCategories[dragCategory.current];
-        reorderedCategories.splice(dragCategory.current, 1);
-        reorderedCategories.splice(draggedOverCategory.current, 0, draggedItem);
-        setSections(reorderedCategories);
-        let serverPayload = reorderedCategories.map((section, index) => { return { id: section.id, index_number: index } })
-        console.log(serverPayload)
-        setDraggingIndex(null); // Reset dragging state
-    };
-
-    const handleDragEnter = (index) => {
-        setHoveredIndex(index); // Set the hovered category index
-        draggedOverCategory.current = index; // Store the index of the category being dragged over
-    };
-
-    const handleDragLeave = () => {
-        setHoveredIndex(null); // Reset hovered index when leaving a category
-    };
-
-    const handleDragStart = (index) => {
-        dragCategory.current = index; // Save dragged category index
-        setDraggingIndex(index); // Update the dragging index
-        setDraggingIndex(index); // Set the dragged category index
+        setItemToDelete(null); // Close the modal by clearing the state
 
     };
 
 
 
-    const handleDragOver = (e) => {
-        e.preventDefault(); // Allow dragging over
-        e.stopPropagation();
-    };
 
-    // const handleDragEnd = () => {
-    //     setDraggingIndex(null); // Reset dragging state when drag ends
-    // };
-
-
-    const toggleItemMenu = (itemId) => {
-        setOpenItemMenu(openItemMenu === itemId ? null : itemId);
-    };
 
     const toggleCategoryMenu = (categoryId) => {
         setOpenMenu(openMenu === categoryId ? null : categoryId);
     };
 
+
     const toggleFormVisibility = (sectionId) => {
-        setIsFormVisible(!isFormVisible);
-        setSelectedSectionId(sectionId);
+        setIsEditSectionFormVisible(!isEditSectionFormVisible);
+        // setSelectedSectionId(sectionId);
 
     };
+    const openAddSectionForm = () => {
+        setIsAddSectionFormVisible(true);
+        setIsEditSectionFormVisible(false);
+        setIsEditItemFormVisible(false)
+        setAddItemFormVisible(false)
+        closeAddOfferForm()
+        closeAddItemForm()
+        closeEditItemForm()
+        closeEditOfferForm()
+        closeEditSectionForm()
+
+
+
+
+    }
+    const closeAddSectionForm = () => {
+        setIsAddSectionFormVisible(false);
+        setSectionFile(null)
+
+    }
+
     const toggleAddFormVisibility = () => {
-        setIsAddFormVisible(!isAddFormVisible);
+        setIsAddSectionFormVisible(!isAddSectionFormVisible);
     };
     const toggleCategoryItems = (categoryId) => {
         setExpandedCategories((prevState) => ({
@@ -1482,9 +1497,9 @@ export default function MenuManagement() {
     };
     const deleteSectionApi = async (sectionId) => {
         try {
-            const response = await fetch(`http://localhost:234/api/section/${sectionId}`, {
-                method: 'DELETE',
-            });
+            console.log(sectionId);
+
+            const response = await axios.delete(`http://localhost:234/api/section/${sectionId}`, { headers: authHeader() });
             if (response.ok) {
                 console.log('Section deleted successfully');
                 setSectionToDelete(null);
@@ -1492,7 +1507,7 @@ export default function MenuManagement() {
                 getSections(m_id)
 
             } else {
-                console.error('Failed to delete section:', response.statusText);
+                console.error('Failed to delete section:', response);
             }
         } catch (error) {
             console.error('An error occurred:', error);
@@ -1540,16 +1555,14 @@ export default function MenuManagement() {
     // Delete item
     const deleteItem = async (itemId) => {
         try {
-            const response = await fetch(`http://localhost:234/api/items/${itemId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+            const response = await axios.delete(`http://localhost:234/api/items/${itemId}`, {
+                headers: authHeader()
             });
+            console.log(response);
 
-            if (!response.ok) {
-                throw new Error('Failed to delete item');
-            }
+            // if (!response.ok) {
+            //     throw new Error('Failed to delete item');
+            // }
 
             // 1. Optimistic UI Update (immediate visual feedback)
             setOfferItems(prev => prev.filter(item => item.id !== itemId));
@@ -1558,14 +1571,14 @@ export default function MenuManagement() {
             toast.success("تم الحذف بنجاح");
             setActiveItemMoreIndex(null)
             setActiveOfferMoreIndex(null)
-
+            setItemToDelete(null)
             // 3. Refresh data from server (to ensure consistency)
             await getSections(m_id);
             const { items } = await getOfferSectionWithItems(m_id);
             setOfferItems(items);
 
         } catch (error) {
-            console.error('Error deleting item:', error);
+            console.log(error);
             toast.error("حدث خطأ أثناء الحذف");
 
             // 4. Revert optimistic update if error occurs
@@ -1638,10 +1651,14 @@ export default function MenuManagement() {
         const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
 
 
-        const response = await axios.post('http://localhost:234/api/section', serverPayload);
-        console.log(response)
+        const response = await axios.post('http://localhost:234/api/section', serverPayload, {
+            headers: authHeader(),
+        });
+        console.log("add section payloaf", serverPayload);
+
+        console.log("add section res", response)
         toast.success('تم الأضافة بنجاح');
-        toggleAddFormVisibility()
+        closeAddSectionForm()
 
 
     }
@@ -1657,6 +1674,11 @@ export default function MenuManagement() {
         const selectedFile = event.target.files[0];
 
         if (!selectedFile) {
+            return;
+        }
+
+        if (selectedFile.size > 4 * 1024 * 1024) {
+            toast.error('حجم الصورة يجب أن يكون أقل من 4MB');
             return;
         }
 
@@ -1725,6 +1747,8 @@ export default function MenuManagement() {
             await axios.post("http://localhost:234/api/contacts", {
                 menu_id: m_id,
                 phones, // Sending all phone numbers
+            }, {
+                headers: authHeader(),
             });
 
             toast.success("Phone numbers saved successfully!")
@@ -1802,8 +1826,13 @@ export default function MenuManagement() {
             <div className="menu-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
                 <div className="text-center">
                     <div
-                        className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-red-500 mx-auto"
-                    ></div>
+                        className="w-32 h-32 border-4 flex p-2 justify-center items-center border-dashed rounded-full animate-spin border-red-500 mx-auto"
+                    >
+
+                        <img src={eats} alt="" />
+
+
+                    </div>
 
                 </div>
 
@@ -1813,13 +1842,16 @@ export default function MenuManagement() {
 
         </>
 
-        ) : scratchMenu || sections.length > 0 ? (<div dir='rtl' onClick={handleMoreClose} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
+        ) : scratchMenu || sections.length > 0 ? (<div dir='rtl' onClick={() => {
+            handleMoreClose();
+            closeMoreClick()
+        }} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
             <Toaster></Toaster>
             <div className={`edit-section-form  fixed p-3 rounded-s-lg z-20 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out 
-                ${isFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
+                ${isEditSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
             >
                 <div className="section-name  p-3 flex gap-2 items-center">
-                    <i onClick={toggleFormVisibility} className="close-form cursor-pointer  fa-solid fa-x cairo text-gray-500"></i> <p className='font-medium cairo'>تعديل القسم</p>
+                    <i onClick={closeEditSectionForm} className="close-form cursor-pointer  fa-solid fa-x cairo text-gray-500"></i> <p className='font-medium cairo'>تعديل القسم</p>
                 </div>
                 <hr className='w-full ' />
                 <div className="edit-section px-2 mt-4">
@@ -1915,9 +1947,9 @@ export default function MenuManagement() {
                 </div>
             )}
 
-            <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
+            <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
                 <div className="section-name  p-3 flex gap-2 items-center">
-                    <i onClick={toggleAddFormVisibility} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Add New Section</p>
+                    <i onClick={closeAddSectionForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Add New Section</p>
                 </div>
                 <hr className='w-full ' />
                 <form onSubmit={addSection}>
@@ -2009,7 +2041,7 @@ export default function MenuManagement() {
             {
 
                 isEditItemFormVisible && (
-                    <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
+                    <div className={`edit-item-form fixed  p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
                         <div className="item-name  p-3 flex gap-2 items-center">
                             <i onClick={closeEditItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Edit item</p>
                         </div>
@@ -2067,7 +2099,7 @@ export default function MenuManagement() {
 
                                             ></textarea>
                                         </div>
-                                        <div className="item-image">
+                                        <div className="item-image w-1/2">
                                             <p className='text-sm'>Image</p>
                                             <label htmlFor="section-image-upload" className="cursor-pointer">
                                                 <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
@@ -2272,30 +2304,23 @@ export default function MenuManagement() {
             {
 
                 isEditOfferFormVisible && (
-                    <div className={`edit-item-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
-                        <div className="item-name  p-3 flex gap-2 items-center">
-                            <i onClick={closeEditOfferForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>تعديل العرض</p>
+                    <div className={`edit-offer-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out`}>
+                        <div className="item-name p-3 flex gap-2 items-center">
+                            <i onClick={closeEditOfferForm} className="close-form cursor-pointer fa-solid fa-x text-gray-500"></i>
+                            <p className='font-medium'>تعديل العرض</p>
                         </div>
-                        <hr className='w-full ' />
+                        <hr className='w-full' />
 
                         <div className="overflow-y-scroll h-5/6">
-                            <form onSubmit={handleUpdateItem} >
-
-
-                                <div className="flex bg-white mb-4 border-b border-gray-200 pt-2  ">
-                                    <div
-                                        className={itemTab("details")}
-                                        onClick={() => setActiveItemEditor("details")}
-                                    >
+                            <form onSubmit={handleUpdateOffer}>
+                                <div className="flex bg-white mb-4 border-b border-gray-200 pt-2">
+                                    <div className={itemTab("details")} onClick={() => setActiveItemEditor("details")}>
                                         Details
                                     </div>
-
-
-
                                 </div>
+
                                 {activeItemEditor === "details" && (
                                     <div>
-
                                         <div className="item-name mt-4">
                                             <label htmlFor="edit_item_name" className="block">
                                                 <span className="text-red-500">*</span> Name
@@ -2303,14 +2328,10 @@ export default function MenuManagement() {
                                             <input
                                                 type="text"
                                                 name="name"
-
                                                 className="w-full text-sm p-1 mt-2 rounded-md border-2 h-9"
-                                                placeholder="Item name"
+                                                placeholder="Offer name"
                                                 value={selectedItem?.name || ""}
-                                                onChange={(e) =>
-                                                    setSelectedItem((prev) => ({ ...prev, name: e.target.value }))
-                                                }
-
+                                                onChange={(e) => setSelectedItem((prev) => ({ ...prev, name: e.target.value }))}
                                                 required
                                             />
                                         </div>
@@ -2322,14 +2343,12 @@ export default function MenuManagement() {
                                                 name="description"
                                                 style={{ resize: "none" }}
                                                 className="w-full text-sm mt-3 p-3 border rounded-md"
-                                                placeholder="Describe your item ..."
+                                                placeholder="Describe your offer ..."
                                                 value={selectedItem?.description || ""}
-                                                onChange={(e) =>
-                                                    setSelectedItem((prev) => ({ ...prev, description: e.target.value }))
-                                                }
-
+                                                onChange={(e) => setSelectedItem((prev) => ({ ...prev, description: e.target.value }))}
                                             ></textarea>
                                         </div>
+
                                         <div className="item-image">
                                             <p className='text-sm'>Image</p>
                                             <label htmlFor="section-image-upload" className="cursor-pointer">
@@ -2364,162 +2383,42 @@ export default function MenuManagement() {
                                             />
                                         </div>
 
-                                        {/* <div className="item-first-price my-4 " >
-                            <label className="block mb-3" htmlFor="">
-                                Price
-                            </label>
-                            <input
-                                className="rounded-md w-44 h-9 border-2 px-2"
-                                placeholder="0,00"
-                                type="text"
-                                value={selectedItem.item_prices[0]?.price}
-
-
-                            />
-                        </div> */}
-
-
+                                        {/* عرض سعر العرض الوحيد */}
                                         <div className="prices-labels mt-5">
-                                            <p className="text-[#1b5067] text-lg font-medium">Prices</p>
-                                            <div className="price-instructions mb-4">
-                                                <p className="text-xs leading-5 text-gray-500">
-                                                    Items can have price options according to their sizes, servings etc.
-                                                    If the item has one price option, you can leave the name blank.
-                                                </p>
-                                            </div>
+                                            <p className="text-[#1b5067] text-lg font-medium">Price</p>
 
-                                            <div className="add-new-price-btn">
-                                                {selectedItem.item_prices && selectedItem.item_prices.length > 0 ? (
-                                                    [...selectedItem.item_prices].sort((a, b) => new Date(a.id) - new Date(b.id))
-                                                        .map((price, index) => (
-                                                            <div className="new-price flex gap-4 items-end mb-4" key={index}>
-                                                                <div className="add-price-name">
-                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                        Name
-                                                                    </label>
-                                                                    <input
-                                                                        className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                        placeholder="Small"
-                                                                        type="text"
-                                                                        value={price.label || ''}
-                                                                        onChange={(e) => handlePriceChange(index, 'label', e.target.value)}
-                                                                    />
-                                                                </div>
-                                                                <div className="add-price-price">
-                                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                        Price
-                                                                    </label>
-                                                                    <input
-                                                                        className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                        placeholder="0.00"
-                                                                        type="text"
-                                                                        // step="0.01"
-                                                                        // min="0"
-                                                                        value={price.price.toString() || ''}
-                                                                        onChange={(e) => handlePriceChange(index, 'price', e.target.value)}
-                                                                    />
-                                                                </div>
-                                                                <button
-                                                                    className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
-                                                                    onClick={() => deletePrice(index)}
-                                                                    title="Delete price"
-                                                                >
-                                                                    <i className="fa-solid fa-trash"></i>
-                                                                </button>
-                                                            </div>
-                                                        ))
-                                                ) : (
-                                                    <p className="text-gray-500 text-sm mb-4">No prices added yet</p>
-                                                )}
-
-                                                <button
-                                                    className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067] mt-2"
-                                                    onClick={addPrice}
-                                                >
-                                                    <i className="fa-solid fa-plus"></i>
-                                                    Add Price
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <hr className="mt-2" />
-
-                                        <div className="extras-labels mt-5">
-                                            <p className="text-[#1b5067] text-lg font-medium">Extras</p>
-                                            <div className="extra-instructions mb-4">
-                                                <p className="text-xs leading-5 text-gray-500">
-                                                    Items can have Extra options. If the item has one Extra option, you
-                                                    can't leave the name blank.
-                                                </p>
-                                            </div>
-
-                                            <div className="add-new-extra-btn">
-                                                {extras && extras.length > 0 ? (
-                                                    [...extras].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((extra, index) => (
-                                                        <div className="new-extra flex gap-4 items-end mb-4" key={index}>
-                                                            <div className="add-extra-name">
-                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                    Name
-                                                                </label>
-                                                                <input
-                                                                    className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                    placeholder="Add Cheese"
-                                                                    type="text"
-                                                                    value={extra.label || ''}
-                                                                    onChange={(e) => handleExtraChange(index, 'label', e.target.value)}
-                                                                    required
-                                                                />
-                                                            </div>
-                                                            <div className="add-extra-price">
-                                                                <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                    Price
-                                                                </label>
-                                                                <input
-                                                                    className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                    placeholder="0.00"
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    min="0"
-                                                                    value={extra.price || ''}
-                                                                    onChange={(e) => handleExtraChange(index, 'price', e.target.value)}
-                                                                    required
-                                                                />
-                                                            </div>
-                                                            <button
-                                                                className="h-9 w-9 flex items-center justify-center text-gray-600 hover:text-red-600"
-                                                                onClick={() => deleteExtra(index)}
-                                                                title="Delete extra"
-                                                            >
-                                                                <i className="fa-solid fa-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-gray-500 text-sm mb-4">No extras added yet</p>
-                                                )}
-
-                                                <div className="flex justify-between mt-6">
-                                                    <button
-                                                        className="flex gap-2 items-center text-[#2a7696] hover:text-[#1b5067]"
-                                                        onClick={addExtra}
-                                                    >
-                                                        <i className="fa-solid fa-plus"></i>
-                                                        Add Extra
-                                                    </button>
+                                            <div className="new-price flex gap-4 items-end mb-4">
+                                                <div className="add-price-price w-full">
+                                                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                        Price
+                                                    </label>
+                                                    <input
+                                                        className="rounded-md w-full h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="0.00"
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={selectedItem?.item_prices?.[0]?.price || ''}
+                                                        onChange={(e) => {
+                                                            // تحديث سعر العرض الأول مباشرة
+                                                            setSelectedItem(prev => ({
+                                                                ...prev,
+                                                                item_prices: [{
+                                                                    ...prev.item_prices[0],
+                                                                    price: e.target.value
+                                                                }]
+                                                            }));
+                                                        }}
+                                                        required
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
-
-
-
-
                                     </div>
-
                                 )}
 
-
                                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                                    <button onClick={closeEditItemForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
+                                    <button onClick={closeEditOfferForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
                                         Cancel
                                     </button>
                                     <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
@@ -2527,7 +2426,6 @@ export default function MenuManagement() {
                                     </button>
                                 </div>
                             </form>
-
                         </div>
                     </div>
                 )
@@ -2600,7 +2498,7 @@ export default function MenuManagement() {
                                             type="file"
                                             name="item_image"
                                             accept="image/jpeg, image/png"
-                                            onChange={handleItemFileChange}
+                                            onChange={handleFileChange}
                                             className="hidden"
                                             id="item_image_upload"
                                         />
@@ -2660,7 +2558,7 @@ export default function MenuManagement() {
                     : "opacity-0 translate-x-full pointer-events-none"
                     }`} >
                     <div className="offer-name  p-3 flex gap-2 items-center">
-                        <i onClick={closeAddItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium cairo'>اضافة عرض جديد</p>
+                        <i onClick={closeAddOfferForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium cairo'>اضافة عرض جديد</p>
                     </div>
                     <hr className='w-full ' />
 
@@ -2777,14 +2675,32 @@ export default function MenuManagement() {
 
             <div className="container md:px-0 md:w-4/5 w-full px-2 pt-3">
                 {sectionToDelete && (
-                    <div className="confirm-delete-modal fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
+                    <div className="confirm-delete-modal-section fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
 
                         <div className="confirm-delete-form w-1/4 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
                             <i className="text-gray-500 text-3xl fa-regular fa-trash-can"></i>
-                            <p>are you sure you need to delete Category: <strong>{sectionToDelete.name}</strong> </p>
+                            <p className='cairo text-center'>هل انت متأكد من حذف: <strong>{sectionToDelete.name}</strong> </p>
                             <div className="action-btns flex gap-2 mt-4 ">
-                                <button onClick={() => deleteSectionApi(sectionToDelete.id)} className='bg-red-500 text-white text-sm rounded-sm     py-2 px-4'>Yes, Im sure</button>
-                                <button onClick={handleCloseDeleteModal} className='bg-slate-50 border text-sm rounded-sm     py-2 px-4'>No, Cancel</button>
+                                <button onClick={() => deleteSectionApi(sectionToDelete.id)} className='bg-red-500 text-white text-sm rounded-sm  cairo   py-2 px-4'>نعم متأكد</button>
+                                <button onClick={handleCloseDeleteModal} className='bg-slate-50 border text-sm rounded-sm  cairo   py-2 px-4'>لا , تراجع</button>
+
+                            </div>
+
+
+
+                        </div>
+
+                    </div>
+                )}
+                {itemToDelete && (
+                    <div className="confirm-delete-modal-item fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
+
+                        <div className="confirm-delete-form w-1/4 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
+                            <i className="text-gray-500 text-3xl fa-regular fa-trash-can"></i>
+                            <p className='cairo text-center'>هل انت متأكد من حذف: <strong>{itemToDelete.name}</strong> </p>
+                            <div className="action-btns flex gap-2 mt-4 ">
+                                <button onClick={() => deleteItem(itemToDelete.id)} className='bg-red-500 text-white text-sm rounded-sm  cairo   py-2 px-4'>نعم متأكد</button>
+                                <button onClick={handleCloseDeleteModal} className='bg-slate-50 border text-sm rounded-sm  cairo   py-2 px-4'>لا , تراجع</button>
 
                             </div>
 
@@ -2820,15 +2736,17 @@ export default function MenuManagement() {
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    checked={menuData?.is_active || false}
+                                    checked={menuData?.is_closed || false}
                                     onChange={async () => {
                                         try {
-                                            const newStatus = !menuData?.is_active;
-                                            await axios.post(`http://localhost:234/api/menu/update/${menu_id}`, {
-                                                is_active: newStatus
+                                            const newStatus = !menuData?.is_closed;
+                                            await axios.post(`http://localhost:234/api/menu/update/${m_id}`, {
+                                                is_closed: newStatus
+                                            }, {
+                                                headers: authHeader(),
                                             });
-                                            setMenuData(prev => ({ ...prev, is_active: newStatus }));
-                                            toast.success(newStatus ? "Menu activated" : "Menu deactivated");
+                                            setMenuData(prev => ({ ...prev, is_closed: newStatus }));
+                                            toast.success(newStatus ? "تم تنشيط المنيو" : "تم الغاء تنشيط المنيو");
                                         } catch (error) {
                                             toast.error("Failed to update menu status");
                                             console.error("Error updating menu status:", error);
@@ -2837,11 +2755,11 @@ export default function MenuManagement() {
                                 />
                                 <div className={`
       group peer rounded-full duration-300 w-8 h-4 ring-2 
-      ${menuData?.is_active ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+      ${menuData?.is_closed ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
       after:duration-300 after:bg-white after:rounded-xl after:absolute 
       after:h-4 after:w-4 after:top-1 after:left-0 
       after:flex after:justify-center after:items-center
-      ${menuData?.is_active ? 'after:translate-x-4' : ''}
+      ${menuData?.is_closed ? 'after:translate-x-4' : ''}
       peer-hover:after:scale-95
     `}></div>
                             </label>
@@ -2859,7 +2777,7 @@ export default function MenuManagement() {
 
                         <p className='cairo text-sky-700 font-semibold text-lg mt-3'>الأقسام</p>
 
-                        <div onClick={toggleAddFormVisibility} className="add-category hover:bg-slate-50 cursor-pointer hover:shadow-md mt-4 shadow-sm flex justify-between bg-white p-3 rounded-lg">
+                        <div onClick={openAddSectionForm} className="add-category hover:bg-slate-50 cursor-pointer hover:shadow-md mt-4 shadow-sm flex justify-between bg-white p-3 rounded-lg">
                             <p className='cairo'> اضافة قسم +  </p>
                         </div>
                         {isSectionsLoading ? (<>
@@ -2879,7 +2797,7 @@ export default function MenuManagement() {
                                         >
                                             <div
                                                 onClick={() => {
-                                                    toggleFormVisibility(section.id);
+                                                    openEditSectionForm(section.id);
                                                     toggleCategoryItems(section.id);
                                                     toggleCategoryMenu();
                                                     setSelectedSection(section);
@@ -2890,22 +2808,45 @@ export default function MenuManagement() {
                                                 <div className="left flex items-center gap-2">
 
                                                     <div className="flex flex-col mr-2">
-                                                        <i
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                moveSectionUp(section.id);
-                                                            }}
-                                                            className={`fa-solid fa-chevron-up text-xs ${index === 0 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
-                                                                }`}
-                                                        ></i>
-                                                        <i
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                moveSectionDown(section.id);
-                                                            }}
-                                                            className={`fa-solid fa-chevron-down text-xs ${index === sections.length - 1 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
-                                                                }`}
-                                                        ></i>
+
+
+                                                        <div className="group relative ">
+                                                            <i
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    moveSectionUp(section.id);
+                                                                }}
+                                                                className={`fa-solid fa-chevron-up text-xs ${index === 0 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                                    }`}
+                                                            ></i>    <div
+                                                                className="bg-zinc-500 px-3 py-1 rounded-md group-hover:flex hidden absolute -top-2 -translate-y-full left-1/2 -translate-x-1/2"
+                                                            >
+                                                                <span className="text-white whitespace-nowrap">up</span>
+                                                                <div
+                                                                    className="bg-inherit rotate-45 p-1 absolute bottom-0 translate-y-1/2 left-1/2 -translate-x-1/2"
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="group relative z-50 ">
+                                                            <i
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    moveSectionDown(section.id);
+                                                                }}
+                                                                className={`fa-solid fa-chevron-down text-xs ${index === sections.length - 1 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-gray-700 cursor-pointer'
+                                                                    }`}
+                                                            ></i>                                                            <div
+                                                                className="bg-zinc-500 p-2 rounded-md group-hover:flex hidden absolute -bottom-2 translate-y-full left-1/2 -translate-x-1/2"
+                                                            >
+                                                                <span className="text-white whitespace-nowrap">Down</span>
+                                                                <div
+                                                                    className="bg-inherit rotate-45 p-1 absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2"
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+
+
                                                     </div>
 
                                                     <img className="w-10 h-10 rounded-md" src={section.cover_image_url ? section.cover_image_url : def} alt='' />
@@ -2925,12 +2866,15 @@ export default function MenuManagement() {
                                                                     const newStatus = !section.is_available;
                                                                     await axios.post(`http://localhost:234/api/section/update/${section.id}`, {
                                                                         is_available: newStatus
-                                                                    });
+                                                                    },
+                                                                        {
+                                                                            headers: authHeader(),
+                                                                        });
                                                                     // Update local state
                                                                     setSections(prev => prev.map(s =>
                                                                         s.id === section.id ? { ...s, is_available: newStatus } : s
                                                                     ));
-                                                                    toast.success(newStatus ? "Section activated" : "Section deactivated");
+                                                                    toast.success(newStatus ? "تم تنشيط القسم" : "تم الغاء تنشيط القسم");
                                                                 } catch (error) {
                                                                     toast.error("Failed to update section status");
                                                                     console.error("Error:", error);
@@ -2947,22 +2891,16 @@ ${section.is_available ? 'after:translate-x-4' : ''}
 peer-hover:after:scale-95
 `}></div>
                                                     </label>
-                                                    <div className="more relative">
-                                                        <i onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleMoreClick(index); // Toggle the "more" menu for this section
-                                                        }} className="fa-solid px-2 text-slate-700 fa-ellipsis-vertical"></i>
-                                                        {activeMoreIndex === index && (
-                                                            <div className="dropdn absolute md:-right-20 -right-11  z-10 w-32 h-fit border bg-white rounded-md">
-                                                                <p className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className=" text-gray-500 fa-solid fa-clone"></i> dupplicate</p>
-                                                                <p onClick={(e) => {
-                                                                    e.stopPropagation(); // Prevent parent click events
-                                                                    handleDeleteClick(section); // Call the delete handler
-                                                                }} className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25 hover:bg-gray-100 p-2'><i className="text-gray-500 fa-regular fa-trash-can"></i> Delete</p>
-
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    <p
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent parent click events
+                                                            handleDeleteClick(section); // Call the delete handler
+                                                        }}
+                                                        className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25   rounded-sm hover:bg-slate-100 p-1 cursor-pointer'
+                                                    >
+                                                        <i
+                                                            className="text-red-500 fa-regular fa-trash-can"></i>
+                                                    </p>
 
                                                     <i
                                                         className="fa-solid fa-chevron-down cursor-pointer transform transition-transform duration-300"
@@ -2976,12 +2914,12 @@ peer-hover:after:scale-95
 
                                             <div
                                                 className="category-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out"
-                                                style={{ maxHeight: expandedCategories[section.id] ? '500px' : '0px' }}
+                                                style={{ maxHeight: expandedCategories[section.id] ? '2000px' : '0px' }}
                                             >
                                                 {filterItems(section.items).map((item, itemIndex) => (
                                                     <div
                                                         onClick={() => {
-                                                            openEditItemForm(item),
+                                                            openEditItemForm(event, item),
                                                                 setSelectedItem(item)
                                                         }}
                                                         key={item.id}
@@ -2989,6 +2927,7 @@ peer-hover:after:scale-95
                                                     >
                                                         <div className="left md:w-2/3 w-1/2 flex items-center gap-2">
                                                             <div className="flex flex-col gap-2">
+
                                                                 <i
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -2996,6 +2935,7 @@ peer-hover:after:scale-95
                                                                     }}
                                                                     className={`fa-solid fa-chevron-up  bg-slate-100 p-1 rounded-md text-gray-400 hover:text-gray-600 ${itemIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
                                                                 ></i>
+
                                                                 <i
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -3040,18 +2980,28 @@ peer-hover:after:scale-95
   `}></div>
                                                             </label>
 
+                                                            <p
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation(); // Prevent parent click events
+                                                                    handleItemDeleteClick(item); // Call the delete handler
+                                                                }}
+                                                                className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25   rounded-sm hover:bg-slate-100 p-1 cursor-pointer'
+                                                            >
+                                                                <i
+                                                                    className="text-red-500 fa-regular fa-trash-can"></i>
+                                                            </p>
 
-                                                            <div className="more relative">
+                                                            {/* <div className="more   relative">
                                                                 <i
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         handleItemMoreClick(itemIndex);
                                                                     }}
-                                                                    className="fa-solid px-2 bg-green-400 text-slate-700 fa-ellipsis-vertical cursor-pointer"
+                                                                    className="fa-solid px-2  text-slate-700 fa-ellipsis-vertical cursor-pointer"
                                                                 ></i>
 
                                                                 {activeItemMoreIndex === itemIndex && (
-                                                                    <div className="dropdn absolute md:-right-20 -right-11 z-30 w-32 h-fit border bg-white rounded-md shadow-md">
+                                                                    <div className="dropdn absolute md:-right-28 -right-11 bg-white z-10  w-32 h-fit border rounded-md shadow-md">
                                                                         <p
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
@@ -3073,7 +3023,7 @@ peer-hover:after:scale-95
                                                                         </p>
                                                                     </div>
                                                                 )}
-                                                            </div>
+                                                            </div> */}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -3099,7 +3049,7 @@ peer-hover:after:scale-95
 
                         <p className='cairo text-sky-700 font-semibold text-lg mt-3'>العروض</p>
                         <div className="offer-section">
-                            <div className="offer-section-items flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out">
+                            <div className="offer-section-items pb-5 pe-5 flex flex-col items-end overflow-hidden transition-max-height duration-500 ease-in-out">
                                 {filterOfferItems(offerItems).map((item, itemIndex) => (
                                     <div
                                         onClick={() => {
@@ -3112,6 +3062,7 @@ peer-hover:after:scale-95
                                         <div className="left md:w-2/3 w-1/2 flex items-center gap-2">
                                             {/* Add reorder arrows here */}
                                             <div className="flex flex-col">
+
                                                 <i
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -3130,7 +3081,6 @@ peer-hover:after:scale-95
                                                 ></i>
                                             </div>
 
-                                            <i className="fa-solid fa-bars text-sm text-gray-400"></i>
                                             <img
                                                 className="w-7 h-7 rounded-md"
                                                 src={item?.image_url || def} // Make sure 'def' is defined
@@ -3171,7 +3121,17 @@ peer-hover:after:scale-95
           peer-hover:after:scale-95
         `}></div>
                                             </label>
-                                            <div className="more relative">
+                                            <p
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // Prevent parent click events
+                                                    handleItemDeleteClick(item); // Call the delete handler
+                                                }}
+                                                className='text-sm flex gap-2 items-center border-b-2 border-slate-400/25   rounded-sm hover:bg-slate-100 p-1 cursor-pointer'
+                                            >
+                                                <i
+                                                    className="text-red-500 fa-regular fa-trash-can"></i>
+                                            </p>
+                                            {/* <div className="more relative">
                                                 <i
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -3201,7 +3161,7 @@ peer-hover:after:scale-95
                                                         </p>
                                                     </div>
                                                 )}
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </div>
                                 ))}

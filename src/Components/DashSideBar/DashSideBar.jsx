@@ -2,14 +2,18 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import takkaLogo from "../../assets/takka-logo.jpg"
 import shop from "../../assets/shop.png"
+import reslogo2 from "../../assets/relogo2.png"
+
 
 import useFetchData from '../../utils/useApi.js';
 
-export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
+export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet }) {
     const [isNamesOpen, setIsNamesOpen] = useState(false);
     const { isLoading, error, fetchData, data } = useFetchData();
     const [menus, setMenus] = useState([]);
     const [defaultMenu, setDefaultMenu] = useState('');
+    const [menuLogo, setMenuLogo] = useState(null);
+
     const [showArrow, setShowArrow] = useState(true);
 
     const navigate = useNavigate();
@@ -17,40 +21,142 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
     useEffect(() => {
         const ownerId = localStorage.getItem('owner'); // Get owner_id from localStorage
 
+        // if (ownerId) {
+        //     fetchData(`/api/ownermenus/${ownerId}`)
+        //         .then((response) => {
+        //             if (response?.data) {
+        //                 const menus = response.data;
+        //                 console.log("dashside", menus);
+
+
+
+        //                 // Check if profile_image exists in the first menu
+        //                 if (menus.length > 0 && menus[0].profile_image) {
+        //                     const profileImageUrl = `http://localhost:234/api/file/${menus[0].profile_image}`;
+        //                     setMenuLogo(profileImageUrl);
+        //                     console.log("Profile image URL:", profileImageUrl);
+        //                 }
+
+        //                 // Rest of your menu handling logic...
+        //                 if (menus.length === 0) {
+        //                     setShowArrow(false);
+        //                 } else if (menus.length === 1) {
+        //                     localStorage.setItem('menu', menus[0].id_hash);
+
+
+        //                     setDefaultMenu(menus[0].name);
+        //                     setShowArrow(false);
+        //                 } else {
+        //                     localStorage.setItem('menu', menus[0].id_hash);
+        //                     setDefaultMenu(menus[0].name);
+        //                     setShowArrow(true);
+        //                 }
+        //                 setMenus(menus);
+        //             }
+        //         })
+        //         .catch((err) => {
+        //             console.error('Error fetching menus:', err);
+        //         });
+        // }
+        // if (ownerId) {
+        //     // Log when the fetchData is triggered
+
+        //     fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
+        //         .then((response) => {
+        //             if (response?.data) {
+
+        //                 const menus = response.data;
+        //                 console.log("dashside", menus);
+        //                 if (response.data.profile_image) {
+        //                     const profileImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.profile_image}`;
+        //                     // const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' });
+        //                     // const profileImageObjectURL = URL.createObjectURL(profileImageResponse.data);
+        //                     // setMenuSettings((prevSettings) => ({
+        //                     //     ...prevSettings,
+        //                     //     profileImageUrl: profileImageObjectURL, // Add profile image URL to the menu settings
+        //                     // }));
+        //                     setMenuLogo(profileImageUrl)
+        //                     log
+        //                 }
+
+
+
+        //                 if (menus.length === 0) {
+        //                     setShowArrow(false); // Show the arrow
+
+
+        //                 } else if (menus.length === 1) {
+        //                     // If there's only one menu, set it as default
+        //                     localStorage.setItem('menu', menus[0].id_hash);
+        //                     setDefaultMenu(menus[0].name);
+
+        //                     setShowArrow(false); // Hide the arrow
+        //                 } else {
+        //                     // If there are multiple menus, set the first one as default
+        //                     localStorage.setItem('menu', menus[0].id_hash);
+        //                     setDefaultMenu(menus[0].name);
+        //                     setShowArrow(true); // Show the arrow
+        //                 }
+        //                 setMenus(menus); // Store the menus in state
+
+        //             }
+        //         })
+        //         .catch((err) => {
+        //             console.error('Error fetching menus:', err);
+        //         });
+        // } else {
+        //     console.error('No owner_id found in localStorage');
+        // }
 
         if (ownerId) {
-            // Log when the fetchData is triggered
-
-            fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
+            fetchData(`/api/ownermenus/${ownerId}`)
                 .then((response) => {
                     if (response?.data) {
-
                         const menus = response.data;
-                        if (menus.length === 0) {
-                            setShowArrow(false); // Show the arrow
+                        console.log("dashside", menus);
 
 
-                        } else if (menus.length === 1) {
-                            // If there's only one menu, set it as default
-                            localStorage.setItem('menu', menus[0].id_hash);
-                            setDefaultMenu(menus[0].name);
-                            setShowArrow(false); // Hide the arrow
-                        } else {
-                            // If there are multiple menus, set the first one as default
-                            localStorage.setItem('menu', menus[0].id_hash);
-                            setDefaultMenu(menus[0].name);
-                            setShowArrow(true); // Show the arrow
+                        // Check if profile_image exists in the first menu
+                        if (menus.length > 0 && menus[0].profile_image) {
+                            const profileImageUrl = `http://localhost:234/api/file/${menus[0].profile_image}`;
+                            setMenuLogo(profileImageUrl);
+                            console.log("Profile image URL:", profileImageUrl);
                         }
-                        setMenus(menus); // Store the menus in state
 
+                        // Menu handling logic
+                        if (menus.length === 0) {
+                            setShowArrow(false);
+                            // Clear menu from localStorage if no menus exist
+                            localStorage.removeItem('menu');
+                            localStorage.removeItem('m_id');
+                        } else {
+                            // Check if there's a menu stored in localStorage
+                            const storedMenuId = localStorage.getItem('menu');
+                            const matchingMenu = menus.find(menu => menu.id_hash === storedMenuId);
+
+                            if (matchingMenu) {
+                                // Use the menu from localStorage
+                                const profileImageUrl = `http://localhost:234/api/file/${matchingMenu.profile_image}`;
+                                setMenuLogo(profileImageUrl);
+                                console.log("Profile image URL:", profileImageUrl);
+
+                                setDefaultMenu(matchingMenu.name);
+                                setShowArrow(menus.length > 1);
+                            } else {
+                                // Use the first menu as default
+                                localStorage.setItem('menu', menus[0].id_hash);
+                                setDefaultMenu(menus[0].name);
+                                setShowArrow(menus.length > 1);
+                            }
+                        }
+                        setMenus(menus);
                     }
                 })
                 .catch((err) => {
                     console.error('Error fetching menus:', err);
                 });
-        } else {
-            console.error('No owner_id found in localStorage');
         }
+
     }, []); // Empty dependency array to run only once on mount // Empty dependency array to avoid infinite loop
     if (isLoading) {
         return <div>Loading...</div>;
@@ -66,14 +172,39 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
     const toggleMenu = () => {
         setIsNamesOpen(!isNamesOpen);
     };
-    const handleMenuSelect = (m_id, menuId, menuName) => {
+    // const handleMenuSelect = (m_id, menuId, menuName) => {
+    //     localStorage.setItem('m_id', m_id);
+
+    //     localStorage.setItem('menu', menuId);
+    //     navigate(`/menu/${menuId}/dashboard`);
+
+    //     setDefaultMenu(menuName);
+    //     setIsNamesOpen(false); // Close the more names div
+    // };
+    const handleMenuSelect = (m_id, menuId, menuName, profile) => {
+        // Update localStorage with the new menu selection
         localStorage.setItem('m_id', m_id);
+        console.log("log", profile);
 
         localStorage.setItem('menu', menuId);
-        navigate(`/menu/${menuId}/dashboard`);
 
+        const profileImageUrl = `http://localhost:234/api/file/${profile}`;
+        console.log(profileImageUrl);
+
+        setMenuLogo(profileImageUrl);
+        console.log("Profile image URL2:", profileImageUrl);
+
+
+
+        // Update the displayed menu
         setDefaultMenu(menuName);
         setIsNamesOpen(false); // Close the more names div
+
+        // Navigate to the selected menu's dashboard
+
+        navigate(`/menu/${menuId}/dashboard`);
+        reloadOutlet();
+
     };
 
     let menuId = localStorage.getItem("menu")
@@ -81,19 +212,38 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
     return <>
 
         <div
-            className={`sidebar z-30 flex flex-col fixed items-center shadow-sm shadow-gray-500 h-full text-gray-700 bg-gray-100 rounded transition-all duration-500 ease-in-out
-    ${sidebarIsOpen ? 'md:w-[15%] w-full' : 'w-0'}`}
+            className={`sidebar   z-30 flex flex-col fixed items-center shadow-sm shadow-gray-500 h-full text-gray-700 bg-gray-100 rounded transition-all duration-500 ease-in-out
+    ${sidebarIsOpen ? 'lg:w-[15%] md:w-[20%] w-full' : 'w-0'}`}
         >
             <div onClick={toggleSidebar} className="togglebtn py-3 w-10 flex justify-center cursor-pointer bg-gray-100 border-2 absolute top-1/2 -left-10 rounded-l-md">
                 <i className="fa-solid fa-chevron-left text-sky-600 rounded-e-md"></i>
 
             </div>
             {sidebarIsOpen && (
-                <div className="data">
+                <div className="data w-full relative">
+                    <div onClick={toggleSidebar} className="togglebtn py-3 w-10 flex md:hidden  justify-center cursor-pointer bg-gray-100 border-2 absolute top-0 left-0 rounded-l-md">
+                        <i className="fa-solid fa-chevron-left text-sky-600 rounded-e-md"></i>
 
-                    <div className="takka-logo w-full h-32 flex justify-center items-center ">
+                    </div>
 
-                        <img className='w-1/2 border  shadow-xl rounded-full' src={shop} alt="" />
+                    <div className="takka-logo w-full h-44 flex justify-center items-center">
+                        {menuLogo ? (
+                            <img
+                                className='md:w-1/2 sm:w-1/3 w-1/3 border shadow-xl rounded-full object-cover aspect-square'
+                                src={menuLogo}
+                                alt="Profile logo"
+                                onError={(e) => {
+                                    // Fallback if image fails to load
+                                    e.target.src = reslogo2;
+                                }}
+                            />
+                        ) : (
+                            <img
+                                className='w-1/2 border shadow-xl rounded-full'
+                                src={shop}
+                                alt="Default shop logo"
+                            />
+                        )}
                     </div>
 
                     {/* <div className="menu-name w-full  rounded-md p-2">
@@ -121,8 +271,8 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                     </div> */}
                     {menus.length > 0 && (
                         <div className="menu-name w-full rounded-md p-2">
-                            <div className="choose-name w-full h-12 flex justify-between items-center p-1 border-2 rounded-md">
-                                <p className='text-sky-700 text-sm cairo'>{defaultMenu}</p>
+                            <div onClick={toggleMenu} className="choose-name cursor-pointer w-full h-12 flex justify-between items-center p-1 border-2 rounded-md">
+                                <p className='text-sky-700 text-sm text-center cairo'>{defaultMenu}</p>
                                 {showArrow && (
                                     <i
                                         className={`fa-solid fa-chevron-down cursor-pointer ${isNamesOpen ? 'rotate-180' : ''}`}
@@ -131,12 +281,12 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                                 )}
                             </div>
                             {showArrow && (
-                                <div className={`more-names w-full bg-white rounded-b-md overflow-hidden transition-all duration-300 ease-in-out ${isNamesOpen ? 'max-h-[500px]' : 'max-h-0 p-0'}`}>
+                                <div className={`more-names overflow-y-auto  w-full bg-white rounded-b-md overflow-hidden transition-all duration-300 ease-in-out ${isNamesOpen ? 'md:max-h-[200px] ' : 'max-h-0 p-0'}`}>
                                     {menus.map((menu) => (
                                         <div
                                             key={menu.id}
-                                            className="menu-option  p-2 border-b cursor-pointer"
-                                            onClick={() => handleMenuSelect(menu.id, menu.id_hash, menu.name)}
+                                            className="menu-option hover:bg-slate-200  p-2 border-b cursor-pointer"
+                                            onClick={() => handleMenuSelect(menu.id, menu.id_hash, menu.name, menu.profile_image)}
                                         >
                                             <p className='text-sm text-center'>{menu.name}</p>
                                         </div>
@@ -193,7 +343,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                             </Link>
                             <a className="flex relative items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    <p className='cairo text-green-700'>قريباّ</p>
+                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
                                 </div>
                                 <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -204,7 +354,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                             </a>
                             <a className="flex relative items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    <p className='cairo text-green-700'>قريباّ</p>
+                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
                                 </div>
                                 <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     {/* Boy symbol (circle with arrow) */}
@@ -219,7 +369,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                             </a>
                             <a className="relative flex items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300" href="#">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    <p className='cairo text-green-700'>قريباّ</p>
+                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
                                 </div>
 
                                 <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -243,7 +393,6 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar }) {
                         <span className="ml-2 text-sm font-medium cairo">اعدادات الحساب</span>
 
                     </Link>
-
 
                 </div>
 

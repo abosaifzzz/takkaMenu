@@ -6,6 +6,8 @@ import ui2 from "../../assets/ui2.png"
 import ui4 from "../../assets/ui4.jpeg"
 
 import u3 from "../../assets/u3.png"
+import ad2 from "../../assets/Ad2.png"
+
 
 import check from "../../assets/check.png"
 
@@ -170,7 +172,7 @@ export default function Home() {
                 </div>
             </div>
 
-            <div className="second-part ">
+            <div className="second-part flex flex-col items-center pb-16 ">
 
                 <div className="multi-tips w-full z-50 shadow-md border-t-2 border-sky-600 md:h-28 h-20 bg-white overflow-hidden">
                     <div
@@ -435,7 +437,7 @@ export default function Home() {
 
 
                     </div>
-                    <div className="left md:hidden w-full md:w-1/2 flex flex-col items-center overflow-hidden  rounded-lg bg-slate-100 md:h-[500px] mb-10 h-[300px]">
+                    <div className="left md:hidden w-full md:w-1/2 flex flex-col items-center overflow-hidden  rounded-lg bg-slate-100 md:h-[500px] mb-10 h-[200px]">
 
 
                         {/* First Row */}
@@ -458,6 +460,12 @@ export default function Home() {
 
                 </div>
 
+
+                <div className="ad w-4/5  bg-slate-300">
+
+                    <img src={ad2} className='rounded-lg w-full ' alt="" />
+
+                </div>
             </div>
 
 
