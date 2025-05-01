@@ -461,7 +461,7 @@ export default function Home() {
                 </div>
 
 
-                <div className="ad w-4/5  bg-slate-300">
+                <div className="adv w-4/5  bg-slate-300">
 
                     <img src={ad2} className='rounded-lg w-full ' alt="" />
 
