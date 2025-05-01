@@ -12,7 +12,7 @@ import add from '../../assets/add.png'
 
 import call from '../../assets/call.png'
 import minus from '../../assets/minus.png'
-import eats from '../../assets/eats-logo.PNG'
+import eats from '../../assets/eats-logo.png'
 
 import { useParams } from 'react-router-dom';
 import NewMenuCreation from '../../Components/NewMenuCreation/NewMenuCreation.jsx';
@@ -30,13 +30,7 @@ export default function MenuManagement() {
     const { isLoading, error, fetchData, data } = useFetchData();
 
     const [sections, setSections] = useState([]);
-    //     const [sectionData, setSectionData] = useState([
 
-    // name: "",
-    // note:"",
-
-
-    //     ]);
 
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isEditSectionFormVisible, setIsEditSectionFormVisible] = useState(false);
