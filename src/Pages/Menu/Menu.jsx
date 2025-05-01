@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { useRef, useState } from 'react';
 import def from '../../assets/download.png'
 import eats from '../../assets/eats-logo.png'
-// import eats2 from '../../assets/eats2.png'
+import eats2 from '../../assets/eats2.png'
 
 
 
@@ -1582,11 +1582,11 @@ export default function Menu() {
             <div className="powred-by flex justify-center items-center pb-3 gap-2">
 
                 <p className='cairo kufi text-center text-gray-700 '>Powered by Takka </p>
-                {/* <Link to={"/"}>
+                <Link to={"/"}>
                     <span>
                         <img className='w-16 shadow' src={eats2} alt="" /></span>
 
-                </Link> */}
+                </Link>
 
             </div>
         </div >

@@ -30,13 +30,7 @@ export default function MenuManagement() {
     const { isLoading, error, fetchData, data } = useFetchData();
 
     const [sections, setSections] = useState([]);
-    //     const [sectionData, setSectionData] = useState([
 
-    // name: "",
-    // note:"",
-
-
-    //     ]);
 
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isEditSectionFormVisible, setIsEditSectionFormVisible] = useState(false);
