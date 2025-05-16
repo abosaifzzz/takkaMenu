@@ -4,10 +4,11 @@ import takkaLogo from "../../assets/takka-logo.jpg"
 import shop from "../../assets/shop.png"
 import reslogo2 from "../../assets/relogo2.png"
 
-
 import useFetchData from '../../utils/useApi.js';
 
 export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet }) {
+    const apiUrl = import.meta.env.VITE_API_URL;
+
     const [isNamesOpen, setIsNamesOpen] = useState(false);
     const { isLoading, error, fetchData, data } = useFetchData();
     const [menus, setMenus] = useState([]);
@@ -32,7 +33,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
 
         //                 // Check if profile_image exists in the first menu
         //                 if (menus.length > 0 && menus[0].profile_image) {
-        //                     const profileImageUrl = `http://localhost:234/api/file/${menus[0].profile_image}`;
+        //                     const profileImageUrl = `${apiUrl}/api/file/${menus[0].profile_image}`;
         //                     setMenuLogo(profileImageUrl);
         //                     console.log("Profile image URL:", profileImageUrl);
         //                 }
@@ -68,7 +69,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
         //                 const menus = response.data;
         //                 console.log("dashside", menus);
         //                 if (response.data.profile_image) {
-        //                     const profileImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.profile_image}`;
+        //                     const profileImageUrl = `${apiUrl}/api/file/${response.data.menuSettings.profile_image}`;
         //                     // const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' });
         //                     // const profileImageObjectURL = URL.createObjectURL(profileImageResponse.data);
         //                     // setMenuSettings((prevSettings) => ({
@@ -112,13 +113,13 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
             fetchData(`/api/ownermenus/${ownerId}`)
                 .then((response) => {
                     if (response?.data) {
-                        const menus = response.data;
+                        const menus = response.data.result;
                         console.log("dashside", menus);
 
 
                         // Check if profile_image exists in the first menu
                         if (menus.length > 0 && menus[0].profile_image) {
-                            const profileImageUrl = `http://localhost:234/api/file/${menus[0].profile_image}`;
+                            const profileImageUrl = `${apiUrl}/api/file/${menus[0].profile_image}`;
                             setMenuLogo(profileImageUrl);
                             console.log("Profile image URL:", profileImageUrl);
                         }
@@ -136,7 +137,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
 
                             if (matchingMenu) {
                                 // Use the menu from localStorage
-                                const profileImageUrl = `http://localhost:234/api/file/${matchingMenu.profile_image}`;
+                                const profileImageUrl = `${apiUrl}/api/file/${matchingMenu.profile_image}`;
                                 setMenuLogo(profileImageUrl);
                                 console.log("Profile image URL:", profileImageUrl);
 
@@ -188,7 +189,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
 
         localStorage.setItem('menu', menuId);
 
-        const profileImageUrl = `http://localhost:234/api/file/${profile}`;
+        const profileImageUrl = `${apiUrl}/api/file/${profile}`;
         console.log(profileImageUrl);
 
         setMenuLogo(profileImageUrl);

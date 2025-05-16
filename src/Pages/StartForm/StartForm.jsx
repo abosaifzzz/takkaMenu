@@ -16,6 +16,7 @@ import exlogo from "../../assets/exlogo.png"
 import useFetchData from '../../utils/useApi.js'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function StartForm() {
     const [bodyData, setBodyData] = useState({});
@@ -74,8 +75,8 @@ export default function StartForm() {
 
             if (response?.data) {
                 console.log("Menu created successfully:", response.data);
-                const menuId = response.data.id_hash
-                const m_id = response.data.id
+                const menuId = response.data.newMenu.id_hash
+                const m_id = response.data.newMenu.id
 
                 localStorage.setItem("menu", menuId)
                 localStorage.setItem("m_id", m_id)
@@ -123,7 +124,7 @@ export default function StartForm() {
 
 
 
-        const response = await axios.post('http://localhost:234/api/section', stateObject, {
+        const response = await axios.post(`${apiUrl}/api/section`, stateObject, {
             headers: authHeader(),
         });
         console.log(response)

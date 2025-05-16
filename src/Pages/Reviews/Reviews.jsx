@@ -114,6 +114,8 @@ const mockReviewsData = [
         email: "dalia.k@example.com"
     }
 ];
+
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Reviews() {
     const [reviews, setReviews] = useState([]); // State to hold reviews data
     const [reviewsLoading, setReviewsLoading] = useState(true); // State to handle loading state
@@ -124,10 +126,10 @@ export default function Reviews() {
 
     const fetchReviews = async (menu_id) => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu/reviews/${menu_id}`);
-            console.log(response);
-
-            setReviews(response.data)
+            const response = await axios.get(`${apiUrl}/api/menu/reviews/${menu_id}`);
+            console.log("reviews", response);
+            const result = response.data?.result || []
+            setReviews(result)
             console.log(reviews);
 
             return response.data; // Returns the reviews data from the API
@@ -144,7 +146,9 @@ export default function Reviews() {
         }, 500);
 
         // Fetch data when the component mounts
-        fetchReviews(m_id)
+        // fetchReviews(m_id)
+        fetchReviews(m_id) // Fallback to empty array if data is undefined
+
     }, [m_id]);
 
 
@@ -154,25 +158,22 @@ export default function Reviews() {
 
     const deleteReviewApi = async (reviewId) => {
         try {
-            await axios.delete(`http://localhost:234/api/menu/reviews/${reviewId}`);
+            await axios.delete(`${apiUrl}/api/menu/reviews/${reviewId}`);
 
-            // After successful deletion:
-            // Option 1: Refresh the reviews list
-            fetchReviews(); // Assuming you have a function to refetch reviews
+            // Option 1: Refetch reviews (pass `m_id`)
+            await fetchReviews(m_id);
 
-            // Option 2: Optimistically update the UI by removing the review from state
-            setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
+            // Option 2: Optimistic update (remove deleted review from state)
+            // setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
 
-            setIsSelectedReview(null); // Reset selection
-            // Optional: Show success notification
+            setIsSelectedReview(null);
             toast.success('تم حذف التقييم بنجاح!');
         } catch (error) {
             setIsSelectedReview(null);
             console.error('Error deleting review:', error);
-            // Show error notification
             alert('فشل حذف التقييم. الرجاء المحاولة مرة أخرى.');
         }
-    }
+    };
 
 
 

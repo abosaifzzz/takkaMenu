@@ -87,17 +87,11 @@ function App() {
       element: <Menu />
 
     },
+
     {
 
 
-      path: "item-details",
-      element: <ItemDetails />
-
-    },
-    {
-
-
-      path: "cart",
+      path: "/menu/:menuId/cart",
       element: <Cart />
 
     },

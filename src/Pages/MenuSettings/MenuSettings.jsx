@@ -15,12 +15,12 @@ import axios from 'axios'
 import { Clipboard, ClipboardCheck } from "lucide-react"; // Lucide icons
 import toast, { Toaster } from 'react-hot-toast'
 import { createFormData } from '../../utils/index.js'
-
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function MenuSettings() {
     const m_id = localStorage.getItem("m_id")
 
     const menu_id = localStorage.getItem("menu")
-    const menuUrl = `http://localhost:5173/menu/${menu_id}`;
+    const menuUrl = `https://eats.takkasmart.com/menu/${menu_id}`;
 
     const [qrCodeUrl, setQrCodeUrl] = useState('');
 
@@ -73,19 +73,19 @@ export default function MenuSettings() {
 
         try {
             // Fetch menu settings
-            const response = await axios.get(`http://localhost:234/menu-settings/${m_id}`
+            const response = await axios.get(`${apiUrl}/menu-settings/${m_id}`
             );
 
-            console.log("menu settings", response.data.menuSettings);
+            console.log("menu settings", response.data.result);
 
 
             // Set menu settings
-            setMenuSettings(response.data.menuSettings);
+            setMenuSettings(response.data.result);
 
 
             // Fetch profile image if it exists
-            if (response.data.menuSettings.profile_image) {
-                const profileImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.profile_image} `
+            if (response.data.result.profile_image) {
+                const profileImageUrl = `${apiUrl}/api/file/${response.data.result.profile_image} `
                 const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' },
                     {
                         headers: authHeader(),
@@ -99,8 +99,8 @@ export default function MenuSettings() {
             }
 
             // Fetch cover image if it exists
-            if (response.data.menuSettings.cover_image) {
-                const coverImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.cover_image}`
+            if (response.data.result.cover_image) {
+                const coverImageUrl = `${apiUrl}/api/file/${response.data.result.cover_image}`
 
                 const coverImageResponse = await axios.get(coverImageUrl, { responseType: 'blob' }, {
                     headers: authHeader(),
@@ -197,13 +197,13 @@ export default function MenuSettings() {
 
         console.log("payload", menuPayload);
 
-        const response = await axios.post(`http://localhost:234/api/menu/update/${m_id}`, menuPayload,
+        const response = await axios.post(`${apiUrl}/api/menu/update/${m_id}`, menuPayload,
             {
                 headers: authHeader(),
             }
         );
         console.log("menu successfully created:", response.data);
-        toast.success("تم التعديل بنجاح");
+        toast.success("تم تعديل المنيو بنجاح");
 
 
 

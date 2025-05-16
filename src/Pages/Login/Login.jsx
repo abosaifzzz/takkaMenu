@@ -14,6 +14,7 @@ export default function Login() {
 
     // const [googleToken, setGoogleToken] = useState("");
     const { isLoading, error, fetchData, data } = useFetchData();
+    const apiUrl = import.meta.env.VITE_API_URL;
 
 
     const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +35,8 @@ export default function Login() {
                 google_token: googleToken, // assuming googleData contains the tokenId from Google
             };
             console.log(data);
+            const google = "g"
+            localStorage.setItem("provider", google)
 
         } else {
             e.preventDefault();
@@ -41,6 +44,8 @@ export default function Login() {
             // If using email/password, use the state variables
             data = { email, password };
             console.log(data);
+            const system = "s"
+            localStorage.setItem("provider", system)
 
         }
 
@@ -49,7 +54,7 @@ export default function Login() {
             // Call the login API using Axios
             console.log("Sending data to API...");
 
-            const response = await axios.post("http://localhost:234/auth/login", data, {
+            const response = await axios.post(`${apiUrl}/auth/login`, data, {
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -57,20 +62,28 @@ export default function Login() {
             console.log(response);
             if (response.data.user) {
                 console.log("good");
+                console.log(response.data.user);
+
                 console.log(response.data.user.owner_id);
                 const ownerId = response.data.user.owner_id
+                const email = response.data.user.email
+                const phone_number = response.data.user.phone_number
+                console.log(phone_number);
+
+                localStorage.setItem("mobile", phone_number);
+                localStorage.setItem("email", email)
                 localStorage.setItem("owner", ownerId)
 
                 fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
                     .then((response) => {
-                        console.log("Response data:", response?.data); // Debug log
-                        if (response?.data[0]) {
-                            console.log('Fetched Menus:', response.data);
+                        console.log("Response data:", response); // Debug log
+                        if (response?.data?.result) {
+                            console.log('Fetched Menus:', response.data.result);
 
-                            localStorage.setItem('menu', response.data[0].id_hash);
-                            localStorage.setItem('m_id', response.data[0].id);
+                            localStorage.setItem('menu', response.data.result[0].id_hash);
+                            localStorage.setItem('m_id', response.data.result[0].id);
 
-                            let menuId = response.data[0].id_hash
+                            let menuId = response.data.result[0].id_hash
                             console.log("from log", menuId);
 
                             localStorage.setItem('owner', ownerId);
@@ -93,8 +106,13 @@ export default function Login() {
 
 
                         } else {
-                            window.location.href = `/start`;  // Redirect to dashboard
+                            setLoginLoading(true)
 
+                            // window.location.href = `/start`;  // Redirect to dashboard
+                            setTimeout(() => {
+                                window.location.href = `/start`;  // Redirect to dashboard
+
+                            }, 1000);
 
 
 

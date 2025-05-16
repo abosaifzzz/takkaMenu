@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
 import reslogo from "../../assets/res-logo.jpg"
 import { Link } from 'react-router-dom'
+import ClientAuth from '../../Components/ClientAuth/ClientAuth.jsx';
 
 export default function Cart() {
     const [selectedOrderWay, setSelectedOrderWay] = useState('');
     console.log(selectedOrderWay);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+
     // const handleOrderWayChange = (event) => {
     //     setSelectedOrderWay(event.target.id);  // Update the state with the selected order way
     //     console.log(selectedOrderWay);
@@ -152,14 +155,23 @@ export default function Cart() {
                 </div>
                 <hr />
 
-                <div className="proceed flex justify-center mb-7 items-center p-3">
-                    <Link to={"/proceed"} state={{ selectedOrderWay }}>
-                        <button className='py-2 px-4 bg-green-500 rounded-md cairo font-semibold text-white'>تنفيذ الطلب</button>
-                    </Link>
+                <div className="go-login flex justify-center mb-7 items-center p-3">
+                    <button
+                        onClick={() => setShowAuthModal(true)}
+                        className='py-2 px-4 bg-green-500 rounded-md cairo font-semibold text-white'
+                    >
+                        تنفيذ الطلب
+                    </button>
                 </div>
 
             </div>
 
+            {showAuthModal && (
+                <ClientAuth
+                    selectedOrderWay={selectedOrderWay}
+                    onClose={() => setShowAuthModal(false)}
+                />
+            )}
 
 
         </div>

@@ -462,8 +462,10 @@ export default function Home() {
 
 
                 <div className="adv md:w-4/5 w-11/12  bg-slate-300">
+                    <Link to={"/signup"}>
+                        <img src={ad2} className='rounded-lg w-full md:h-auto h-36 ' alt="" />
 
-                    <img src={ad2} className='rounded-lg w-full md:h-auto h-36 ' alt="" />
+                    </Link>
 
                 </div>
             </div>

@@ -4,32 +4,36 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import def from '../../assets/download.png'
 
 
-export default function ItemDetails() {
-  const location = useLocation();
+export default function ItemDetails({ item, onClose }) {
   const navigate = useNavigate();
-  const { item } = location.state || {}; // Destructure item from state or set as undefined if not passed
-  useEffect(() => {
-    // Scroll to the top of the page on component mount
-    window.scrollTo(0, 0);
-  }, []);
-  let menu_id = localStorage.getItem("menu_id")
+
 
   if (!item) {
-    // If item is undefined, redirect back to menu
     navigate('/');
+
     return null;
   }
+
+  // const { item } = location.state || {}; // Destructure item from state or set as undefined if not passed
+
+  let menu_id = localStorage.getItem("menu_id")
+
+  // if (!item) {
+  //   // If item is undefined, redirect back to menu
+  //   navigate('/');
+  //   return null;
+  // }
   return (
-    <div dir='rtl' className="item-details">
+    <div dir='rtl' className="item-details relative inset-0">
       {/* Background image section with bg-fixed */}
       <div
         className="item-img relative h-64 bg-fixed bg-contain  "
         style={{ backgroundImage: `url(${item.image_url || def})` }}
       >
-        <div className="back-btn flex justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
-          <Link to={`/menu/${menu_id}`}>
-            <i className="fa-solid fa-arrow-left"></i>
-          </Link>
+        <div onClick={onClose} className="back-btn flex cursor-pointer justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
+
+          <i className="fa-solid fa-arrow-left"></i>
+
         </div>
 
 

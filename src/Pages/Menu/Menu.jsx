@@ -32,14 +32,18 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaStar, FaTimes, FaPaperclip } from 'react-icons/fa';
+import ItemDetails from '../ItemDetails/ItemDetails.jsx';
 
 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function Menu() {
     const location = useLocation();
     const pathName = location.pathname
     const id_hash = pathName.split("/")[2];
     localStorage.setItem("menu_id", id_hash)
+    console.log(id_hash);
+
 
     const [displayEndTime, setDisplayEndTime] = useState(null);
 
@@ -48,9 +52,20 @@ export default function Menu() {
     const navigate = useNavigate();
 
     const handleItemDetailsClick = (item) => {
-        navigate('/item-details', { state: { item } });
+        console.log(item);
+
+        setSelectedItem(item);
+        console.log(selectedItem);
+
     };
+
+    const closeItemDetails = () => {
+        setSelectedItem(null);
+    };
+
+
     const [sections, setSections] = useState([]);
+    const [hasOffers, setHasOffers] = useState(false); // Add this state
 
     const scrollRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -60,7 +75,7 @@ export default function Menu() {
     const [activeSection, setActiveSection] = useState("menu");
     const [loading, setLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null); // State to store the selected item data
-    const [isFormVisible, setFormVisible] = useState(false); // State to control the form visibility
+    const [isFormVisible, setFormVisible] = useState(true); // State to control the form visibility
     const [cart, setCart] = useState([]); // Stores items in the cart
     const [cartCount, setCartCount] = useState(0); // 
     const [showContacts, setShowContacts] = useState(false);
@@ -87,7 +102,10 @@ export default function Menu() {
 
     const [error, setError] = useState(null);
     const [phones, setPhones] = useState([]); // Initialize as empty array
+    const [selectedSize, setSelectedSize] = useState(null);
+    const [selectedExtras, setSelectedExtras] = useState([]);
 
+    const [isLoadingOffers, setIsLoadingOffers] = useState(true);
 
     const [review, setReview] = useState({
         rate: 0,
@@ -139,25 +157,58 @@ export default function Menu() {
             });
         };
     }, [sections]);
+    const addCustomItem = () => {
+        if (!selectedSize && selectedItem.item_prices.length > 0) {
+            toast.error("يجب اختيار احدي الخيارات")
+
+            return;
+        }
+        handleClick()
+
+        const selectedItemData = {
+            id: selectedItem.id,
+            name: selectedItem.name,
+            size: selectedSize ? {
+                label: selectedSize.label,
+                price: selectedSize.price
+            } : null,
+            extras: selectedExtras.map(extra => ({
+                label: extra.label,
+                price: extra.price
+            }))
+        };
+
+        addToCart(selectedItemData)
+
+        console.log(selectedItemData);
+
+        // Reset selections after adding to cart
+        setSelectedSize(null);
+        setSelectedExtras([]);
+        setTimeout(() => {
+            closeForm();
+
+        }, 2100);
+    };
 
 
     const fetchMenuData = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
+            const response = await axios.get(`${apiUrl}/api/menu/${id_hash}`);
             console.log(id_hash);
 
             console.log("API response menu data:", response.data);
-            let menu_id = response.data.id
+            let menu_id = response.data.result.id
 
             localStorage.setItem("m_id", menu_id)
             console.log(menu_id);
 
 
             // Update all state at once
-            setMenuData(response.data);
+            setMenuData(response.data.result);
 
             // Extract other values you need
-            const { is_closed, end_time } = response.data;
+            const { is_closed, end_time } = response.data.result;
             setMenuLive(!is_closed);
             if (end_time) {
                 // Store original 24-hour format for calculations
@@ -192,12 +243,12 @@ export default function Menu() {
     let menu_id = localStorage.getItem("m_id")
 
     // const coverImageUrl = menuData.cover_image
-    //     ? `http://localhost:234/api/file/${menuData.cover_image}`
+    //     ? `${apiUrl}/api/file/${menuData.cover_image}`
     //     : '';
 
 
     const profileImageUrl = menuData.profile_image
-        ? `http://localhost:234/api/file/${menuData.profile_image}`
+        ? `${apiUrl}/api/file/${menuData.profile_image}`
         : '';
 
 
@@ -259,7 +310,7 @@ export default function Menu() {
 
 
         try {
-            await axios.post('http://localhost:234/api/menu/reviews', reviewObj, {
+            await axios.post(`${apiUrl}/api/menu/reviews`, reviewObj, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -289,14 +340,16 @@ export default function Menu() {
     const fetchOfferItems = async () => {
 
         const { sectionId, items } = await getOfferSectionWithItems(id_hash);
-        if (sectionId, items) {
+        if (sectionId, items && items.length > 0) {
             setOfferItems(items);
             // await console.log(offerItems);
+            setHasOffers(true); // Set to true when offers exist
 
             setOfferSectionId(sectionId);
 
         } else {
             console.log("no section id or items");
+            setHasOffers(false); // Set to false when no offers
 
 
         }
@@ -305,7 +358,9 @@ export default function Menu() {
 
     async function getOfferSectionWithItems(id_hash) {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu-offers-client/${id_hash}`);
+            setIsLoadingOffers(true);
+
+            const response = await axios.get(`${apiUrl}/api/menu-offers-client/${id_hash}`);
 
             if (!response.data || response.data.message === "Sections not found") {
                 console.log("No sections found for this menu");
@@ -313,12 +368,13 @@ export default function Menu() {
             }
 
             // Find the offer section (is_offer = true)
-            const offerSection = response.data[0]
+            const offerSection = response.data.result[0]
 
             if (!offerSection) {
                 console.log("No offer section found");
                 return { sectionId: null, items: [] };
             }
+            setIsLoadingOffers(false);
 
             // Save the section ID globally
             // offerSectionId = offerSection.id;
@@ -330,7 +386,7 @@ export default function Menu() {
                     if (item.image) {
                         try {
                             const itemImageResponse = await axios.get(
-                                `http://localhost:234/api/file/${item.image}`,
+                                `${apiUrl}/api/file/${item.image}`,
                                 { responseType: "blob" }
                             );
                             itemImageUrl = URL.createObjectURL(itemImageResponse.data);
@@ -375,11 +431,12 @@ export default function Menu() {
 
         try {
 
-            const response = await axios.get(`http://localhost:234/api/contacts-client/${id_hash}`);
+            const response = await axios.get(`${apiUrl}/api/contacts-client/${id_hash}`);
+            console.log("phooooone", response);
 
-            if (response.data.contacts.length > 0) {
+            if (response.data.result.length > 0) {
 
-                setPhones(response.data.contacts.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
+                setPhones(response.data.result.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
 
 
             } else {
@@ -393,18 +450,19 @@ export default function Menu() {
     async function getSections(id_hash) {
         try {
             // Fetch sections using menu_id
-            const response = await axios.get(`http://localhost:234/api/menusection-client/${id_hash}`);
+            const response = await axios.get(`${apiUrl}/api/menusection-client/${id_hash}`);
+            console.log("sec res", response);
 
-            if (response.data) {
+            if (response.data.result) {
                 const sectionsWithImages = await Promise.all(
-                    response.data.map(async (section) => {
+                    response.data.result.map(async (section) => {
                         let coverImageUrl = null;
 
                         // Fetch section cover image if available
                         if (section.cover_image) {
                             try {
                                 const imageResponse = await axios.get(
-                                    `http://localhost:234/api/file/${section.cover_image}`,
+                                    `${apiUrl}/api/file/${section.cover_image}`,
                                     { responseType: "blob" } // Fetch image as blob
                                 );
                                 coverImageUrl = URL.createObjectURL(imageResponse.data);
@@ -421,7 +479,7 @@ export default function Menu() {
                                 if (item.image) {
                                     try {
                                         const itemImageResponse = await axios.get(
-                                            `http://localhost:234/api/file/${item.image}`,
+                                            `${apiUrl}/api/file/${item.image}`,
                                             { responseType: "blob" }
                                         );
                                         itemImageUrl = URL.createObjectURL(itemImageResponse.data);
@@ -462,7 +520,7 @@ export default function Menu() {
     const fetchSocialLinks = async () => {
         try {
 
-            const response = await axios.get(`http://localhost:234/api/menusocial-client/${id_hash}`);
+            const response = await axios.get(`${apiUrl}/api/menusocial-client/${id_hash}`);
             const updatedLinks = {
                 whatsapp: "",
                 facebook: "",
@@ -472,7 +530,7 @@ export default function Menu() {
 
 
             // ✅ Loop through the response and set each platform dynamically
-            response.data.forEach((item) => {
+            response.data.result.forEach((item) => {
                 if (updatedLinks.hasOwnProperty(item.platform)) {
                     updatedLinks[item.platform] = item.url; // Set the URL
                 }
@@ -492,7 +550,7 @@ export default function Menu() {
     // const fetchMenuData = async () => {
     //     try {
     //         // Fetch menu settings
-    //         const response = await axios.get(`http://localhost:234/api/menu/${id_hash}`);
+    //         const response = await axios.get(`${apiUrl}/api/menu/${id_hash}`);
     //         console.log("menu-data", response.data);
     //         setMenuData(response.data);
 
@@ -523,7 +581,7 @@ export default function Menu() {
 
     //         // Fetch profile image if it exists
     //         // if (response.data.menuSettings.profile_image) {
-    //         //     const profileImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.profile_image}`;
+    //         //     const profileImageUrl = `${apiUrl}/api/file/${response.data.menuSettings.profile_image}`;
     //         //     const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' });
     //         //     const profileImageObjectURL = URL.createObjectURL(profileImageResponse.data);
     //         //     setMenuSettings((prevSettings) => ({
@@ -534,7 +592,7 @@ export default function Menu() {
 
     //         // // Fetch cover image if it exists
     //         // if (response.data.menuSettings.cover_image) {
-    //         //     const coverImageUrl = `http://localhost:234/api/file/${response.data.menuSettings.cover_image}`;
+    //         //     const coverImageUrl = `${apiUrl}/api/file/${response.data.menuSettings.cover_image}`;
     //         //     const coverImageResponse = await axios.get(coverImageUrl, { responseType: 'blob' });
     //         //     const coverImageObjectURL = URL.createObjectURL(coverImageResponse.data);
     //         //     setMenuSettings((prevSettings) => ({
@@ -550,17 +608,26 @@ export default function Menu() {
     //         setLoading(false);
     //     }
     // };
-
+    useEffect(() => {
+        console.log("Updated cart:", cart); // This will log whenever cart changes
+    }, [cart]);
 
 
 
     // Function to handle item click
     const handleItemClick = (e, item) => {
+        console.log("clickk");
+
+        console.log("handle item", item);
+
         e.stopPropagation(); // Stop event from bubbling up only in specific cases
 
-        if ((item.sizes && item.sizes.length > 1) || (item.extras && item.extras.length > 0)) {
+        if ((item.item_prices && item.item_prices.length > 1) || (item.item_extras && item.item_extras.length > 0)) {
+            console.log(item.item_prices);
 
             setSelectedItem(item);
+            console.log(selectedItem);
+
             setFormVisible(true);
         } else {
             addToCart(item); // Directly add item to the cart if no additional options are needed
@@ -569,6 +636,7 @@ export default function Menu() {
 
     const addToCart = (item) => {
         setCart([...cart, item]); // Adds the item to the cart
+
         setCartCount(cartCount + 1); // Increments the item count by 1
     };
 
@@ -578,8 +646,7 @@ export default function Menu() {
         setSelectedItem(null);
     };
 
-    const handleClick = (e) => {
-        e.preventDefault();
+    const handleClick = () => {
         if (!loading) {
             setLoading(true);
             setTimeout(() => setLoading(false), 3700); // Reset loading after 3.7 seconds
@@ -1144,13 +1211,14 @@ export default function Menu() {
                     <div className="flex justify-center border-b border-gray-200 pt-2  ">
 
 
-                        <div
-                            className={sectionTab("pay")}
-                            onClick={() => setActiveSection("pay")}
-                        >
-                            العروض
-                        </div>
-                        <div
+                        {hasOffers && ( // Only render if hasOffers is true
+                            <div
+                                className={sectionTab("offers")}
+                                onClick={() => setActiveSection("offers")}
+                            >
+                                العروض
+                            </div>
+                        )}                        <div
                             className={sectionTab("menu")}
                             onClick={() => setActiveSection("menu")}
                         >
@@ -1249,7 +1317,7 @@ export default function Menu() {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <div className="right-side relative h-full">
+                                                        <div className="right-side relative bg-sky-400 h-full">
                                                             <img
                                                                 className='h-full w-24 object-cover rounded-md'
                                                                 src={item.image_url ? item.image_url : def}
@@ -1271,6 +1339,12 @@ export default function Menu() {
                                                         </div>
                                                     </div>
                                                 ))}
+                                                {selectedItem && (
+                                                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+                                                        <ItemDetails item={selectedItem} onClose={closeItemDetails} />
+                                                    </div>
+                                                )}
+
                                             </div>
                                         ))
 
@@ -1321,14 +1395,126 @@ export default function Menu() {
                             </div>
 
                         )}
+                        {isFormVisible && selectedItem && (
+                            <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
+                                <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
+                                    <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
+                                        X
+                                    </div>
+                                    <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
+                                    <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
+                                    <hr />
+                                    <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
+                                    {/* Sizes */}
+                                    <div className="sizes items-buttons-container pb-2 px-3">
+                                        {selectedItem.item_prices.map((price, index) => (
+                                            <div className="Size items-button w-full" key={index}>
+                                                <input
+                                                    name="items-group"
+                                                    id={`size${index}`}
+                                                    className="items-button__input"
+                                                    type="radio"
+                                                    onChange={() => setSelectedSize(price)}
+                                                />
+                                                <label htmlFor={`size${index}`} className="items-button__label w-full">
+                                                    <span className="items-button__custom"></span>
+                                                    <div className="item-option w-full justify-between flex">
+                                                        <p className='cairo font-medium'>{price.label}</p>
+                                                        <p className='cairo font-medium'>{price.price}</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
 
-                        {activeSection === "pay" && (
-                            <div className="pay flex justify-center">
+                                    {/* Extras */}
+                                    {selectedItem.item_extras && selectedItem.item_extras.length > 0 && (
+                                        <>
+                                            <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                            <div className="extras items-buttons-container px-3">
+                                                {selectedItem.item_extras.map((extra, index) => (
+                                                    <div className="extra items-button w-full" key={index}>
+                                                        <input
+                                                            name="extras-group"
+                                                            id={`extra${index}`}
+                                                            className="items-button__input"
+                                                            type="checkbox"
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedExtras([...selectedExtras, extra]);
+                                                                } else {
+                                                                    setSelectedExtras(selectedExtras.filter(item => item.label !== extra.label));
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label htmlFor={`extra${index}`} className="items-button__label w-full">
+                                                            <span className="items-button__custom"></span>
+                                                            <div className="item-option w-full justify-between flex">
+                                                                <p className='cairo font-medium'>{extra.label}</p>
+                                                                <p className='cairo font-medium'>{extra.price}</p>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}                                    {/* Sizes */}
+                                    {/* <div className="sizes items-buttons-container pb-2 px-3">
+                                        {selectedItem.item_prices.map((price, index) => (
+                                            <div className="Size items-button w-full" key={index}>
+                                                <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
+                                                <label htmlFor={`size${index}`} className="items-button__label w-full">
+                                                    <span className="items-button__custom"></span>
+                                                    <div className="item-option w-full justify-between flex">
+                                                        <p className='cairo font-medium'>{price.label}</p>
+                                                        <p className='cairo font-medium'>{price.price}</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div> */}
+
+                                    <hr />
+
+                                    {/* Extras */}
+                                    {/* <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                    <div className="extras items-buttons-container px-3">
+                                        {selectedItem.item_extras.map((extra, index) => (
+                                            <div className="extra items-button w-full" key={index}>
+                                                <input name="extras-group" id={`extra${index}`} className="items-button__input" type="radio" />
+                                                <label htmlFor={`extra${index}`} className="items-button__label w-full">
+                                                    <span className="items-button__custom"></span>
+                                                    <div className="item-option w-full justify-between flex">
+                                                        <p className='cairo font-medium'>{extra.label}</p>
+                                                        <p className='cairo font-medium'>{extra.price}</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div> */}
+
+                                    <div className="add-to-cart flex justify-center mt-4">
+                                        <button className={`button ${loading ? 'loading' : ''}`} onClick={addCustomItem}>
+                                            <span className='cairo'>أضف الي السلة</span>
+                                            <div className="cart">
+                                                <svg viewBox="0 0 36 26">
+                                                    <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
+                                                    <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+
+                        {activeSection === "offers" && (
+                            <div className="offers flex justify-center">
 
                                 <div className="menu-categories-items min-h-screen w-full p-4 ">
 
-                                    {/* Item Size Form */}
-                                    {isFormVisible && selectedItem && (
+                                    {/* {isFormVisible && selectedItem && (
                                         <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
                                             <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
                                                 <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
@@ -1339,7 +1525,6 @@ export default function Menu() {
                                                 <hr />
                                                 <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
 
-                                                {/* Sizes */}
                                                 <div className="sizes items-buttons-container pb-2 px-3">
                                                     {selectedItem.sizes.map((size, index) => (
                                                         <div className="Size items-button w-full" key={index}>
@@ -1356,7 +1541,6 @@ export default function Menu() {
                                                 </div>
                                                 <hr />
 
-                                                {/* Extras */}
                                                 <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
                                                 <div className="extras items-buttons-container px-3">
                                                     {selectedItem.extras.map((extra, index) => (
@@ -1375,7 +1559,7 @@ export default function Menu() {
 
                                                 <div className="add-to-cart flex justify-center mt-4">
                                                     <button className={`button ${loading ? 'loading' : ''}`} onClick={handleClick}>
-                                                        <span onClick={addToCart}>Add to cart</span>
+                                                        <span onClick={addCustomItem}>Add to cart</span>
                                                         <div className="cart">
                                                             <svg viewBox="0 0 36 26">
                                                                 <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
@@ -1386,9 +1570,10 @@ export default function Menu() {
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
+                                    )} */}
 
                                     {/* Categories and Items */}
+
 
 
                                     {offerItems.map((item) => (
@@ -1416,6 +1601,12 @@ export default function Menu() {
                                         </div>
                                     ))}
 
+                                    {selectedItem && (
+                                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+                                            <ItemDetails item={selectedItem} onClose={closeItemDetails} />
+                                        </div>
+                                    )}
+
 
 
 
@@ -1424,19 +1615,26 @@ export default function Menu() {
 
                             </div>
                         )}
+
                     </div>
                 </div>
                 <div className={`cart fixed w-full ${cartCount == 0 ? "hidden" : "flex"} flex flex-col items-center  z-10  bottom-0  `}>
 
 
-                    <div dir='rtl' className="cart-icon w-1/3 flex items-center justify-between px-3 bg-sky-400 border-t border-blue-600 shadow-2xl h-12 mx-4 rounded-t-3xl ">
-                        <div className="cart-and-count text-white flex items-center justify-center">
-                            <i className="fa-solid fa-cart-shopping text-red-600 text-2xl pe-5"></i>
-                            <p className='cairo cart-count text-2xl '>{cartCount}</p>
+                    <div dir='rtl' className="cart-icon w-1/2 flex items-center justify-between    h-16 mx-4  ">
+                        <div className="cart w-full flex justify-between shadow-xl drop-shadow-2xl  border-t-2  items-center h-2/3 rounded-xl p-3 bg-slate-50">
+                            <div className="cart-and-count text-black flex items-center justify-center">
+                                <i className="fa-solid fa-cart-shopping text-sky-800 text-2xl pe-5"></i>
+                                <p className='cairo cart-count text-2xl '>{cartCount}</p>
+                            </div>
+                            <Link to={`/menu/${id_hash}/cart`}>
+                                <i className="fa-solid fa-arrow-left text-sky-800 text-xl"></i>
+                            </Link>
+
                         </div>
-                        <Link to={"/cart"}>
-                            <i className="fa-solid fa-arrow-left text-white text-xl"></i>
-                        </Link>
+
+
+
                     </div>
                     {/* <div dir='rtl' className="cart-page p-3 pb-14  w-full h-full bg-white">
                         <div className="cart-details  h-fit border-2">

@@ -15,6 +15,12 @@ export default function DashNavbar() {
         localStorage.removeItem("owner")
         localStorage.removeItem("menu")
         localStorage.removeItem("m_id")
+        localStorage.removeItem("email")
+        localStorage.removeItem("mobile")
+
+        localStorage.removeItem("menu_id")
+        localStorage.removeItem("provider")
+        localStorage.removeItem("uId")
 
 
         toast.loading("جاري تسجيل الخروج ..")

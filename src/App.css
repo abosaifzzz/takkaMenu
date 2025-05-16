@@ -353,6 +353,7 @@ background-image: url("./assets/bg1.webp");
   }
 }
 
+
 .first-part{background: rgb(175,26,48);
   background: linear-gradient(113deg, rgba(175,26,48,1) 0%, rgba(74,111,164,1) 88%, rgba(65,106,160,1) 100%);
 
@@ -370,3 +371,4 @@ background-image: url("./assets/bg1.webp");
 .mobile-frame iframe {
   background: white; /* Shows while loading */
 }
+

@@ -7,6 +7,8 @@ import axios from 'axios';
 import useFetchData from '../../utils/useApi.js';
 
 
+
+
 export default function Signup() {
     const [showPassword, setShowPassword] = useState(false);
     const [fullName, setFullName] = useState('');
@@ -15,6 +17,7 @@ export default function Signup() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [phone, setPhone] = useState('');
     const [loginLoading, setLoginLoading] = useState(false);
+    const apiUrl = import.meta.env.VITE_API_URL;
 
 
 
@@ -68,7 +71,7 @@ export default function Signup() {
             console.log("Making the API request...");
 
             console.log("Before axios.post");
-            const response = await axios.post('http://localhost:234/auth/signup', data);
+            const response = await axios.post(`${apiUrl}/auth/signup`, data);
             console.log("After axios.post");
             console.log("Response received");
             console.log(response.data);
@@ -138,80 +141,74 @@ export default function Signup() {
             // Call the login API using Axios
             console.log("Sending data to API...");
 
-            const response = await axios.post("http://localhost:234/auth/login", data, {
+            const response = await axios.post(`${apiUrl}/auth/login`, data, {
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
             console.log(response);
-            if (response.data.user) {
-                console.log("good");
-                console.log(response.data.user.owner_id);
-                const ownerId = response.data.user.owner_id
-                localStorage.setItem("owner", ownerId)
+            // if (response.data.user) {
+            //     console.log("good");
+            //     console.log(response.data.user.owner_id);
+            //     const ownerId = response.data.user.owner_id
+            //     localStorage.setItem("owner", ownerId)
 
-                fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
-                    .then((response) => {
-                        console.log("Response data:", response?.data); // Debug log
-                        if (response?.data[0]) {
-                            console.log('Fetched Menus:', response.data);
+            //     fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
+            //         .then((response) => {
+            //             console.log("Response data:", response?.data); // Debug log
+            //             if (response?.data[0]) {
+            //                 console.log('Fetched Menus:', response.data);
 
-                            localStorage.setItem('menu', response.data[0].id_hash);
-                            localStorage.setItem('m_id', response.data[0].id);
+            //                 localStorage.setItem('menu', response.data[0].id_hash);
+            //                 localStorage.setItem('m_id', response.data[0].id);
 
-                            let menuId = response.data[0].id_hash
-                            console.log("from log", menuId);
+            //                 let menuId = response.data[0].id_hash
+            //                 console.log("from log", menuId);
 
-                            localStorage.setItem('owner', ownerId);
-                            setLoginLoading(true)
-                            setTimeout(() => {
-                                toast.success("تم تسجيل الدخول بنجاح")
+            //                 localStorage.setItem('owner', ownerId);
+            //                 setLoginLoading(true)
+            //                 setTimeout(() => {
+            //                     toast.success("تم تسجيل الدخول بنجاح")
 
-                            }, 2000);
-
-
-
-                            // const menusId = localStorage.getItem("menu")
-                            // console.log(menusId);
-
-                            setTimeout(() => {
-                                window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
-
-                            }, 3000);
+            //                 }, 2000);
 
 
 
-                        } else {
-                            window.location.href = `/start`;  // Redirect to dashboard
+            //                 // const menusId = localStorage.getItem("menu")
+            //                 // console.log(menusId);
+
+            //                 setTimeout(() => {
+            //                     window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
+
+            //                 }, 3000);
+
+
+
+            //             } else {
+            //                 window.location.href = `/start`;  // Redirect to dashboard
 
 
 
 
-                        }
-                    })
+            //             }
+            //         })
 
-                localStorage.setItem('token', response.data.accessToken);
-                console.log(response.data.user.name);
-                localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
+            //     localStorage.setItem('token', response.data.accessToken);
+            //     console.log(response.data.user.name);
+            //     localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
 
 
-            } else {
-                console.log("not good");
-                toast.error(" رجاء التحقق من الايميل و كلمة المرور")
+            // } else {
+            //     console.log("not good");
+            //     toast.error(" رجاء التحقق من الايميل و كلمة المرور")
 
-            }
-
-            // Handle successful login
-            // if (response.status === 200) {
-            //     // You can store the token or handle it as required
-            //     // Example: localStorage.setItem('token', response.data.token);
             // }
+
         } catch (error) {
             if (error.response) {
                 // Handle server error response
                 // notifyError(error.response.data.message || "Login failed");
             } else {
-                // Handle network or other errors
                 console.log("errrrrr");
             }
         }

@@ -23,6 +23,7 @@ import useFetchData from '../../utils/useApi.js';
 
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 
 
 export default function MenuManagement() {
@@ -482,6 +483,7 @@ export default function MenuManagement() {
     async function getOfferSectionWithItems(m_id) {
         try {
             const response = await fetchData(`/api/menu-offers-owner/${m_id}`);
+            console.log("offerss section ", response);
 
             if (!response.data || response.data.message === "Sections not found") {
                 console.log("No offer sections found for this menu");
@@ -489,7 +491,7 @@ export default function MenuManagement() {
             }
 
             // Find the offer section (is_offer = true)
-            const offerSection = response.data[0]
+            const offerSection = response.data.result[0]
 
             if (!offerSection) {
                 console.log("No offer section found");
@@ -508,7 +510,7 @@ export default function MenuManagement() {
                     if (item.image) {
                         try {
                             const itemImageResponse = await axios.get(
-                                `http://localhost:234/api/file/${item.image}`,
+                                `${apiUrl}/api/file/${item.image}`,
                                 { responseType: "blob" }, {
                                 headers: authHeader(),
                             }
@@ -541,20 +543,23 @@ export default function MenuManagement() {
     }
     async function getSections(m_id) {
         try {
-            const response = await axios.get(`http://localhost:234/api/menusection-owner/${m_id}`, {
+            const response = await axios.get(`${apiUrl}/api/menusection-owner/${m_id}`, {
                 headers: authHeader(),
             }
 
             );
+            console.log("fetch sections", response);
 
-            if (!response.data || response.data.message === "Sections not found") {
+
+            if (!response.data || response.data.message === "Sections not found for the given MenuId"
+            ) {
                 console.log("No sections found for this menu");
                 setSections([]);
                 return;
             }
 
             // Filter out sections where is_offer is true
-            const nonOfferSections = response.data
+            const nonOfferSections = response.data.result
             console.log(nonOfferSections);
 
             const sectionsWithImages = await Promise.all(
@@ -563,7 +568,7 @@ export default function MenuManagement() {
                     if (section.cover_image) {
                         try {
                             const imageResponse = await axios.get(
-                                `http://localhost:234/api/file/${section.cover_image}`,
+                                `${apiUrl}/api/file/${section.cover_image}`,
                                 { responseType: "blob" }
                             );
                             coverImageUrl = URL.createObjectURL(imageResponse.data);
@@ -578,7 +583,7 @@ export default function MenuManagement() {
                             if (item.image) {
                                 try {
                                     const itemImageResponse = await axios.get(
-                                        `http://localhost:234/api/file/${item.image}`,
+                                        `${apiUrl}/api/file/${item.image}`,
                                         { responseType: "blob" }, {
                                         headers: authHeader(),
                                     }
@@ -723,7 +728,7 @@ export default function MenuManagement() {
 
     const fetchPhones = async () => {
         try {
-            const response = await axios.get(`http://localhost:234/api/contacts/${m_id}`,);
+            const response = await axios.get(`${apiUrl}/api/contacts/${m_id}`,);
             if (response.data.length > 0) {
                 setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
             } else {
@@ -741,7 +746,7 @@ export default function MenuManagement() {
             // Fetch menu settings
             console.log(menu_id);
 
-            const response = await axios.get(`http://localhost:234/api/menu/${menu_id}`, {
+            const response = await axios.get(`${apiUrl}/api/menu/${menu_id}`, {
                 headers: authHeader(),
             });
             console.log("menu dataaa", response.data);
@@ -749,7 +754,7 @@ export default function MenuManagement() {
 
             // Check if current time >= end_time (one-time check)
             // Set menu settings
-            setMenuData(response.data);
+            setMenuData(response.data.result);
             console.log(menuData);
 
 
@@ -764,7 +769,7 @@ export default function MenuManagement() {
 
     const fetchSocialAccounts = async (menu_id) => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menusocial-owner/${menu_id}`, {
+            const response = await axios.get(`${apiUrl}/api/menusocial-owner/${menu_id}`, {
                 headers: authHeader(),
             });
 
@@ -772,7 +777,7 @@ export default function MenuManagement() {
                 console.log("social media", response.data);
 
                 // ===== FACEBOOK =====
-                const firstFacebook = response.data.find((item) => item.platform === "facebook");
+                const firstFacebook = response.data?.result.find((item) => item.platform === "facebook");
                 if (firstFacebook) {
                     setTempFacebookUrl(firstFacebook.url);
                     setFacebookUrl(firstFacebook.url);
@@ -781,7 +786,7 @@ export default function MenuManagement() {
                 }
 
                 // ===== WHATSAPP =====
-                const firstWhatsapp = response.data.find((item) => item.platform === "whatsapp");
+                const firstWhatsapp = response.data.result.find((item) => item.platform === "whatsapp");
                 if (firstWhatsapp) {
                     const phoneNumber = firstWhatsapp.url.replace("https://wa.me/", "");
                     setTempWhatsAppUrl(phoneNumber);
@@ -791,7 +796,7 @@ export default function MenuManagement() {
                 }
 
                 // ===== INSTAGRAM =====
-                const firstInstagram = response.data.find((item) => item.platform === "instagram");
+                const firstInstagram = response.data.result.find((item) => item.platform === "instagram");
                 if (firstInstagram) {
                     setTempInstagramUrl(firstInstagram.url);
                     setInstagramUrl(firstInstagram.url);
@@ -800,7 +805,7 @@ export default function MenuManagement() {
                 }
 
                 // ===== LOCATION (Google Maps) =====
-                const firstLocation = response.data.find((item) => item.platform === "location");
+                const firstLocation = response.data.result.find((item) => item.platform === "location");
                 if (firstLocation) {
                     // Extract coordinates or place ID if needed
                     setTempLocationUrl(firstLocation.url);
@@ -846,7 +851,7 @@ export default function MenuManagement() {
                 platform: "location",
                 url: tempLocationUrl, // Use tempLocationUrl directly
             }
-            await axios.post("http://localhost:234/api/social/update", socialData, {
+            await axios.post("${apiUrl}/api/social/update", socialData, {
                 headers: authHeader(),
             });
 
@@ -876,7 +881,10 @@ export default function MenuManagement() {
                 platform: "facebook",
                 url: tempFacebookUrl, // Use tempFacebookUrl directly
             }
-            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
+            console.log(socialData);
+
+            const response = await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
+            console.log("add facebook res", response);
 
             setFacebookUrl(tempFacebookUrl); // Update stored URL
             setIsFacebookDisabled(true); // Disable input after saving
@@ -896,6 +904,7 @@ export default function MenuManagement() {
     const handleSaveWhatsAppClick = async () => {
 
         try {
+            const whatsappNumber = `https://wa.me/${tempWhatsAppUrl}`
 
             // console.log(m_id);
             let socialData = {
@@ -904,8 +913,8 @@ export default function MenuManagement() {
                 url: whatsappNumber, // Use tempWhatsAppUrl directly
             }
 
-            const whatsappNumber = `https://wa.me/${tempWhatsAppUrl}`
-            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
+            const response = await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
+            console.log("whts res", response);
 
             setWhatsAppUrl(tempWhatsAppUrl); // Update stored URL
             setIsWhatsAppDisabled(true); // Disable input after saving
@@ -932,7 +941,7 @@ export default function MenuManagement() {
                 platform: "instagram",
                 url: tempInstagramUrl, // Use tempInstagramUrl directly
             }
-            await axios.post("http://localhost:234/api/social/update", socialData, { headers: authHeader() });
+            await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
 
             setInstagramUrl(tempInstagramUrl); // Update stored URL
             setIsInstagramDisabled(true); // Disable input after saving
@@ -1105,7 +1114,7 @@ export default function MenuManagement() {
 
 
 
-        const response = await axios.post("http://localhost:234/api/item", itemPayload, {
+        const response = await axios.post("${apiUrl}/api/item", itemPayload, {
             headers: authHeader(),
         });
         console.log("Item successfully created:", response.data);
@@ -1174,7 +1183,7 @@ export default function MenuManagement() {
         console.log("heloooooooooo", sectionId);
 
 
-        const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload,
+        const response = await axios.post(`${apiUrl}/api/section/update/${sectionId}`, serverPayload,
             {
                 headers: authHeader(),
             }
@@ -1212,7 +1221,7 @@ export default function MenuManagement() {
                 section_id: selectedItem.section_id
             };
 
-            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload, {
+            await axios.post(`${apiUrl}/api/item/update-availability/${itemId}`, payload, {
                 headers: authHeader(),
             });
 
@@ -1242,7 +1251,7 @@ export default function MenuManagement() {
                 section_id: selectedItem?.section_id || offerSectionId
             };
 
-            await axios.post(`http://localhost:234/api/item/update-availability/${itemId}`, payload, {
+            await axios.post(`${apiUrl}/api/item/update-availability/${itemId}`, payload, {
                 headers: authHeader()
             });
 
@@ -1344,7 +1353,7 @@ export default function MenuManagement() {
 
         console.log("payload for item", itemPayload2);
 
-        const response = await axios.post(`http://localhost:234/api/item/update/${itemId}`, itemPayload2, {
+        const response = await axios.post(`${apiUrl}/api/item/update/${itemId}`, itemPayload2, {
             headers: authHeader(),
         });
         closeEditItemForm()
@@ -1365,7 +1374,7 @@ export default function MenuManagement() {
     //     console.log(serverPayload);
 
 
-    //     const response = await axios.post(`http://localhost:234/api/section/update/${sectionId}`, serverPayload);
+    //     const response = await axios.post(`${apiUrl}/api/section/update/${sectionId}`, serverPayload);
     //     console.log(response)
     //     toast.success('تم التعديل بنجاح');
 
@@ -1493,11 +1502,11 @@ export default function MenuManagement() {
         try {
             console.log(sectionId);
 
-            const response = await axios.delete(`http://localhost:234/api/section/${sectionId}`, { headers: authHeader() });
-            if (response.ok) {
-                console.log('Section deleted successfully');
+            const response = await axios.delete(`${apiUrl}/api/section/${sectionId}`, { headers: authHeader() });
+            if (response.data.success == true) {
+                console.log('تم حذف القسم بنجاح');
                 setSectionToDelete(null);
-                toast.success("Section Deleted Successfully")
+                toast.success("تم حذف القسم بنجاح")
                 getSections(m_id)
 
             } else {
@@ -1549,7 +1558,7 @@ export default function MenuManagement() {
     // Delete item
     const deleteItem = async (itemId) => {
         try {
-            const response = await axios.delete(`http://localhost:234/api/items/${itemId}`, {
+            const response = await axios.delete(`${apiUrl}/api/items/${itemId}`, {
                 headers: authHeader()
             });
             console.log(response);
@@ -1645,7 +1654,7 @@ export default function MenuManagement() {
         const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
 
 
-        const response = await axios.post('http://localhost:234/api/section', serverPayload, {
+        const response = await axios.post('${apiUrl}/api/section', serverPayload, {
             headers: authHeader(),
         });
         console.log("add section payloaf", serverPayload);
@@ -1738,7 +1747,7 @@ export default function MenuManagement() {
 
     const savePhones = async () => {
         try {
-            await axios.post("http://localhost:234/api/contacts", {
+            await axios.post("${apiUrl}/api/contacts", {
                 menu_id: m_id,
                 phones, // Sending all phone numbers
             }, {
@@ -2734,7 +2743,7 @@ export default function MenuManagement() {
                                     onChange={async () => {
                                         try {
                                             const newStatus = !menuData?.is_closed;
-                                            await axios.post(`http://localhost:234/api/menu/update/${m_id}`, {
+                                            await axios.post(`${apiUrl}/api/menu/update/${m_id}`, {
                                                 is_closed: newStatus
                                             }, {
                                                 headers: authHeader(),
@@ -2858,7 +2867,7 @@ export default function MenuManagement() {
                                                             onChange={async (e) => {
                                                                 try {
                                                                     const newStatus = !section.is_available;
-                                                                    await axios.post(`http://localhost:234/api/section/update/${section.id}`, {
+                                                                    await axios.post(`${apiUrl}/api/section/update/${section.id}`, {
                                                                         is_available: newStatus
                                                                     },
                                                                         {

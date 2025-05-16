@@ -7,6 +7,7 @@ import rev2 from "../../assets/rev2.png"
 
 import axios from 'axios';
 import eats from '../../assets/eats-logo.png'
+const apiUrl = import.meta.env.VITE_API_URL;
 
 // const mockReviewsData = [
 //     { id: 1, name: 'Mohamed Tarek Abo Saif', date: 'Friday 25 October', text: '"....الأكل حلو جدا و المكان شكله حلو و "', rating: 4 },
@@ -37,11 +38,12 @@ export default function Dashboard() {
 
     const fetchReviews = async (menu_id) => {
         try {
-            const response = await axios.get(`http://localhost:234/api/menu/reviews/${menu_id}`);
+            const response = await axios.get(`${apiUrl}/api/menu/reviews/${menu_id}`);
             console.log("reviii", response);
 
             console.log("reviews", reviews);
-            setReviews(response.data)
+            const result = response.data?.result || []
+            setReviews(result)
 
 
             setLoading(false)
@@ -158,27 +160,32 @@ export default function Dashboard() {
                                     <div className="f-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
                                         <div className="f-col pb-4 border-b  sm:w-1/2 justify-between flex  ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo text-gray-500'>الطلبات</span>
+                                                <span className=' font-sans sm:text-lg text-xl cairo text-gray-500'>الطلبات</span>
                                                 <p className='mt-2 md:text-3xl sm:text-xl text-2xl font-[450]'>195</p>
-
+                                                {/* <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
-                                                <i className="fa-solid fa-arrow-down"></i>
-
-                                                <p className='text-red-500 sm:text-lg text-xl'>23.5 %</p>
+                                                <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-sky-500">
+                                                    <i className="fa-solid fa-utensils text-white "></i>
+                                                </div>
 
 
                                             </div>
                                         </div>
                                         <div className="f-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>عائد الطلبات</span>
+
+                                                <span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>عائد الطلبات</span>
+                                                {/* <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span> */}
                                                 <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>EGP 42,600</p>
 
                                             </div>
                                             <div className="right flex justify-end items-center">
-                                                <p className='text-gray-500 sm:text-lg text-xl'>68 %</p>
 
+                                                <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-red-500">
+                                                    <i class="fa-solid text-white fa-coins"></i>
+
+                                                </div>
 
                                             </div>
                                         </div>
@@ -189,25 +196,29 @@ export default function Dashboard() {
                                     <div className="s-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
                                         <div className="th-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span><span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>الزائرين</span>
+                                                <span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>الزائرين</span>
                                                 <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>236</p>
-
+                                                {/* <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
-                                                <i className="fa-solid fa-arrow-up"></i>
-                                                <p className='text-green-500 sm:text-lg text-xl'>73.2 %</p>
+                                                <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-green-500">
+                                                    <i className="fa-solid fa-users text-white "></i>
+                                                </div>
 
 
                                             </div>
                                         </div>
                                         <div className="s-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
-                                                <span><i className="fa-solid fa-chart-column text-gray-500 me-2"></i></span><span className=' font-sans text-lg cairo text-gray-500'>التقييمات</span>
+                                                <span className=' font-sans text-lg cairo text-gray-500'>التقييمات</span>
                                                 <p className='mt-2 text-3xl font-[450]'>56</p>
-
+                                                {/* <span><i className="fa-solid fa-chart-column text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end items-center">
-                                                <p className='text-green-500 text-lg'>59.9 %</p>
+                                                <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-amber-500">
+
+                                                    <i className="fa-solid fa-chart-column text-white"></i>
+                                                </div>
 
 
                                             </div>
