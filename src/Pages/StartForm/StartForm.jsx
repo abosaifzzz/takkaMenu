@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import shop from "../../assets/shop.png"
 import cover from "../../assets/cover.jpeg"
 
@@ -9,13 +9,15 @@ import check from "../../assets/check.webm"
 
 
 import time from "../../assets/time.png"
+import logo from "../../assets/eats-logo.png"
+
 
 
 
 import exlogo from "../../assets/exlogo.png"
 import useFetchData from '../../utils/useApi.js'
 import axios from 'axios'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function StartForm() {
@@ -23,6 +25,44 @@ export default function StartForm() {
     const { fetchData, isLoading, error } = useFetchData();
 
     const [loginLoading, setLoginLoading] = useState(false);
+    const [userIcon, setUserIcon] = useState("");
+    const [isSettingsOpen, setSettingsOpen] = useState(false);  // State to manage settings visibility
+
+
+    const toggleSettings = () => {
+        setSettingsOpen(!isSettingsOpen);  // Toggle the settings visibility
+    };
+    const signOut = () => {
+        localStorage.removeItem("token")
+        localStorage.removeItem("name")
+        localStorage.removeItem("owner")
+        localStorage.removeItem("menu")
+        localStorage.removeItem("m_id")
+        localStorage.removeItem("email")
+        localStorage.removeItem("mobile")
+
+        localStorage.removeItem("menu_id")
+        localStorage.removeItem("provider")
+        localStorage.removeItem("uId")
+
+
+        toast.loading("جاري تسجيل الخروج ..")
+        setTimeout(() => {
+            window.location.href = "/login";  // Redirect to dashboard
+
+        }, 2000);
+
+
+    };
+
+    useEffect(() => {
+        const name = localStorage.getItem("name");  // Get name from localStorage
+        if (name) {
+            const capitalizedName = name.charAt(0).toUpperCase()
+
+            setUserIcon(capitalizedName);
+        }
+    }, []);
 
     // State to track the current step
     const [currentStep, setCurrentStep] = useState(1);
@@ -49,9 +89,21 @@ export default function StartForm() {
     };
     // Function to handle "استمرار" button click
     const handleNextStep = () => {
+        // Check if current step is 1 (business name) and the name is empty
+        if (currentStep === 1 && !bodyData.name) {
+            toast.error("الرجاء إدخال اسم البزنس");
+            return;
+        }
+
+        // Check if current step is 2 (address) and the address is empty
+        if (currentStep === 2 && !bodyData.address) {
+            toast.error("الرجاء إدخال العنوان");
+            return;
+        }
+
+        // Proceed to next step if validation passes
         setCurrentStep((prevStep) => prevStep + 1);
-    };
-    const handlePreviousStep = () => {
+    }; const handlePreviousStep = () => {
         setCurrentStep((prevStep) => prevStep - 1);
     };
 
@@ -138,10 +190,47 @@ export default function StartForm() {
 
 
     return <>
+        <Toaster />
         <div className="start p-5 flex justify-center items-center bg-white min-h-screen">
-            <div className="start-form shadow-md   w-1/2 h-2/3 bg-slate-100 p-8 rounded-md ">
+            <div className="new-menu-nav absolute top-0 left-0 right-0 bg-gray-100 border-b-2 border-slate-300 rounded-b-lg  flex justify-between items-center">
+                <div onClick={toggleSettings}
+                    className="name-icon relative   p-5 px-9">
+
+                    <div className={`icon cursor-pointer relative w-8 h-8 rounded-full flex justify-center items-center bg-sky-300 ${isSettingsOpen ? 'border-2 border-sky-700' : 'border-none'
+                        }`}>
+                        <p className='text-sky-700'>{userIcon}</p>
+                        <div className="arrow absolute -right-4">
+                            <i className="fa-solid text-xs text-sky-800 fa-chevron-down"></i>
+                        </div>
+
+                        {isSettingsOpen && (
+                            <div className={`user-settings z-40 absolute border-2 rounded-md -bottom-14 -left-7 w-44 bg-white transition-all duration-500 ease-out ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                                }`}
+                            >
+
+                                <p onClick={signOut} className="cairo cursor-pointer flex gap-2 items-center p-2 text-sm hover:bg-gray-200 border-b border-sky-200">
+                                    <i className="text-gray-600 fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+                                </p>
+                            </div>
+                        )}
+
+                    </div>
+
+
+
+
+                </div>
+
+                <div className="logo">
+                    <img className='w-12' src={logo} alt="" />
+                </div>
+                <div></div>
+
+            </div>
+
+            <div className="start-form shadow-md   w-1/2 h-96 bg-slate-100 p-8 rounded-md ">
                 {currentStep === 1 && (
-                    <div className="step-one flex flex-col items-center">
+                    <div className="step-one flex flex-col items-center justify-between h-full">
                         <img src={shop} className="w-20" alt="" />
                         <p className="cairo text-lg">
                             <span className="text-red-500">*</span>اسم البزنس الخاص بيك ؟
@@ -165,7 +254,7 @@ export default function StartForm() {
                 )}
 
                 {currentStep === 2 && (
-                    <div className="step-two flex flex-col items-center">
+                    <div className="step-two flex flex-col items-center justify-between h-full">
                         <img src={loc} className="w-20" alt="" />
                         <p className="cairo text-lg">
                             <span className="text-red-500">*</span>عنوانك ؟
@@ -194,7 +283,7 @@ export default function StartForm() {
                     </div>
                 )}
                 {currentStep === 3 && (
-                    <div className="step-two flex flex-col items-center">
+                    <div className="step-two flex flex-col items-center justify-between h-full">
                         <img src={loc2} className="w-20" alt="" />
                         <p className="cairo text-lg">
                             <span className="text-red-500">*</span>عنوانك علي جوجل ماب ؟
@@ -227,7 +316,7 @@ export default function StartForm() {
                     </div>
                 )}
                 {currentStep === 4 && (
-                    <div className="step-two flex flex-col items-center">
+                    <div className="step-two flex flex-col items-center justify-between h-full">
                         <img src={time} className="w-20" alt="" />
                         <p className="cairo text-lg">
                             <span className="text-red-500">*</span>مواعيد عملك ؟
@@ -268,7 +357,7 @@ export default function StartForm() {
                     </div>
                 )}
                 {currentStep === 5 && (
-                    <div className="step-two flex flex-col items-center">
+                    <div className="step-two flex flex-col items-center justify-between h-full">
                         <img src={bio} className="w-20" alt="" />
                         <p className="cairo text-lg">
                             <span className="text-red-500">*</span>نبذة عن البزنس ؟

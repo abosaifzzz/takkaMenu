@@ -11,6 +11,7 @@ export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [menuID, setMenuId] = useState("");
+    const [contactUs, setContactUs] = useState(false);
 
     // const [googleToken, setGoogleToken] = useState("");
     const { isLoading, error, fetchData, data } = useFetchData();
@@ -159,6 +160,64 @@ export default function Login() {
     return <>
         <Toaster />
         <section dir='rtl' className="bg-gray-100 min-h-screen flex box-border justify-center items-center">
+            {contactUs && (
+                <div
+                    className="contact-us-modal fixed inset-0 bg-black/25 flex justify-center items-center z-50"
+                    onClick={() => setContactUs(false)} // Close when clicking backdrop
+                >
+                    <div
+                        className="w-full md:w-1/3 bg-white flex flex-col gap-6 p-8 rounded-md shadow-xl relative mx-4"
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking modal content
+                    >
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setContactUs(false)}
+                            className="absolute top-4 left-4 text-lg cursor-pointer focus:outline-none"
+                            aria-label="Close modal"
+                        >
+                            ×
+                        </button>
+
+                        {/* Social Media Section */}
+                        <div className="text-center">
+                            <h3 className="text-2xl font-bold cairo mb-4">سوشيال ميديا</h3>
+                            <div className="flex justify-center gap-4">
+                                {[
+                                    { icon: 'fa-whatsapp', url: 'https://wa.me/01016420204' },
+                                    { icon: 'fa-facebook-f', url: 'https://facebook.com' },
+                                    { icon: 'fa-instagram', url: 'https://instagram.com' }
+                                ].map((social, index) => (
+                                    <a
+                                        key={index}
+                                        href={social.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-10 h-10 bg-sky-700 hover:bg-sky-600 rounded-full flex items-center justify-center transition-colors"
+                                        aria-label={social.icon.replace('fa-', '')}
+                                    >
+                                        <i className={`fa-brands text-white ${social.icon}`}></i>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Phone Section */}
+                        <div className="text-center">
+                            <h3 className="text-2xl font-bold mb-4">او الاتصال علي:</h3>
+                            <div className="flex items-center justify-center gap-3">
+                                <p className="text-lg">01016420204</p>
+                                <a
+                                    href="tel:01016420204"
+                                    className="w-10 h-10 bg-sky-700 hover:bg-sky-600 rounded-full flex items-center justify-center transition-colors"
+                                    aria-label="Call"
+                                >
+                                    <i className="fa-solid fa-phone-volume text-white"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="bg-white shadow-lg rounded-2xl flex max-w-3xl p-5 items-center">
                 <div className="md:w-1/2 px-8">
                     <h2 className="font-bold text-3xl text-[#002D74] cairo">تسجيل الدخول</h2>
@@ -274,13 +333,14 @@ export default function Login() {
 
                         Login with Google
                     </button> */}
-                    <div className="mt-10 text-sm border-b border-gray-500 py-5 playfair cairo tooltip">نسيت كلمة المرور ؟</div>
+                    <div onClick={() => setContactUs(true)}
+                        className="mt-10 text-sm border-b border-gray-500 py-5 playfair cursor-pointer hover:text-sky-700 cairo tooltip" > <i className="fa-solid fa-circle-info"></i> المساعدة </div>
 
                     <div className="mt-4 text-sm flex justify-between items-center container-mr">
                         <p className="mr-3 md:mr-0 cairo ">ليس لديك حساب؟</p>
-                        <button className="hover:border cairo register text-white bg-[#002D74] hover:border-gray-400 rounded-xl py-2 px-5 hover:scale-110 hover:bg-[#002c7424] font-semibold duration-300">
+                        <button className="hover:border cairo register text-white bg-[#002D74] hover:border-gray-400 rounded-xl py-2 px-5 hover:scale-110 hover:bg-sky-800 font-semibold duration-300">
 
-                            <Link to={"/"}>سجل الأن</Link>
+                            <Link to={"/signup"}>سجل الأن</Link>
                         </button>
                     </div>
                 </div>

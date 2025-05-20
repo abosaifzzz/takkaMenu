@@ -851,7 +851,7 @@ export default function MenuManagement() {
                 platform: "location",
                 url: tempLocationUrl, // Use tempLocationUrl directly
             }
-            await axios.post("${apiUrl}/api/social/update", socialData, {
+            await axios.post(`${apiUrl}/api/social/update`, socialData, {
                 headers: authHeader(),
             });
 
@@ -883,7 +883,7 @@ export default function MenuManagement() {
             }
             console.log(socialData);
 
-            const response = await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
+            const response = await axios.post(`${apiUrl}/api/social/update`, socialData, { headers: authHeader() });
             console.log("add facebook res", response);
 
             setFacebookUrl(tempFacebookUrl); // Update stored URL
@@ -913,7 +913,7 @@ export default function MenuManagement() {
                 url: whatsappNumber, // Use tempWhatsAppUrl directly
             }
 
-            const response = await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
+            const response = await axios.post(`${apiUrl}/api/social/update`, socialData, { headers: authHeader() });
             console.log("whts res", response);
 
             setWhatsAppUrl(tempWhatsAppUrl); // Update stored URL
@@ -941,7 +941,7 @@ export default function MenuManagement() {
                 platform: "instagram",
                 url: tempInstagramUrl, // Use tempInstagramUrl directly
             }
-            await axios.post("${apiUrl}/api/social/update", socialData, { headers: authHeader() });
+            await axios.post(`${apiUrl}/api/social/update`, socialData, { headers: authHeader() });
 
             setInstagramUrl(tempInstagramUrl); // Update stored URL
             setIsInstagramDisabled(true); // Disable input after saving
@@ -1114,7 +1114,7 @@ export default function MenuManagement() {
 
 
 
-        const response = await axios.post("${apiUrl}/api/item", itemPayload, {
+        const response = await axios.post(`${apiUrl}/api/item`, itemPayload, {
             headers: authHeader(),
         });
         console.log("Item successfully created:", response.data);
@@ -1135,6 +1135,10 @@ export default function MenuManagement() {
             return; // Prevent saving if name is empty
         }
 
+        if (selectedSection?.name.length > 45) {
+            toast.error("الاسم يجب ان لا يزيد عن 45 حرف")
+            return; // Prevent saving if name is empty
+        }
 
         const sectionObject = {
             name: selectedSection.name,
@@ -1654,7 +1658,7 @@ export default function MenuManagement() {
         const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
 
 
-        const response = await axios.post('${apiUrl}/api/section', serverPayload, {
+        const response = await axios.post(`${apiUrl}/api/section`, serverPayload, {
             headers: authHeader(),
         });
         console.log("add section payloaf", serverPayload);
@@ -1747,7 +1751,7 @@ export default function MenuManagement() {
 
     const savePhones = async () => {
         try {
-            await axios.post("${apiUrl}/api/contacts", {
+            await axios.post(`${apiUrl}/api/contacts`, {
                 menu_id: m_id,
                 phones, // Sending all phone numbers
             }, {
@@ -1848,7 +1852,7 @@ export default function MenuManagement() {
         ) : scratchMenu || sections.length > 0 ? (<div dir='rtl' onClick={() => {
             handleMoreClose();
             closeMoreClick()
-        }} className="menu-management min-h-screen relative pb-20 flex flex-col items-center">
+        }} className="menu-management min-h-screen relative cairo pb-20 flex flex-col items-center">
             <Toaster></Toaster>
             <div className={`edit-section-form  fixed p-3 rounded-s-lg z-20 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out 
                 ${isEditSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
@@ -1873,7 +1877,7 @@ export default function MenuManagement() {
                             rows="3"
                             style={{ resize: "none" }}
                             className="w-full text-sm mt-3 p-3 border rounded-md"
-                            placeholder="Describe your category here ..."
+                            placeholder="صف القسم  ..."
                             value={selectedSection?.note || ''} // Use selectedSection's description
                             onChange={(e) =>
                                 setSelectedSection((prev) => ({ ...prev, note: e.target.value }))
@@ -1900,7 +1904,7 @@ export default function MenuManagement() {
                                 ) : (
                                     <>
                                         <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
-                                        <p className="mt-3">Upload</p>
+                                        <p className="mt-3">تجميل</p>
                                         <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
                                     </>
                                 )}
@@ -1917,8 +1921,8 @@ export default function MenuManagement() {
 
                 </div>
                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                    <button onClick={toggleFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>Cancel </button>
-                    <button onClick={handleUpdateSection} className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
+                    <button onClick={toggleFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>تراجع </button>
+                    <button onClick={handleUpdateSection} className='py-2 px-6 rounded-md text-white bg-green-600'>حفظ</button>
 
 
 
@@ -1952,25 +1956,25 @@ export default function MenuManagement() {
 
             <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
                 <div className="section-name  p-3 flex gap-2 items-center">
-                    <i onClick={closeAddSectionForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Add New Section</p>
+                    <i onClick={closeAddSectionForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>اضف قسم جديد</p>
                 </div>
                 <hr className='w-full ' />
                 <form onSubmit={addSection}>
                     <div className="edit-section px-2 mt-4">
                         <div className="category-name">
-                            <p className='text-sm'><span><i className="fa-solid fa-asterisk text-red-500 text-sm"></i></span> Name</p>
-                            <input className='w-full text-sm p-1 mt-2 rounded-md border-2 h-9' type="text" placeholder="Category name" name="category-name" id="category-name" value={categoryName}
+                            <p className='text-sm'><span><i className="fa-solid fa-asterisk text-red-500 text-sm"></i></span> الأسم</p>
+                            <input className='w-full text-sm p-1 mt-2 rounded-md border-2 h-9' type="text" placeholder="اسم القسم" name="category-name" id="category-name" value={categoryName}
                                 onChange={(e) => setCategoryName(e.target.value)}  // Update category name state
                             />
 
                         </div>
                         <div className="category-description mt-4">
-                            <p className='text-sm'> Description</p>
+                            <p className='text-sm'> الوصف</p>
                             <textarea
                                 rows="3"
                                 style={{ resize: "none" }}
                                 className="w-full text-sm mt-3 p-3 border rounded-md"
-                                placeholder="Describe your category ..." value={categoryDescription}
+                                placeholder="اعطي نبذة عن القسم ..." value={categoryDescription}
                                 onChange={(e) => setCategoryDescription(e.target.value)}  // Update category name state
 
                             ></textarea>
@@ -2013,11 +2017,13 @@ export default function MenuManagement() {
                                     :
                                     <>
                                         <div className="add-img cursor-pointer">
-                                            <p className='text-sm'> Image</p>
+                                            <p className='text-sm'> الصورة</p>
                                             <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100">
                                                 <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
-                                                <p className='mt-3'>Upload</p>
-                                                <p className='text-sm text-gray-500'>Only, jpg, jpeg, png files are supported</p>
+                                                <p className='mt-3'>تحميل</p>
+                                                <p className='text-sm text-gray-600'>يدعم فقط</p>
+
+                                                <p className='text-sm text-gray-500'>  jpg, jpeg, png </p>
                                             </div>
 
 
@@ -2033,8 +2039,8 @@ export default function MenuManagement() {
 
                     </div>
                     <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                        <button onClick={toggleAddFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>Cancel </button>
-                        <button type='submit' className='py-2 px-6 rounded-md text-white bg-green-600'>Save</button>
+                        <button onClick={toggleAddFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>تراجع </button>
+                        <button type='submit' className='py-2 px-6 rounded-md text-white bg-green-600'>حفظ</button>
 
 
 
@@ -2046,7 +2052,7 @@ export default function MenuManagement() {
                 isEditItemFormVisible && (
                     <div className={`edit-item-form fixed  p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0 bg-white shadow-xl border-2 transition-all duration-500 ease-in-out `} >
                         <div className="item-name  p-3 flex gap-2 items-center">
-                            <i onClick={closeEditItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>Edit item</p>
+                            <i onClick={closeEditItemForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'> تعديل الصنف</p>
                         </div>
                         <hr className='w-full ' />
 
@@ -2059,7 +2065,7 @@ export default function MenuManagement() {
                                         className={itemTab("details")}
                                         onClick={() => setActiveItemEditor("details")}
                                     >
-                                        Details
+                                        تفاصيل
                                     </div>
 
 
@@ -2070,7 +2076,7 @@ export default function MenuManagement() {
 
                                         <div className="item-name mt-4">
                                             <label htmlFor="edit_item_name" className="block">
-                                                <span className="text-red-500">*</span> Name
+                                                <span className="text-red-500">*</span> الأسم
                                             </label>
                                             <input
                                                 type="text"
@@ -2088,13 +2094,13 @@ export default function MenuManagement() {
                                         </div>
 
                                         <div className="category-description mt-4">
-                                            <p className="text-sm">Description</p>
+                                            <p className="text-sm">الوصف</p>
                                             <textarea
                                                 rows="3"
                                                 name="description"
                                                 style={{ resize: "none" }}
                                                 className="w-full text-sm mt-3 p-3 border rounded-md"
-                                                placeholder="Describe your item ..."
+                                                placeholder="قم بوصف الصنف الخاص بك ..."
                                                 value={selectedItem?.description || ""}
                                                 onChange={(e) =>
                                                     setSelectedItem((prev) => ({ ...prev, description: e.target.value }))
@@ -2103,7 +2109,7 @@ export default function MenuManagement() {
                                             ></textarea>
                                         </div>
                                         <div className="item-image w-1/2">
-                                            <p className='text-sm'>Image</p>
+                                            <p className='text-sm'>الصورة</p>
                                             <label htmlFor="section-image-upload" className="cursor-pointer">
                                                 <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
                                                     {selectedItem?.image || itemFile ? (
@@ -2115,13 +2121,13 @@ export default function MenuManagement() {
                                                             />
                                                             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
                                                                 <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
-                                                                <p className="text-white mt-8">Change Image</p>
+                                                                <p className="text-white mt-8">تعديل الصورة</p>
                                                             </div>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
-                                                            <p className="mt-3">Upload</p>
+                                                            <p className="mt-3">تحميل</p>
                                                             <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
                                                         </>
                                                     )}
@@ -2152,11 +2158,10 @@ export default function MenuManagement() {
 
 
                                         <div className="prices-labels mt-5">
-                                            <p className="text-[#1b5067] text-lg font-medium">Prices</p>
+                                            <p className="text-[#1b5067] text-lg font-medium">الأسعار</p>
                                             <div className="price-instructions mb-4">
                                                 <p className="text-xs leading-5 text-gray-500">
-                                                    Items can have price options according to their sizes, servings etc.
-                                                    If the item has one price option, you can leave the name blank.
+                                                    الاصناف يمكن ان يكون لديها لها اكثر من سعر بناءاّ علي الاحجام
                                                 </p>
                                             </div>
 
@@ -2167,11 +2172,11 @@ export default function MenuManagement() {
                                                             <div className="new-price flex gap-4 items-end mb-4" key={index}>
                                                                 <div className="add-price-name">
                                                                     <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                        Name
+                                                                        الأسم
                                                                     </label>
                                                                     <input
                                                                         className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                        placeholder="Small"
+                                                                        placeholder=" حجم صغير"
                                                                         type="text"
                                                                         value={price.label || ''}
                                                                         onChange={(e) => handlePriceChange(index, 'label', e.target.value)}
@@ -2179,7 +2184,7 @@ export default function MenuManagement() {
                                                                 </div>
                                                                 <div className="add-price-price">
                                                                     <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                        Price
+                                                                        السعر
                                                                     </label>
                                                                     <input
                                                                         className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2201,7 +2206,7 @@ export default function MenuManagement() {
                                                             </div>
                                                         ))
                                                 ) : (
-                                                    <p className="text-gray-500 text-sm mb-4">No prices added yet</p>
+                                                    <p className="text-gray-500 text-sm mb-4">لا يوجد اسعار من قبل</p>
                                                 )}
 
                                                 <button
@@ -2209,7 +2214,7 @@ export default function MenuManagement() {
                                                     onClick={addPrice}
                                                 >
                                                     <i className="fa-solid fa-plus"></i>
-                                                    Add Price
+                                                    اضف سعر جديد
                                                 </button>
                                             </div>
                                         </div>
@@ -2217,11 +2222,10 @@ export default function MenuManagement() {
                                         <hr className="mt-2" />
 
                                         <div className="extras-labels mt-5">
-                                            <p className="text-[#1b5067] text-lg font-medium">Extras</p>
+                                            <p className="text-[#1b5067] text-lg font-medium">الأضافات</p>
                                             <div className="extra-instructions mb-4">
                                                 <p className="text-xs leading-5 text-gray-500">
-                                                    Items can have Extra options. If the item has one Extra option, you
-                                                    can't leave the name blank.
+                                                    كل الأصناف يمكن ان يكون لديها اضافات خاصة
                                                 </p>
                                             </div>
 
@@ -2231,11 +2235,11 @@ export default function MenuManagement() {
                                                         <div className="new-extra flex gap-4 items-end mb-4" key={index}>
                                                             <div className="add-extra-name">
                                                                 <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                    Name
+                                                                    الأسم
                                                                 </label>
                                                                 <input
                                                                     className="rounded-md w-44 h-9 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                    placeholder="Add Cheese"
+                                                                    placeholder="اضافة جبنة"
                                                                     type="text"
                                                                     value={extra.label || ''}
                                                                     onChange={(e) => handleExtraChange(index, 'label', e.target.value)}
@@ -2244,7 +2248,7 @@ export default function MenuManagement() {
                                                             </div>
                                                             <div className="add-extra-price">
                                                                 <label className="block mb-2 text-sm font-medium text-gray-700">
-                                                                    Price
+                                                                    السعر
                                                                 </label>
                                                                 <input
                                                                     className="rounded-md w-44 h-9 border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2267,7 +2271,7 @@ export default function MenuManagement() {
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p className="text-gray-500 text-sm mb-4">No extras added yet</p>
+                                                    <p className="text-gray-500 text-sm mb-4">لا يوجد اضافات من قبل</p>
                                                 )}
 
                                                 <div className="flex justify-between mt-6">
@@ -2276,7 +2280,7 @@ export default function MenuManagement() {
                                                         onClick={addExtra}
                                                     >
                                                         <i className="fa-solid fa-plus"></i>
-                                                        Add Extra
+                                                        اضف اضافة خاصة
                                                     </button>
                                                 </div>
                                             </div>
@@ -2723,8 +2727,8 @@ export default function MenuManagement() {
 
 
                     <div
-                        className={sectionTab("pay")}
-                        onClick={() => setActiveSectionEditor("pay")}
+                        className={sectionTab("social")}
+                        onClick={() => setActiveSectionEditor("social")}
                     >
                         السوشيال ميديا
                     </div>
@@ -2865,6 +2869,8 @@ export default function MenuManagement() {
                                                             className="sr-only peer"
                                                             checked={section.is_available}
                                                             onChange={async (e) => {
+                                                                e.stopPropagation();
+
                                                                 try {
                                                                     const newStatus = !section.is_available;
                                                                     await axios.post(`${apiUrl}/api/section/update/${section.id}`, {
@@ -2906,7 +2912,7 @@ peer-hover:after:scale-95
                                                     </p>
 
                                                     <i
-                                                        className="fa-solid fa-chevron-down cursor-pointer transform transition-transform duration-300"
+                                                        className="fa-solid fa-chevron-down p-2 cursor-pointer transform transition-transform duration-300"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             toggleCategoryItems(section.id);
@@ -3031,7 +3037,7 @@ peer-hover:after:scale-95
                                                     </div>
                                                 ))}
                                                 <div onClick={() => openAddItemForm(section.id)} className="add-item hover:bg-slate-50 hover:shadow-md cursor-pointer w-[97%] mt-2 shadow-sm flex justify-between bg-white p-3 rounded-lg">
-                                                    <p> + Add Item </p>
+                                                    <p>   اضافة صنف + </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -3039,7 +3045,7 @@ peer-hover:after:scale-95
 
                                     <div className="empty-sections flex flex-col justify-center items-center">
                                         <i className="fa-solid fa-arrow-up"></i>
-                                        <p>No Section add now!</p>
+                                        <p>لا يوجد اقسام اضف الأن</p>
 
                                     </div>
 
@@ -3183,9 +3189,9 @@ peer-hover:after:scale-95
                     </div>
                 )}
 
-                {activeSectionEditor === "pay" && (
+                {activeSectionEditor === "social" && (
                     <div className="social p-4 w-full bg-white">
-                        <p className='text-lg font-medium'>Add Your Social Apps</p>
+                        <p className='text-lg font-medium'>اضف روابط السوشيال ميديا </p>
 
                         <div className="social-app whatsapp lg:w-2/5 md:w-3/5 sm:w-4/5 p-3 mt-3 rounded-md bg-slate-100">
                             <div className="social-logo flex flex-col items-center justify-center">

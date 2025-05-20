@@ -60,7 +60,7 @@ function App() {
           element: <Dashboard />
         },
         {
-          path: "menu/:menuId/menu-editor",
+          path: "menu/:menuId/menu-management",
           element: <MenuManagement />
         },
         {

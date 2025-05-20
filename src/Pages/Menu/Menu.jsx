@@ -42,7 +42,6 @@ export default function Menu() {
     const pathName = location.pathname
     const id_hash = pathName.split("/")[2];
     localStorage.setItem("menu_id", id_hash)
-    console.log(id_hash);
 
 
     const [displayEndTime, setDisplayEndTime] = useState(null);
@@ -104,6 +103,7 @@ export default function Menu() {
     const [phones, setPhones] = useState([]); // Initialize as empty array
     const [selectedSize, setSelectedSize] = useState(null);
     const [selectedExtras, setSelectedExtras] = useState([]);
+    const effectRan = useRef(false);
 
     const [isLoadingOffers, setIsLoadingOffers] = useState(true);
 
@@ -254,18 +254,24 @@ export default function Menu() {
 
 
     useEffect(() => {
-        setTimeout(() => {
-            setImageLoaded(false)
-        }, 300);
-        fetchSocialLinks(id_hash);
-        fetchMenuData()
-        fetchPhones(id_hash);
-        getSections(id_hash)
-        fetchOfferItems(id_hash); // Call the function directly
+        if (effectRan.current === false) {
+            // Your API calls here
+            console.log(id_hash);
+            setTimeout(() => {
+                setImageLoaded(false)
+            }, 300);
+            fetchSocialLinks(id_hash);
+            fetchMenuData();
+            fetchPhones(id_hash);
+            getSections(id_hash);
+            fetchOfferItems(id_hash);
 
-
-
+            return () => {
+                effectRan.current = true;
+            };
+        }
     }, [id_hash]);
+
 
 
 
@@ -1110,7 +1116,7 @@ export default function Menu() {
                     <div className="close-label bg-red-500 flex justify-center items-center absolute top-0 left-0 right-0 h-8">
                         <p className='cairo text-white'>
                             <i className="fa-solid fa-circle-exclamation text-gray-400 mr-2"></i>
-                            Closed at {displayEndTime}
+                            {displayEndTime} مغلق من الساعة
                         </p>
                     </div>
                 )}
@@ -1317,13 +1323,14 @@ export default function Menu() {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <div className="right-side relative bg-sky-400 h-full">
+                                                        <div className="right-side relative rounded-md h-full">
                                                             <img
                                                                 className='h-full w-24 object-cover rounded-md'
                                                                 src={item.image_url ? item.image_url : def}
                                                                 alt={item.name}
                                                             />
-                                                            <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                            {/* add to cart commented */}
+                                                            {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                                 <button
                                                                     onClick={(e) => handleItemClick(e, item)}
                                                                     title="Add New"
@@ -1335,7 +1342,7 @@ export default function Menu() {
                                                                         <path d="M12 16V8" strokeWidth="1.5"></path>
                                                                     </svg>
                                                                 </button>
-                                                            </div>
+                                                            </div> */}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1588,7 +1595,8 @@ export default function Menu() {
                                             </div>
                                             <div className="right-side relative h-full">
                                                 <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
-                                                <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                {/* add to cart commented */}
+                                                {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                     <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
                                                             <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
@@ -1596,7 +1604,7 @@ export default function Menu() {
                                                             <path d="M12 16V8" strokeWidth="1.5"></path>
                                                         </svg>
                                                     </button>
-                                                </div>
+                                                </div> */}
                                             </div>
                                         </div>
                                     ))}
@@ -1779,7 +1787,7 @@ export default function Menu() {
             }
             <div className="powred-by flex justify-center items-center pb-3 gap-2">
 
-                <p className='cairo kufi text-center text-gray-700 '>Powered by Takka </p>
+                <p className='cairo kufi text-center text-gray-700 '>Powered by <Link to={"/"}> <span className='text-sm text-sky-900 font-medium'>Takka Smart</span> </Link> </p>
                 {/* <Link to={"/"}>
                     <span>
                         <img className='w-16 shadow' src={eats2} alt="" /></span>

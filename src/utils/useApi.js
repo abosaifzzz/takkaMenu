@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 // import { useToast } from 'app/contexts/ToastContext';
 import { useNavigate } from "react-router-dom"; // Assuming you are using React Router
-const apiUrl = import.meta.VITE_API_URL;
-
+const apiUrl = "http://localhost:57312";
+console.log(apiUrl);
 function authHeader() {
   const accessToken = localStorage.getItem("token");
   //  if (user && user.accessToken) {
@@ -42,6 +42,8 @@ const useFetchData = () => {
         if (!isProduction) {
           console.log("posting data to", url);
         }
+        console.log(API + url);
+
         let response = await axios.post(API + url, data, {
           headers: authHeader(),
           cancelToken: axiosSource.current.token,

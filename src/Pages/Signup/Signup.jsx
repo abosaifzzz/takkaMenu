@@ -8,7 +8,6 @@ import useFetchData from '../../utils/useApi.js';
 
 
 
-
 export default function Signup() {
     const [showPassword, setShowPassword] = useState(false);
     const [fullName, setFullName] = useState('');
@@ -33,28 +32,45 @@ export default function Signup() {
 
         // Validation checks
         if (!phone) {
-            toast.error("Phone is required");
+            toast.error("يجب اضافة رقم موبايل");
             return;
         }
-
+        if (phone.length < 5 || phone.length > 15) {
+            toast.error("رقم الموبايل غير صحيح")
+            return
+        }
         if (!password) {
-            toast.error("Password is required");
+            toast.error("يجب اضافة كلمة مرور");
             return;
+        }
+        if (password.length < 8) {
+            toast.error("كلمة المرور يجب الا تقل عن 8 حروف او ارقام");
+            return;
+
+
         }
 
         if (!email) {
-            toast.error("Email is required");
+            toast.error("يجب اضافة ايميل");
+            return;
+        }
+
+        // Email regex pattern
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (email && !emailRegex.test(email)) {
+            toast.error("يرجي اضافة ايميل صحيح");
             return;
         }
 
         if (!fullName) {
-            toast.error("Name is required");
+            toast.error("يجب اضافة اسم ");
             return;
         }
 
         // Check if passwords match
         if (password !== confirmPassword) {
-            toast.error('Passwords do not match');
+            toast.error('كلمة المرور غير متطابقة');
             return;
         }
 
@@ -281,7 +297,7 @@ export default function Signup() {
 
                 </div> */}
 
-                <div className=" flex items-center xl:bg-slate-950  xl:w-2/6 lg:w-2/3 md:w-3/5 w-full lg:h-4/5 md:h-5/6 justify-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
+                <div className=" flex items-center xl:bg-slate-950  xl:w-2/6 lg:w-2/3 md:w-3/5 w-full h-fit justify-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
                     <div className="relative w-full h-full">
                         <div className="absolute   -top-2 -left-2 -right-2 -bottom-2 rounded-lg bg-gradient-to-r from-sky-400 via-red-500 to-sky-700 shadow-lg animate-pulse"></div>
                         <div id="form-container" className="bg-white p-10 rounded-lg shadow-2xl h-full  relative z-10 transform transition duration-500 ease-in-out">

@@ -7,6 +7,7 @@ import rev2 from "../../assets/rev2.png"
 
 import axios from 'axios';
 import eats from '../../assets/eats-logo.png'
+import toast from 'react-hot-toast';
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // const mockReviewsData = [
@@ -31,17 +32,112 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true); // State to handle loading state
     const [userName, setUserName] = useState("");
     const [dashboardloading, setDashboardLoading] = useState(true); // State to handle loading state
+    const [menuVisits, setMenuVisits] = useState(""); // Stored Location URL
 
+    const [menuData, setMenuData] = useState(""); // Stored Location URL
+    const [menuSettings, setMenuSettings] = useState({
+        name: "",
+        end_time: "",
+    });
 
 
     let m_id = localStorage.getItem("m_id")
+    const menu_id = localStorage.getItem("menu") // Get  dynamically from the URL
+
+    useEffect(() => {
+
+        if (m_id) {
+            fetchMenuSettings(m_id);
+        }
+    }, [m_id]); // Runs when 'menu_id' changes
+
+
+    const fetchMenuSettings = async (m_id) => {
+
+        try {
+            // Fetch menu settings
+            const response = await axios.get(`${apiUrl}/menu-settings/${m_id}`
+            );
+
+
+
+            // Set menu settings
+            setMenuSettings(response.data.result);
+
+
+            // Fetch profile image if it exists
+
+
+        } catch (error) {
+            console.error("Error fetching menu settings or images:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleChange = (e) => {
+        setMenuSettings({ ...menuSettings, [e.target.name]: e.target.value });
+    };
+
+
+
+
+    const fetchMenuData = async (menu_id) => {
+        try {
+            // Fetch menu settings
+
+            const response = await axios.get(`${apiUrl}/api/menu/${menu_id}`, {
+                headers: authHeader(),
+            });
+
+
+            // Check if current time >= end_time (one-time check)
+            // Set menu settings
+            setMenuData(response.data.result);
+
+
+        } catch (error) {
+            toast.error("er")
+            console.error("Error fetching menu settings or images:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const fetchMenuVisits = async (menu_id) => {
+        try {
+            // Fetch menu settings
+
+            const response = await axios.get(`${apiUrl}/api/menu/visits/${menu_id}`, {
+                headers: authHeader(),
+            });
+
+            const visits = response.data.result
+
+            setMenuVisits(visits)
+            // Check if current time >= end_time (one-time check)
+            // Set menu settings
+
+
+        } catch (error) {
+            toast.error("er")
+            console.error("Error fetching menu visits", error);
+        }
+    };
+
+    function authHeader() {
+        const accessToken = localStorage.getItem("token");
+        //  if (user && user.accessToken) {
+        if (accessToken) {
+            // return { Authorization: 'Bearer ' + user.accessToken }; // for Spring Boot back-end
+            return { "x-access-token": accessToken }; // for Node.js Express back-end
+        } else {
+            return {};
+        }
+    }
 
     const fetchReviews = async (menu_id) => {
         try {
             const response = await axios.get(`${apiUrl}/api/menu/reviews/${menu_id}`);
-            console.log("reviii", response);
-
-            console.log("reviews", reviews);
             const result = response.data?.result || []
             setReviews(result)
 
@@ -50,19 +146,19 @@ export default function Dashboard() {
             return response.data; // Returns the reviews data from the API
         } catch (error) {
             if (error.response?.data?.message == "No reviews found for this menu") {
-
-                console.log("nooooooo rev");
                 setLoading(false)
 
             }
 
-            console.error('Error fetching reviews:', error);
             // Return empty array or handle error as needed
             return [];
         }
     };
     useEffect(() => {
         // Fetch data when the component mounts
+        fetchMenuData(menu_id)
+        fetchMenuVisits(menu_id)
+
         setTimeout(() => {
             setDashboardLoading(false)
         }, 500);
@@ -117,7 +213,7 @@ export default function Dashboard() {
     return <>
         {dashboardloading ? (
             <>
-                <div className="dashboard-loading min-h-screen animate-pulse flex justify-center items-center  bg-slate-50/75">
+                <div className="dashboard-loading min-h-screen cairo animate-pulse flex justify-center items-center  bg-slate-50/75">
                     <div className="text-center">
                         <div
                             className="w-32 h-32 border-4 flex p-2 justify-center items-center border-dashed rounded-full animate-spin border-red-500 mx-auto"
@@ -137,7 +233,7 @@ export default function Dashboard() {
             </>
 
 
-        ) : (<div className="dashboard min-h-screen sm:px-12 px-6 pb-16 py-8 ">
+        ) : (<div className="dashboard min-h-screen cairo sm:px-12 px-6 pb-16 py-8 ">
             <div className="first">
 
                 <div className="name text-xl font-medium font-sans cairo"> اهلأ و سهلا <span className='text-sky-900'>{userName}</span>  </div>
@@ -146,7 +242,9 @@ export default function Dashboard() {
 
 
                 </div>
+
                 <div className="second mt-14 w-full  flex">
+
                     <div className="w-full   flex lg:flex-row flex-col  gap-5">
                         <div className="reports-reservations lg:w-1/2">
                             <div className="reports-section  p-3 bg-white rounded-lg ">
@@ -183,7 +281,7 @@ export default function Dashboard() {
                                             <div className="right flex justify-end items-center">
 
                                                 <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-red-500">
-                                                    <i class="fa-solid text-white fa-coins"></i>
+                                                    <i className="fa-solid text-white fa-coins"></i>
 
                                                 </div>
 
@@ -197,7 +295,7 @@ export default function Dashboard() {
                                         <div className="th-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>الزائرين</span>
-                                                <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>236</p>
+                                                <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>{menuVisits}</p>
                                                 {/* <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
@@ -211,7 +309,7 @@ export default function Dashboard() {
                                         <div className="s-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
                                                 <span className=' font-sans text-lg cairo text-gray-500'>التقييمات</span>
-                                                <p className='mt-2 text-3xl font-[450]'>56</p>
+                                                <p className='mt-2 text-3xl font-[450]'>{reviews.length}</p>
                                                 {/* <span><i className="fa-solid fa-chart-column text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end items-center">
@@ -358,6 +456,85 @@ export default function Dashboard() {
 
 
                 </div>
+                <div className="third mt-4 p-3 bg-white rounded-lg shadow-sm">
+                    <div className="view-reports flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <p className='mb-0 cairo text-lg font-medium text-gray-800'>الأستخدامات الشائعة</p>
+                        <Link to={"/menu-management"}>
+                            <p className='text-blue-500 hover:text-blue-600 cursor-pointer cairo text-sm sm:text-base transition-colors'>
+                                <i className="fa-solid fa-receipt text-blue-500 me-1"></i>لوحة التحكم
+                            </p>
+                        </Link>
+                    </div>
+
+                    <hr className='my-3 border-gray-100' />
+
+                    <div className="options">
+                        <div className="flex flex-col lg:flex-row gap-4 mt-3">
+                            {/* Menu Activity Card */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 flex-1">
+                                <div className="r mb-3 sm:mb-0 sm:w-2/3">
+                                    <span className='block cairo text-lg font-medium text-gray-800'>نشاط المنيو</span>
+                                    <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                                        يمكنك اغلاق المنيو مؤقتاّ بالكامل و اخفاء جميع بياناته
+                                    </p>
+                                </div>
+
+                                <label className="relative inline-flex items-center cursor-pointer min-w-[3rem]">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={menuData?.is_closed || false}
+                                        onChange={async () => {
+                                            try {
+                                                const newStatus = !menuData?.is_closed;
+                                                await axios.post(`${apiUrl}/api/menu/update/${m_id}`, {
+                                                    is_closed: newStatus
+                                                }, {
+                                                    headers: authHeader(),
+                                                });
+                                                setMenuData(prev => ({ ...prev, is_closed: newStatus }));
+                                                toast.success(newStatus ? "تم تنشيط المنيو" : "تم الغاء تنشيط المنيو");
+                                            } catch (error) {
+                                                toast.error("Failed to update menu status");
+                                                console.error("Error updating menu status:", error);
+                                            }
+                                        }}
+                                    />
+                                    <div className={`
+            group peer rounded-full duration-300 w-12 h-6 ring-2 
+            ${menuData?.is_closed ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+            after:duration-300 after:bg-white after:rounded-full after:absolute 
+            after:h-5 after:w-5 after:top-[2px] after:left-[2px]
+            ${menuData?.is_closed ? 'after:translate-x-6' : ''}
+            peer-hover:after:scale-95
+          `}></div>
+                                </label>
+                            </div>
+
+                            {/* End Day Card */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 flex-1">
+                                <div className="r mb-3 sm:mb-0 sm:w-2/3">
+                                    <span className='block cairo text-lg font-medium text-gray-800'>انهاء اليوم</span>
+                                    <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                                        يمكنك اغلاق الطلبات و تنبيه العميل بأنتهاء مواعيد العمل مع عرض المنيو
+                                    </p>
+                                </div>
+
+                                <div className="w-full sm:w-auto">
+                                    <input
+                                        type="time"
+                                        name="end_time"
+                                        value={menuSettings.end_time}
+                                        onChange={handleChange}
+                                        id="close-time"
+                                        className="w-full sm:w-32 h-10 border border-gray-300 rounded-md px-3 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
 
 

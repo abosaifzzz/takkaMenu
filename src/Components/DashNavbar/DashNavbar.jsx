@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import toast, { Toaster } from 'react-hot-toast';
+import logo from "../../assets/eats-logo.png"
 
 export default function DashNavbar() {
     const [userIcon, setUserIcon] = useState("");
@@ -42,7 +43,13 @@ export default function DashNavbar() {
     }, []);
     return <>
         <Toaster />
-        <div className="new-menu-nav bg-gray-100 border-b-2 border-slate-300 rounded-b-lg  flex justify-end items-center">
+        <div className="new-menu-nav bg-gray-100 border-b-2 border-slate-300 rounded-b-lg  flex  justify-between items-center">
+            <div className="div"></div>
+
+            <div className="logo ps-5">
+
+                <img src={logo} className='w-14' alt="" />
+            </div>
             <div onClick={toggleSettings}
                 className="name-icon relative   p-5 px-9">
 
@@ -78,6 +85,7 @@ export default function DashNavbar() {
 
 
             </div>
+
 
         </div>
 
