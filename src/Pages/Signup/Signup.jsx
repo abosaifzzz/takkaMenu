@@ -91,17 +91,20 @@ export default function Signup() {
             console.log("After axios.post");
             console.log("Response received");
             console.log(response.data);
-            toast.success("تم التسجبل بنجاح")
-            setLoginLoading(true)
+            if (response.data?.success == true) {
 
-            setTimeout(() => {
-                window.location.href = "/login";  // Redirect to dashboard
+                toast.success("تم التسجيل بنجاح")
+                setLoginLoading(true)
 
-            }, 3000);
+            } else {
+                toast.error("هذا الايميل مسجل من قبل")
 
-            // Redirect or handle successful signup
-            // Example: navigate to another page on success
-            // history.push('/success');
+            }
+
+            // setTimeout(() => {
+            //     window.location.href = "/login";  // Redirect to dashboard
+
+            // }, 3000);
 
         } catch (error) {
             console.error('There was an error!', error);
@@ -163,62 +166,94 @@ export default function Signup() {
                 },
             });
             console.log(response);
-            // if (response.data.user) {
-            //     console.log("good");
-            //     console.log(response.data.user.owner_id);
-            //     const ownerId = response.data.user.owner_id
-            //     localStorage.setItem("owner", ownerId)
+            if (response.data.user) {
+                console.log("good");
+                console.log(response.data.user.owner_id);
+                const ownerId = response.data.user.owner_id
+                localStorage.setItem("owner", ownerId)
 
-            //     fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
-            //         .then((response) => {
-            //             console.log("Response data:", response?.data); // Debug log
-            //             if (response?.data[0]) {
-            //                 console.log('Fetched Menus:', response.data);
+                // fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
+                //     .then((response) => {
+                //         console.log("Response data:", response?.data); // Debug log
+                //         if (response?.data?.result[0]) {
+                //             console.log('Fetched Menus:', response.data.result);
 
-            //                 localStorage.setItem('menu', response.data[0].id_hash);
-            //                 localStorage.setItem('m_id', response.data[0].id);
+                //             localStorage.setItem('menu', response.data.result[0].id_hash);
+                //             localStorage.setItem('m_id', response.data.result[0].id);
 
-            //                 let menuId = response.data[0].id_hash
-            //                 console.log("from log", menuId);
+                //             let menuId = response.data.result[0].id_hash
+                //             console.log("from log", menuId);
 
-            //                 localStorage.setItem('owner', ownerId);
-            //                 setLoginLoading(true)
-            //                 setTimeout(() => {
-            //                     toast.success("تم تسجيل الدخول بنجاح")
+                //             localStorage.setItem('owner', ownerId);
+                //             setLoginLoading(true)
+                //             setTimeout(() => {
+                //                 toast.success("تم تسجيل الدخول بنجاح")
 
-            //                 }, 2000);
-
-
-
-            //                 // const menusId = localStorage.getItem("menu")
-            //                 // console.log(menusId);
-
-            //                 setTimeout(() => {
-            //                     window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
-
-            //                 }, 3000);
+                //             }, 2000);
 
 
+                //             console.log("good");
 
-            //             } else {
-            //                 window.location.href = `/start`;  // Redirect to dashboard
+
+                //             setTimeout(() => {
+                //                 window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
+
+                //             }, 3000);
 
 
 
-
-            //             }
-            //         })
-
-            //     localStorage.setItem('token', response.data.accessToken);
-            //     console.log(response.data.user.name);
-            //     localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
+                //         } else if (response?.data.success == false) {
+                //             window.location.href = `/start`;  // Redirect to dashboard
 
 
-            // } else {
-            //     console.log("not good");
-            //     toast.error(" رجاء التحقق من الايميل و كلمة المرور")
 
-            // }
+
+                //         }
+                //     })
+                fetchData(`/api/ownermenus/${ownerId}`)
+                    .then((response) => {
+                        console.log("Full response:", response); // Debug entire response
+
+                        if (!response?.data) {
+                            console.error("No data in response");
+                            window.location.href = `/start`;
+                            return;
+                        }
+
+                        if (response.data.success === false || !response.data.result?.[0]) {
+                            console.log("No menu found or API failure:", response.data);
+                            window.location.href = `/start`;
+                            return;
+                        }
+
+                        // Success case
+                        const menu = response.data.result[0];
+                        localStorage.setItem('menu', menu.id_hash);
+                        localStorage.setItem('m_id', menu.id);
+                        localStorage.setItem('owner', ownerId);
+
+                        console.log("Menu ID:", menu.id_hash);
+                        setLoginLoading(true);
+                        toast.success("تم تسجيل الدخول بنجاح");
+
+                        setTimeout(() => {
+                            window.location.href = `menu/${menu.id_hash}/dashboard`;
+                        }, 3000);
+                    })
+                    .catch((error) => {
+                        console.error("Fetch error:", error);
+                        window.location.href = `/start`;
+                    });
+                localStorage.setItem('token', response.data.accessToken);
+                console.log(response.data.user.name);
+                localStorage.setItem('name', response.data.user.name);  // Save name in localStorage
+
+
+            } else {
+                console.log("not good");
+                toast.error(" رجاء التحقق من الايميل و كلمة المرور")
+
+            }
 
         } catch (error) {
             if (error.response) {
@@ -405,19 +440,20 @@ export default function Signup() {
                                 <span className="w-1/5 border-b dark:border-gray-400 md:w-1/4"></span>
                             </div>
                             <GoogleLogin
-                                text="signup_with"  // Ensures the button says "Sign up with Google"
+                                text="continue_with" // "Sign up with" in Arabic (استمر بـ)
                                 onSuccess={(credentialResponse) => {
                                     console.log(credentialResponse);
-
-                                    let googleToken = credentialResponse.credential
-                                    const credentialResponseDecoded = jwtDecode(credentialResponse.credential)
-                                    let email = credentialResponseDecoded.email
-
+                                    let googleToken = credentialResponse.credential;
+                                    const credentialResponseDecoded = jwtDecode(credentialResponse.credential);
+                                    let email = credentialResponseDecoded.email;
                                     handleLogin(googleToken, email);
                                 }}
                                 onError={() => {
                                     console.log("Signup Failed");
                                 }}
+                                theme="filled_blue" // Makes the button full-width
+                                width="100%" // Ensures full width
+                                locale="ar" // Sets Arabic language
                             />
 
                         </div>

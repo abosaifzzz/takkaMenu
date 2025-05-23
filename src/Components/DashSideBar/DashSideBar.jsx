@@ -14,6 +14,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
     const [menus, setMenus] = useState([]);
     const [defaultMenu, setDefaultMenu] = useState('');
     const [menuLogo, setMenuLogo] = useState(null);
+    const [isLogoLoading, setIsLogoLoading] = useState(true);
 
     const [showArrow, setShowArrow] = useState(true);
 
@@ -22,92 +23,6 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
     useEffect(() => {
         const ownerId = localStorage.getItem('owner'); // Get owner_id from localStorage
 
-        // if (ownerId) {
-        //     fetchData(`/api/ownermenus/${ownerId}`)
-        //         .then((response) => {
-        //             if (response?.data) {
-        //                 const menus = response.data;
-        //                 console.log("dashside", menus);
-
-
-
-        //                 // Check if profile_image exists in the first menu
-        //                 if (menus.length > 0 && menus[0].profile_image) {
-        //                     const profileImageUrl = `${apiUrl}/api/file/${menus[0].profile_image}`;
-        //                     setMenuLogo(profileImageUrl);
-        //                     console.log("Profile image URL:", profileImageUrl);
-        //                 }
-
-        //                 // Rest of your menu handling logic...
-        //                 if (menus.length === 0) {
-        //                     setShowArrow(false);
-        //                 } else if (menus.length === 1) {
-        //                     localStorage.setItem('menu', menus[0].id_hash);
-
-
-        //                     setDefaultMenu(menus[0].name);
-        //                     setShowArrow(false);
-        //                 } else {
-        //                     localStorage.setItem('menu', menus[0].id_hash);
-        //                     setDefaultMenu(menus[0].name);
-        //                     setShowArrow(true);
-        //                 }
-        //                 setMenus(menus);
-        //             }
-        //         })
-        //         .catch((err) => {
-        //             console.error('Error fetching menus:', err);
-        //         });
-        // }
-        // if (ownerId) {
-        //     // Log when the fetchData is triggered
-
-        //     fetchData(`/api/ownermenus/${ownerId}`) // Fetch menus for the owner
-        //         .then((response) => {
-        //             if (response?.data) {
-
-        //                 const menus = response.data;
-        //                 console.log("dashside", menus);
-        //                 if (response.data.profile_image) {
-        //                     const profileImageUrl = `${apiUrl}/api/file/${response.data.menuSettings.profile_image}`;
-        //                     // const profileImageResponse = await axios.get(profileImageUrl, { responseType: 'blob' });
-        //                     // const profileImageObjectURL = URL.createObjectURL(profileImageResponse.data);
-        //                     // setMenuSettings((prevSettings) => ({
-        //                     //     ...prevSettings,
-        //                     //     profileImageUrl: profileImageObjectURL, // Add profile image URL to the menu settings
-        //                     // }));
-        //                     setMenuLogo(profileImageUrl)
-        //                     log
-        //                 }
-
-
-
-        //                 if (menus.length === 0) {
-        //                     setShowArrow(false); // Show the arrow
-
-
-        //                 } else if (menus.length === 1) {
-        //                     // If there's only one menu, set it as default
-        //                     localStorage.setItem('menu', menus[0].id_hash);
-        //                     setDefaultMenu(menus[0].name);
-
-        //                     setShowArrow(false); // Hide the arrow
-        //                 } else {
-        //                     // If there are multiple menus, set the first one as default
-        //                     localStorage.setItem('menu', menus[0].id_hash);
-        //                     setDefaultMenu(menus[0].name);
-        //                     setShowArrow(true); // Show the arrow
-        //                 }
-        //                 setMenus(menus); // Store the menus in state
-
-        //             }
-        //         })
-        //         .catch((err) => {
-        //             console.error('Error fetching menus:', err);
-        //         });
-        // } else {
-        //     console.error('No owner_id found in localStorage');
-        // }
 
         if (ownerId) {
             fetchData(`/api/ownermenus/${ownerId}`)
@@ -121,6 +36,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                         if (menus.length > 0 && menus[0].profile_image) {
                             const profileImageUrl = `${apiUrl}/api/file/${menus[0].profile_image}`;
                             setMenuLogo(profileImageUrl);
+                            setIsLogoLoading(false)
                             console.log("Profile image URL:", profileImageUrl);
                         }
 
@@ -139,6 +55,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                                 // Use the menu from localStorage
                                 const profileImageUrl = `${apiUrl}/api/file/${matchingMenu.profile_image}`;
                                 setMenuLogo(profileImageUrl);
+                                setIsLogoLoading(false)
                                 console.log("Profile image URL:", profileImageUrl);
 
                                 setDefaultMenu(matchingMenu.name);
@@ -159,13 +76,6 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
         }
 
     }, []); // Empty dependency array to run only once on mount // Empty dependency array to avoid infinite loop
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (error) {
-        return <div>Error: {error.message}</div>;
-    }
 
 
 
@@ -228,7 +138,12 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                     </div>
 
                     <div className="takka-logo w-full h-44 flex justify-center items-center">
-                        {menuLogo ? (
+                        {isLogoLoading ? (<>
+
+                            <div className="md:w-1/2 sm:w-1/3 w-1/3 aspect-square rounded-full bg-gray-200 animate-pulse border shadow-xl"></div>
+
+
+                        </>) : menuLogo ? (
                             <img
                                 className='md:w-1/2 sm:w-1/3 w-1/3 border shadow-xl rounded-full object-cover aspect-square'
                                 src={menuLogo}
@@ -247,46 +162,45 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                         )}
                     </div>
 
-                    {/* <div className="menu-name w-full  rounded-md p-2">
-                        <div className=" choose-name w-full h-12 flex justify-between items-center p-1 border-2  rounded-md">
-                            <p className='text-sky-700 cairo'>Takka smart 1 </p>
-                            <i
-                                className={`fa-solid fa-chevron-down cursor-pointer ${isNamesOpen ? 'rotate-180' : ''}`}
-                                onClick={toggleMenu}
-                            />                        </div>
-                        <div className={`more-names w-full bg-white rounded-b-md overflow-hidden transition-all duration-300 ease-in-out ${isNamesOpen ? 'max-h-[500px] ' : 'max-h-0 p-0'}`}>
-                            <div className="menu-option p-2 border-b">
-                                <p>Takka 2</p>
 
+
+                    {isLoading ? (
+                        // Loading state
+                        <div className="w-full rounded-md p-2">
+                            <div className="animate-pulse w-full h-12 flex justify-between items-center p-1 border-2 rounded-md bg-gray-100">
+                                <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                                <div className="h-4 bg-gray-300 rounded w-4"></div>
                             </div>
-
-                            <div className="menu-option p-2 border-b">
-                                <p>Takka 2</p>
-
-                            </div>
-
-
                         </div>
-
-
-                    </div> */}
-                    {menus.length > 0 && (
+                    ) : menus.length > 0 ? (
+                        // Menu content when loaded and has items
                         <div className="menu-name w-full rounded-md p-2">
-                            <div onClick={toggleMenu} className="choose-name cursor-pointer w-full h-12 flex justify-between items-center p-1 border-2 rounded-md">
+                            <div
+                                onClick={toggleMenu}
+                                className="choose-name cursor-pointer w-full h-12 flex justify-between items-center p-1 border-2 rounded-md"
+                            >
                                 <p className='text-sky-700 text-sm text-center cairo'>{defaultMenu}</p>
                                 {showArrow && (
                                     <i
-                                        className={`fa-solid fa-chevron-down cursor-pointer ${isNamesOpen ? 'rotate-180' : ''}`}
-                                        onClick={toggleMenu}
+                                        className={`fa-solid fa-chevron-down cursor-pointer transition-transform duration-200 ${isNamesOpen ? 'rotate-180' : ''
+                                            }`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleMenu();
+                                        }}
                                     />
                                 )}
                             </div>
+
                             {showArrow && (
-                                <div className={`more-names overflow-y-auto  w-full bg-white rounded-b-md overflow-hidden transition-all duration-300 ease-in-out ${isNamesOpen ? 'md:max-h-[200px] ' : 'max-h-0 p-0'}`}>
+                                <div
+                                    className={`more-names overflow-y-auto w-full bg-white rounded-b-md overflow-hidden transition-all duration-300 ease-in-out ${isNamesOpen ? 'md:max-h-[200px]' : 'max-h-0 p-0'
+                                        }`}
+                                >
                                     {menus.map((menu) => (
                                         <div
                                             key={menu.id}
-                                            className="menu-option hover:bg-slate-200  p-2 border-b cursor-pointer"
+                                            className="menu-option hover:bg-slate-200 p-2 border-b cursor-pointer transition-colors duration-150"
                                             onClick={() => handleMenuSelect(menu.id, menu.id_hash, menu.name, menu.profile_image)}
                                         >
                                             <p className='text-sm text-center'>{menu.name}</p>
@@ -295,8 +209,14 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                                 </div>
                             )}
                         </div>
+                    ) : (
+                        // Empty state when no menus exist
+                        <div className="w-full rounded-md p-2">
+                            <div className="w-full h-12 flex items-center justify-center p-1 border-2 rounded-md">
+                                <p className='text-gray-500 text-sm'>No menus available</p>
+                            </div>
+                        </div>
                     )}
-
 
                     <div className="w-full px-2">
                         <div className="flex flex-col items-center w-full mt-3 border-t border-gray-300">
@@ -342,9 +262,19 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                                 <span onClick={toggleSidebar} className="ml-2 text-sm font-medium cairo">اعدادات المنيو</span>
 
                             </Link>
+                            <Link onClick={toggleSidebar} className="flex items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300" to={"account-management"}>
+
+                                <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path
+                                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="ml-2 text-sm font-medium cairo">اعدادات الحساب</span>
+
+                            </Link>
                             <a className="flex relative items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
+                                    <p className='cairo text-green-700'>قريباّ</p>
                                 </div>
                                 <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -355,7 +285,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                             </a>
                             <a className="flex relative items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
+                                    <p className='cairo text-green-700'>قريباّ</p>
                                 </div>
                                 <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     {/* Boy symbol (circle with arrow) */}
@@ -370,7 +300,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                             </a>
                             <a className="relative flex items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300" href="#">
                                 <div className="coming-soon absolute flex justify-end items-center px-2 inset-0 bg-slate-500/10">
-                                    {/* <p className='cairo text-green-700'>قريباّ</p> */}
+                                    <p className='cairo text-green-700'>قريباّ</p>
                                 </div>
 
                                 <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -384,16 +314,7 @@ export default function DashSideBar({ sidebarIsOpen, toggleSidebar, reloadOutlet
                         </div>
                     </div>
 
-                    <Link onClick={toggleSidebar} className="flex items-center w-full h-12 px-3 mt-2 rounded hover:bg-gray-300" to={"account-management"}>
 
-                        <svg className="w-6 h-6 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path
-                                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="ml-2 text-sm font-medium cairo">اعدادات الحساب</span>
-
-                    </Link>
 
                 </div>
 

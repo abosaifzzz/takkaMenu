@@ -18,6 +18,7 @@ import StartForm from './Pages/StartForm/StartForm.jsx';
 import Home from './Pages/Home/Home.jsx';
 import Layout from './Components/Layout/Layout.jsx';
 import Notefound from './Pages/NotFound/Notefound.jsx';
+import TestMenu from './Pages/TestMenu/TestMenu.jsx';
 
 
 function App() {
@@ -32,6 +33,11 @@ function App() {
           index: true,
           element: <Home />
         },
+        {
+
+          path: "/test",
+          element: <TestMenu />
+        }
       ]
     },
     {

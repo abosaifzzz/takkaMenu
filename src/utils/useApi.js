@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 // import { useToast } from 'app/contexts/ToastContext';
 import { useNavigate } from "react-router-dom"; // Assuming you are using React Router
-const apiUrl = "http://localhost:57312";
+const apiUrl = "https://menu-api.takkasmart.com";
 console.log(apiUrl);
 function authHeader() {
   const accessToken = localStorage.getItem("token");

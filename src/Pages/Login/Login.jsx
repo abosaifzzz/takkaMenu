@@ -224,8 +224,8 @@ export default function Login() {
                     <p className="text-sm mt-4 text-[#002D74] cairo"> اذا كنت بالفعل عميل سجل دخولك الأن</p>
 
                     <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                        <input
-                            className="p-2 mt-8 cairo rounded-xl border"
+                        <input dir='ltr'
+                            className="p-2 mt-8 cairo text-end rounded-xl border"
                             type="email"
                             name="email"
                             value={email}
@@ -233,8 +233,8 @@ export default function Login() {
                             placeholder="الأيميل"
                             required />
                         <div className="relative">
-                            <input
-                                className="p-2 rounded-xl cairo border w-full"
+                            <input dir='ltr'
+                                className="p-2 rounded-xl text-end cairo border w-full"
                                 type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={password}

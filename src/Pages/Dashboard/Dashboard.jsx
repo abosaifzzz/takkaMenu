@@ -8,6 +8,7 @@ import rev2 from "../../assets/rev2.png"
 import axios from 'axios';
 import eats from '../../assets/eats-logo.png'
 import toast from 'react-hot-toast';
+import { Helmet } from 'react-helmet';
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // const mockReviewsData = [
@@ -157,7 +158,7 @@ export default function Dashboard() {
     useEffect(() => {
         // Fetch data when the component mounts
         fetchMenuData(menu_id)
-        fetchMenuVisits(menu_id)
+        fetchMenuVisits(m_id)
 
         setTimeout(() => {
             setDashboardLoading(false)
@@ -211,6 +212,13 @@ export default function Dashboard() {
         return now.toLocaleDateString('ar-EG', options).replace('،', ''); // استخدام الفاصلة العربية ثم إزالتها
     }
     return <>
+
+
+        <Helmet>
+            <meta charSet="utf-8" />
+            <title>Takka Eats Dashboard</title>
+            <link rel="canonical" href="https://eats.takkasmart.com/menu/dashboard" />
+        </Helmet>
         {dashboardloading ? (
             <>
                 <div className="dashboard-loading min-h-screen cairo animate-pulse flex justify-center items-center  bg-slate-50/75">
@@ -255,12 +263,11 @@ export default function Dashboard() {
                                 </div>
                                 <hr />
                                 <div className="options">
-                                    <div className="f-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
+                                    {/* <div className="f-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
                                         <div className="f-col pb-4 border-b  sm:w-1/2 justify-between flex  ">
                                             <div className="left">
                                                 <span className=' font-sans sm:text-lg text-xl cairo text-gray-500'>الطلبات</span>
                                                 <p className='mt-2 md:text-3xl sm:text-xl text-2xl font-[450]'>195</p>
-                                                {/* <span><i className="fa-solid fa-utensils text-gray-500 me-2"></i></span> */}
                                             </div>
                                             <div className="right flex justify-end gap-2 items-center">
                                                 <div className="ic flex justify-center items-center w-9 h-9 rounded-full bg-sky-500">
@@ -274,7 +281,6 @@ export default function Dashboard() {
                                             <div className="left">
 
                                                 <span className=' font-sans sm:text-lg text-xl cairo  text-gray-500'>عائد الطلبات</span>
-                                                {/* <span><i className="fa-solid fa-users text-gray-500 me-2"></i></span> */}
                                                 <p className='mt-2 md:text-2xl sm:text-xl text-xl font-[450]'>EGP 42,600</p>
 
                                             </div>
@@ -290,7 +296,7 @@ export default function Dashboard() {
 
 
 
-                                    </div>
+                                    </div> */}
                                     <div className="s-row w-full justify-between gap-6  flex sm:flex-row flex-col mt-3">
                                         <div className="th-col pb-4 border-b sm:w-1/2 justify-between flex ">
                                             <div className="left">
@@ -434,8 +440,8 @@ export default function Dashboard() {
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="p-6 text-center flex flex-col justify-center items-center bg-white rounded-md shadow-md">
-                                                <img src={rev2} alt="" />
+                                            <div className="text-center flex flex-col justify-center items-center bg-white rounded-md shadow-md">
+                                                <img className='w-12' src={rev2} alt="" />
                                                 <p className="text-gray-500  cairo">لا يوجد تقييمات</p>
                                             </div>
                                         )}

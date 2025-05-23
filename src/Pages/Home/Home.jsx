@@ -26,6 +26,7 @@ import qr10 from "../../assets/qr10.jpeg"
 
 import q2 from "../../assets/q2.webp"
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet'
 
 
 export default function Home() {
@@ -112,10 +113,13 @@ export default function Home() {
 
     return <>
         <div className="home-page   bg-slate-100 min-h-screen ">
-
+            <Helmet>
+                <meta charSet="utf-8" />
+                <title>Takka Eats Home</title>
+                <link rel="canonical" href="https://eats.takkasmart.com" />
+            </Helmet>
             <div className="layout bg-sky-400  relative h-[75vh]  text-white w-full   flex justify-center  ">
-                <div className="first-part  flex flex-col justify-center items-center  w-full   opacity-95 text-white">
-
+                <div className="first-part relative  flex flex-col justify-center items-center  w-full   opacity-95 text-white">
                     <div className="1  w-full h-2/3  flex flex-col justify-center items-center">
                         <p className='cairo font-semibold xl:text-6xl   lg:text-5xl  md:text-4xl sm:text-2xl text-xl mt-20'>نقلة جديدة في عـالــم الديچيتال منيــو  </p>
                         <p className='cairo font-semibold xl:text-6xl   lg:text-5xl  md:text-4xl sm:text-2xl text-xl mt-8'>المنيـــو دلـــوقتي بقي <span className='kufi'>تــكــة</span>  </p>
@@ -125,7 +129,10 @@ export default function Home() {
                     <div className="2 w-full h-1/3 flex flex-col justify-start  items-center ">
 
                         <div className="btns flex gap-4">
-                            <button className=' px-3 py-2 border-2 border-white rounded-md cairo hover:bg-slate-600'>مشاهدة المنيو التجريبي</button>
+                            <Link to={"/test"}>
+
+                                <button className=' px-3 py-2 border-2 border-white rounded-md cairo hover:bg-slate-600'>مشاهدة المنيو التجريبي</button>
+                            </Link>
 
                             <button
                                 className="group/button relative  inline-flex items-center justify-center overflow-hidden rounded-md bg-sky-700 backdrop-blur-lg md:px-6 px-3 py-2 text-base font-semibold text-white transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl hover:shadow-gray-600/50 border border-white/20"

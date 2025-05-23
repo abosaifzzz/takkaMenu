@@ -5,6 +5,8 @@ import cover from "../../assets/cover.jpeg"
 import loc from "../../assets/loc.png"
 import loc2 from "../../assets/loc2.png"
 import bio from "../../assets/bio.png"
+import truee from "../../assets/t.gif"
+
 import check from "../../assets/check.webm"
 
 
@@ -125,18 +127,18 @@ export default function StartForm() {
             const response = await fetchData("/api/menu", data);
             console.log(response.data);
 
-            if (response?.data) {
+            if (response?.data?.success) {
                 console.log("Menu created successfully:", response.data);
-                const menuId = response.data.newMenu.id_hash
-                const m_id = response.data.newMenu.id
+                const menuId = response.data?.newMenu?.id_hash
+                const m_id = response.data?.newMenu?.id
 
                 localStorage.setItem("menu", menuId)
                 localStorage.setItem("m_id", m_id)
-                addSection(m_id)
+                await addSection(m_id)
 
                 console.log(menuId);
                 window.location.href = `menu/${menuId}/dashboard`;  // Redirect to dashboard
-
+                setLoginLoading(false)
 
                 // Handle success (e.g., show a success message or redirect)
             } else {
@@ -162,6 +164,7 @@ export default function StartForm() {
         try {
             // Await the API call to ensure completion
             await addSectionApi(stateObject);
+
             // Fetch the updated sections after adding the new section
         } catch (error) {
             console.error('Error adding section:', error);
@@ -176,9 +179,12 @@ export default function StartForm() {
 
 
 
+
         const response = await axios.post(`${apiUrl}/api/section`, stateObject, {
             headers: authHeader(),
         });
+        // alert('completed addSectionApi')
+        let testresult = response?.data?.success ? 'success' : 'failed';
         console.log(response)
         toast.success('تم الأضافة بنجاح');
         // toggleAddFormVisibility()
@@ -228,7 +234,7 @@ export default function StartForm() {
 
             </div>
 
-            <div className="start-form shadow-md   w-1/2 h-96 bg-slate-100 p-8 rounded-md ">
+            <div className="start-form shadow-md   md:w-1/2 w-full h-96 bg-slate-100 p-8 rounded-md ">
                 {currentStep === 1 && (
                     <div className="step-one flex flex-col items-center justify-between h-full">
                         <img src={shop} className="w-20" alt="" />
@@ -394,16 +400,8 @@ export default function StartForm() {
 
                 {currentStep === 6 && (
 
-                    <div className="step-six  relative flex flex-col items-center">
-                        <video
-                            src={check}
-
-
-                            autoPlay
-                            muted
-                            className="w-24  "
-                        ></video>
-
+                    <div className="step-six  relative flex flex-col justify-center h-full items-center">
+                        <img src={truee} className='w-24' alt="" />
                         <p className="cairo text-lg">تم الانتهاء من جميع الخطوات!</p>
                         <button onClick={handleSubmit} className=' bg-green-800 text-white flex justify-center items-center gap-2 rounded-md px-3 py-2 cairo mt-4'>
                             {loginLoading ? (

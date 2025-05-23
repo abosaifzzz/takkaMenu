@@ -26,10 +26,10 @@ export default function Layout() {
                         <i className="fa-solid text-sm fa-angles-left"></i> انضم الينا
                     </Link>
                 </button>
-                <p className='text-white cairo text-lg xl:text-xl'>
+                <p className='text-white hover:text-sky-300 cursor-pointer cairo text-lg xl:text-xl'>
                     <Link to={"/login"}>تسجيل الدخول</Link>
                 </p>
-                <p className='text-white cairo text-lg xl:text-xl'>انضم كشريك</p>
+                <p className='text-white hover:text-sky-300 cursor-pointer cairo text-lg xl:text-xl'>انضم كشريك</p>
             </div>
 
             {/* Logo - Centered */}
@@ -39,16 +39,22 @@ export default function Layout() {
 
             {/* Right Side - Visible on desktop */}
             <div className="hidden md:flex justify-center items-center w-full md:w-4/12 space-x-4 rtl:space-x-reverse">
-                <p className='text-white cairo text-lg xl:text-xl'>اراء عملائنا</p>
-                <p className='text-white cairo text-lg xl:text-xl'>نبذة عننا</p>
-                <p className='text-white cairo text-lg xl:text-xl'>الرئيسية</p>
+                <p className='text-white hover:text-sky-300 cursor-pointer cairo text-lg xl:text-xl'>اراء عملائنا</p>
+                <p className='text-white hover:text-sky-300 cursor-pointer cairo text-lg xl:text-xl'>نبذة عننا</p>
+                <Link to={"/"}>
+
+                    <p className='text-white hover:text-sky-300 cursor-pointer cairo text-lg xl:text-xl'>الرئيسية</p>
+                </Link>
+
             </div>
 
             {/* Mobile Menu Items (shown when menu is toggled) */}
             <div className={`md:hidden w-full bg-[#4B6FA3] mt-2 py-2 ${isMenuOpen ? 'block' : 'hidden'}`}
                 id="mobile-menu">
                 <div className="flex flex-col items-center space-y-3">
-                    <p className='text-white cairo text-xl w-full text-center py-1 border-b border-white/20'>الرئيسية</p>
+                    <Link to={"/"}>
+                        <p className='text-white cairo text-xl w-full text-center py-1 border-b border-white/20'>الرئيسية</p>
+                    </Link>
                     <p className='text-white cairo text-xl w-full text-center py-1 border-b border-white/20'>نبذة عننا</p>
                     <p className='text-white cairo text-xl w-full text-center py-1 border-b border-white/20'>اراء عملائنا</p>
                     <p className='text-white cairo text-xl w-full text-center py-1 border-b border-white/20'>انضم كشريك</p>

@@ -28,8 +28,10 @@ export default function ItemDetails({ item, onClose }) {
       {/* Background image section with bg-fixed */}
       <div
         className="item-img relative h-64 bg-fixed bg-contain  "
-        style={{ backgroundImage: `url(${item.image_url || def})` }}
+      // style={{ backgroundImage: `url(${item.image_url || def})` }}
       >
+        <img src={item.image_url} className='w-full h-full ' alt="" />
+
         <div onClick={onClose} className="back-btn flex cursor-pointer justify-center items-center absolute left-5 top-5 bg-white rounded-full h-9 w-9">
 
           <i className="fa-solid fa-arrow-left"></i>

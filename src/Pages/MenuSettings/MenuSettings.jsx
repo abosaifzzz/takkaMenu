@@ -14,7 +14,7 @@ import axios from 'axios'
 
 import { Clipboard, ClipboardCheck } from "lucide-react"; // Lucide icons
 import toast, { Toaster } from 'react-hot-toast'
-import { createFormData } from '../../utils/index.js'
+import { compressImage, createFormData } from '../../utils/index.js'
 const apiUrl = import.meta.env.VITE_API_URL;
 export default function MenuSettings() {
     const m_id = localStorage.getItem("m_id")
@@ -35,6 +35,8 @@ export default function MenuSettings() {
     const [iframeKey, setIframeKey] = useState(Date.now()); // Key to force iframe reload
     const [isIframeLoading, setIsIframeLoading] = useState(false); // Track loading state
     const [menuFile, setMenuFile] = useState(null);
+    const [isUpdatingSettings, setIsUpdatingSettings] = useState(false); // Track loading state
+
 
 
     const [loading, setLoading] = useState(true);
@@ -165,7 +167,7 @@ export default function MenuSettings() {
 
     async function handleUpdateMenu(event) {
         event.preventDefault();
-
+        setIsUpdatingSettings(true)
         console.log(owner_id);
 
         console.log("profileee", menuSettings.profileImageUrl);
@@ -178,10 +180,20 @@ export default function MenuSettings() {
             end_time: menuSettings.end_time,
 
         };
+        let compressedFile = menuFile
+
+
+        if (menuFile && menuFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(menuFile);
+
+
+        }
+
+
 
 
         try {
-            await handleSaveMenu(menuObject, menuFile);
+            await handleSaveMenu(menuObject, compressedFile);
             // await getSections(m_id);
             // toast.success("تم تحديث العرض بنجاح");
             // closeEditOfferForm();
@@ -204,8 +216,11 @@ export default function MenuSettings() {
         );
         console.log("menu successfully created:", response.data);
         toast.success("تم تعديل المنيو بنجاح");
+        setIsUpdatingSettings(false)
 
-
+        setIframeKey(Date.now());
+        setIsIframeLoading(true); // Show loading state while iframe reloads
+        setTimeout(() => setIsIframeLoading(false), 3000);
 
 
 
@@ -322,7 +337,23 @@ export default function MenuSettings() {
                 </div>
                 <hr className='pb-6' /> <div className="save-personal-info ">
                     <div className="save flex justify-end">
-                        <button onClick={handleUpdateMenu} className='px-6 py-2  rounded-md bg-sky-600 cairo text-white hover:bg-sky-500'>حفظ</button>
+
+                        <button
+                            onClick={handleUpdateMenu} className={`py-2 px-6 rounded-md text-white bg-green-600 cairo hover:bg-green-700  transition-colors flex items-center`}
+
+                        >
+                            {isUpdatingSettings ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    جاري الحفظ...
+                                </>
+                            ) : 'حفظ'}
+                        </button>
+
+
 
                     </div>
 
@@ -385,7 +416,7 @@ export default function MenuSettings() {
                     )}
 
                     {/* Iframe (hidden until loaded) */}
-                    <iframe
+                    {/* <iframe
                         key={iframeKey}
                         src={`/menu/${menu_id}?v=${iframeKey}`} // Cache-busting query param
                         className={`w-full h-[calc(100%-68px) overflow-hidden] mt-12 border-0 ${isIframeLoading ? 'hidden' : 'block'}`}
@@ -394,8 +425,24 @@ export default function MenuSettings() {
                         loading="lazy"
                         title="Menu Preview"
                         onLoad={() => setIsIframeLoading(false)} // Hide loader when loaded
+                    /> */}
+                    <iframe
+                        key={iframeKey}
+                        src={`/menu/${menu_id}?v=${iframeKey}`}
+                        className={`w-full h-[calc(100%-68px) overflow-hidden] mt-12 border-0 ${isIframeLoading ? 'hidden' : 'block'}`}
+                        style={{ height: 'calc(100% - 68px)' }}
+                        frameBorder="0"
+                        loading="lazy"
+                        title="Menu Preview"
+                        onLoad={() => {
+                            console.log("Iframe loaded successfully");
+                            setIsIframeLoading(false); // Hide loader when fully loaded
+                        }}
+                        onError={() => {
+                            console.error("Iframe failed to load");
+                            setIsIframeLoading(false); // Ensure loading state is reset even if there's an error
+                        }}
                     />
-
                     {/* Home Indicator */}
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full"></div>
                 </div>

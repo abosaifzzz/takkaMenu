@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createFormData } from '../../utils'
+import { compressImage, createFormData } from '../../utils'
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import def from '../../assets/download.png'
@@ -31,6 +31,7 @@ export default function MenuManagement() {
     const { isLoading, error, fetchData, data } = useFetchData();
 
     const [sections, setSections] = useState([]);
+    const fileInputRef = useRef(null);
 
 
     const [expandedCategories, setExpandedCategories] = useState({});
@@ -438,6 +439,12 @@ export default function MenuManagement() {
     const [openItemMenu, setOpenItemMenu] = useState(null);
     const [sectionToDelete, setSectionToDelete] = useState(null); // State to track the section being deleted
     const [itemToDelete, setItemToDelete] = useState(null); // State to track the section being deleted
+    const [isUploading, setIsUploading] = useState(false);
+    const [isSavingNewSection, setIsSavingNewSection] = useState(false);
+    const [isSavingNewItem, setIsSavingNewItem] = useState(false);
+
+    const [uploadProgress, setUploadProgress] = useState(0);
+
 
     const [scratchMenu, setScratchMenu] = useState(false); // State to track the section being deleted
     const [sampleMenu, setSampleMenu] = useState(false); // State to track the section being deleted
@@ -551,10 +558,11 @@ export default function MenuManagement() {
             console.log("fetch sections", response);
 
 
-            if (!response.data || response.data.message === "Sections not found for the given MenuId"
+            if (!response.data || response.data.success == false
             ) {
                 console.log("No sections found for this menu");
                 setSections([]);
+                setIsMenuLoading(false)
                 return;
             }
 
@@ -605,15 +613,15 @@ export default function MenuManagement() {
 
             setSections(sectionsWithImages);
 
-            setTimeout(() => {
-                setIsMenuLoading(false)
+            setIsMenuLoading(false)
 
-            }, 1500);
+
 
         } catch (error) {
             if (error.response?.status === 404) {
                 console.log("Menu or sections not found");
                 setSections([]);
+
             } else {
                 console.error("Error fetching sections:", error);
                 toast.error("حدث خطأ أثناء جلب الأقسام");
@@ -642,12 +650,12 @@ export default function MenuManagement() {
 
     useEffect(() => {
         // Set a timer for 3 seconds
-        const timer = setTimeout(() => {
-            setIsMenuLoading(false);
-        }, 1500);
+        // const timer = setTimeout(() => {
+        //     setIsMenuLoading(false);
+        // }, 1500);
 
         // Clean up the timer when component unmounts
-        return () => clearTimeout(timer);
+        // return () => clearTimeout(timer);
     }, []);
 
     const createSample = async (m_id) => {
@@ -694,7 +702,7 @@ export default function MenuManagement() {
                         note: section.sectionDescription
                     }, null);
                     // toggleAddFormVisibility()
-
+                    setIsMenuLoading(false)
                     setIsAddSectionFormVisible(false)
 
                     // Get the section ID from response
@@ -729,8 +737,10 @@ export default function MenuManagement() {
     const fetchPhones = async () => {
         try {
             const response = await axios.get(`${apiUrl}/api/contacts/${m_id}`,);
-            if (response.data.length > 0) {
-                setPhones(response.data.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
+            console.log("phhhhhhhh", response);
+
+            if (response.data.result.length > 0) {
+                setPhones(response.data.result.map(contact => contact.phone)); // Assuming API returns an array of objects with a `phone` field
             } else {
                 setPhones([""]); // Default input field if no numbers exist
             }
@@ -772,9 +782,10 @@ export default function MenuManagement() {
             const response = await axios.get(`${apiUrl}/api/menusocial-owner/${menu_id}`, {
                 headers: authHeader(),
             });
+            console.log(response);
 
-            if (response.data) {
-                console.log("social media", response.data);
+            if (response.data?.result) {
+                console.log("social media", response.data.result);
 
                 // ===== FACEBOOK =====
                 const firstFacebook = response.data?.result.find((item) => item.platform === "facebook");
@@ -991,7 +1002,6 @@ export default function MenuManagement() {
 
 
     const openEditItemForm = (event, item) => {
-        console.log(item);
         event.preventDefault()
 
         setSelectedItem(item);
@@ -1023,18 +1033,20 @@ export default function MenuManagement() {
 
 
     const closeEditItemForm = () => {
+        setIsEditItemFormVisible(false);
+
         setSelectedItem(null);
         setItemFile(null)
         setPreview(null)
-        setIsEditItemFormVisible(false);
     };
 
     const closeEditOfferForm = () => {
+        setIsEditOfferFormVisible(false);
+
         setSelectedItem(null);
         setItemFile(null)
         setPreview(null)
 
-        setIsEditOfferFormVisible(false);
     };
 
 
@@ -1077,6 +1089,42 @@ export default function MenuManagement() {
 
     async function handleAddItemSubmit(event) {
         event.preventDefault();
+
+        const nameRegex = /^.{1,60}$/;
+
+        if (!itemName) {
+            toast.error('يجب اضافة اسم للصنف');
+            return;
+        } else if (!nameRegex.test(itemName)) {
+            toast.error('الاسم يجب أن لا يتجاوز 60 حرف');
+            return;
+        }
+
+        if (itemDesc.length > 500) {
+            toast.error("الوصف يجب ان لا يزيد عن 500 حرف");
+            return;
+        }
+
+        if (itemFile) {
+            const maxSize = 4 * 1024 * 1024; // 4MB
+            if (itemFile.size > maxSize) {
+                toast.error('حجم الملف لا يمكن أن يتجاوز 4MB');
+                return;
+            }
+        }
+
+        let compressedFile = itemFile
+
+
+        if (itemFile && itemFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(itemFile);
+
+
+        }
+
+        setIsSavingNewItem(true)
+
+
         const itemObject = {
             menu_id: m_id,
             section_id: selectedSectionId,
@@ -1089,7 +1137,7 @@ export default function MenuManagement() {
 
         try {
             // Await the API call to ensure completion
-            await addItemApi(itemObject, itemFile, toastMessage);
+            await addItemApi(itemObject, compressedFile, toastMessage);
             // Fetch the updated sections after adding the new section
             await getSections(m_id);
             // Clear the input fields
@@ -1119,7 +1167,9 @@ export default function MenuManagement() {
         });
         console.log("Item successfully created:", response.data);
         toast.success(toastMessage);
+
         closeAddItemForm()
+        setIsSavingNewItem(false)
 
 
 
@@ -1129,16 +1179,35 @@ export default function MenuManagement() {
         event.preventDefault();
         console.log(selectedSection);
         // console.log(sectionFile);
+        setIsSavingNewSection(true)
 
         if (!selectedSection?.name) {
             toast.error("يجب اضافة اسم للقسم")
             return; // Prevent saving if name is empty
         }
 
-        if (selectedSection?.name.length > 45) {
-            toast.error("الاسم يجب ان لا يزيد عن 45 حرف")
+        if (selectedSection?.name.length > 60) {
+            toast.error("الاسم يجب ان لا يزيد عن 60 حرف")
             return; // Prevent saving if name is empty
         }
+        if (sectionFile) {
+            const maxSize = 4 * 1024 * 1024; // 4MB
+            if (sectionFile.size > maxSize) {
+                toast.error('حجم الملف لا يمكن أن يتجاوز 4MB');
+                return;
+            }
+        }
+
+        let compressedFile = sectionFile
+
+
+        if (sectionFile && sectionFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(sectionFile);
+
+
+        }
+
+
 
         const sectionObject = {
             name: selectedSection.name,
@@ -1151,10 +1220,10 @@ export default function MenuManagement() {
             // Await the API call to ensure completion
             console.log(selectedSectionId);
 
-            console.log("upd data 00 ", sectionObject, sectionFile, selectedSectionId);
+            console.log("upd data 00 ", sectionObject, compressedFile, selectedSectionId);
 
 
-            await updateSectionApi(sectionObject, sectionFile, selectedSectionId);
+            await updateSectionApi(sectionObject, compressedFile, selectedSectionId);
 
             // Fetch the updated sections after adding the new section
             await getSections(m_id);
@@ -1170,7 +1239,8 @@ export default function MenuManagement() {
             // setFirstPrice('')
         } catch (error) {
             console.error('Error update section:', error);
-            // toast.error('حدث خطأ أثناء اضافة المنتج');
+            setIsSavingNewSection(false)
+            toast.error('حدث خطأ أثناء تعديل القسم');
         }
 
 
@@ -1179,25 +1249,58 @@ export default function MenuManagement() {
 
     }
 
+    // const updateSectionApi = async (stateObject, file, sectionId) => {
+    //     console.log(stateObject, file, sectionId);
+
+
+    //     const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
+    //     console.log("section updaaaaaaate before send", serverPayload);
+    //     console.log("heloooooooooo", sectionId);
+
+
+    //     const response = await axios.post(`${apiUrl}/api/section/update/${sectionId}`, serverPayload,
+    //         {
+    //             headers: authHeader(),
+    //         }
+    //     );
+    //     console.log(response)
+    //     toast.success('تم التعديل بنجاح');
+    //     setIsSavingNewSection(false)
+
+    // }
+
     const updateSectionApi = async (stateObject, file, sectionId) => {
+        try {
+            let processedFile = file;
 
+            // Compress image if it exists
 
-        const serverPayload = file ? createFormData(stateObject, file, "cover_image") : stateObject;
-        console.log("section updaaaaaaate before send", serverPayload);
-        console.log("heloooooooooo", sectionId);
+            // Rest of your existing code...
+            const serverPayload = processedFile
+                ? createFormData(stateObject, processedFile, "cover_image")
+                : stateObject;
 
+            const response = await axios.post(
+                `${apiUrl}/api/section/update/${sectionId}`,
+                serverPayload,
+                {
+                    headers:
+                        authHeader()
+                }
 
-        const response = await axios.post(`${apiUrl}/api/section/update/${sectionId}`, serverPayload,
-            {
-                headers: authHeader(),
-            }
-        );
-        console.log(response)
-        toast.success('تم التعديل بنجاح');
+            );
 
+            toast.success('تم التعديل بنجاح');
+            return response.data;
 
-    }
-
+        } catch (error) {
+            console.error('Upload error:', error);
+            toast.error(error.message || 'حدث خطأ أثناء رفع الصورة');
+            throw error;
+        } finally {
+            setIsSavingNewSection(false);
+        }
+    };
 
 
 
@@ -1215,14 +1318,18 @@ export default function MenuManagement() {
             setItemFile(file)
         }
     }
-    async function handleUpdateItemStatus(itemId, newStatus) {
+    async function handleUpdateItemStatus(itemId, section, newStatus) {
         setIsEditItemFormVisible(false)
+        console.log(itemId);
+        console.log(section);
+
+
         console.log(newStatus);
 
         try {
             const payload = {
                 is_available: newStatus,
-                section_id: selectedItem.section_id
+                section_id: section
             };
 
             await axios.post(`${apiUrl}/api/item/update-availability/${itemId}`, payload, {
@@ -1280,6 +1387,43 @@ export default function MenuManagement() {
         const itemId = selectedItem.id
         console.log(selectedItem.section_id);
 
+        const nameRegex = /^.{1,60}$/;
+
+        if (!selectedItem.name) {
+            toast.error('يجب اضافة اسم للصنف');
+            return;
+        } else if (!nameRegex.test(selectedItem.name)) {
+            toast.error('الاسم يجب أن لا يتجاوز 60 حرف');
+            return;
+        }
+
+        if (selectedItem.description.length > 500) {
+            toast.error("الوصف يجب ان لا يزيد عن 500 حرف");
+            return;
+        }
+
+        if (itemFile) {
+            const maxSize = 4 * 1024 * 1024; // 4MB
+            if (itemFile.size > maxSize) {
+                toast.error('حجم الملف لا يمكن أن يتجاوز 4MB');
+                return;
+            }
+        }
+
+        let compressedFile = itemFile
+
+
+        if (itemFile && itemFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(itemFile);
+
+
+        }
+
+        setIsSavingNewItem(true)
+
+
+
+
         const itemObject = {
             section_id: selectedItem.section_id,
             name: selectedItem.name,
@@ -1301,7 +1445,7 @@ export default function MenuManagement() {
 
         try {
             // Await the API call to ensure completion
-            await updateItemApi(itemId, itemObject, itemFile);
+            await updateItemApi(itemId, itemObject, compressedFile);
             // Fetch the updated sections after adding the new section
             await getSections(m_id);
             // Clear the input fields
@@ -1312,6 +1456,8 @@ export default function MenuManagement() {
             // setFirstPrice('')
         } catch (error) {
             console.error('Error adding section:', error);
+            setIsSavingNewItem(false)
+            closeEditItemForm()
             toast.error('حدث خطأ أثناء تعديل المنتج');
         }
 
@@ -1324,6 +1470,7 @@ export default function MenuManagement() {
     async function handleUpdateOffer(event) {
         event.preventDefault();
 
+        setIsSavingNewItem(true)
         const offerId = selectedItem.id;
 
         const offerObject = {
@@ -1337,13 +1484,25 @@ export default function MenuManagement() {
             // لا نحتاج إلى extras في العرض
         };
 
+        let compressedFile = itemFile
+
+
+        if (itemFile && itemFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(itemFile);
+
+
+        }
+
+        setIsSavingNewItem(true)
+
+
+
         console.log("Offer before send", offerObject);
 
         try {
-            await updateItemApi(offerId, offerObject, itemFile);
+            await updateItemApi(offerId, offerObject, compressedFile);
             await fetchOfferItems()
             await getSections(m_id);
-            toast.success("تم تحديث العرض بنجاح");
             closeEditOfferForm();
         } catch (error) {
             console.error('Error updating offer:', error);
@@ -1351,6 +1510,7 @@ export default function MenuManagement() {
         }
     }
     const updateItemApi = async (itemId, itemObject, file) => {
+
 
         const itemPayload2 = file ? createFormData(itemObject, file, "image") : itemObject;
 
@@ -1363,7 +1523,7 @@ export default function MenuManagement() {
         closeEditItemForm()
         console.log("تم تعديل الصنف بنجاح", response.data);
         toast.success("تم تعديل الصنف بنجاح");
-
+        setIsSavingNewItem(false)
 
 
 
@@ -1428,6 +1588,7 @@ export default function MenuManagement() {
 
     const closeAddItemForm = () => {
         // setSelectedSectionId(null);
+        setIsSavingNewItem(false)
         setItemFile(null)
         setAddItemFormVisible(false);
         setAddOfferFormVisible(false)
@@ -1604,14 +1765,14 @@ export default function MenuManagement() {
 
     const addSection = async (event) => {
         event.preventDefault();
-
-        const nameRegex = /^.{1,45}$/;
+        if (isUploading) return;
+        const nameRegex = /^.{1,60}$/;
 
         if (!categoryName) {
             toast.error('يجب اضافة اسم للقسم');
             return;
         } else if (!nameRegex.test(categoryName)) {
-            toast.error('الاسم يجب أن لا يتجاوز 45 حرف');
+            toast.error('الاسم يجب أن لا يتجاوز 60 حرف');
             return;
         }
 
@@ -1621,11 +1782,21 @@ export default function MenuManagement() {
         }
 
         if (sectionFile) {
-            const maxSize = 3 * 1024 * 1024; // 3MB
+            const maxSize = 4 * 1024 * 1024; // 4MB
             if (sectionFile.size > maxSize) {
-                toast.error('حجم الملف لا يمكن أن يتجاوز 3MB');
+                toast.error('حجم الملف لا يمكن أن يتجاوز 4MB');
                 return;
             }
+        }
+
+        setIsSavingNewSection(true)
+        let compressedFile = sectionFile
+
+
+        if (sectionFile && sectionFile.size > 2 * 1024 * 1024) {
+            compressedFile = await compressImage(sectionFile);
+
+
         }
 
         const stateObject = {
@@ -1636,7 +1807,7 @@ export default function MenuManagement() {
 
         try {
             // Await the API call to ensure completion
-            await addSectionApi(stateObject, sectionFile);
+            await addSectionApi(stateObject, compressedFile);
             // Fetch the updated sections after adding the new section
             await getSections(m_id);
             // Clear the input fields
@@ -1645,8 +1816,11 @@ export default function MenuManagement() {
             setSectionFile(null);
             setPreview(null)
         } catch (error) {
+            console.log(error);
+
             console.error('Error adding section:', error);
             toast.error('حدث خطأ أثناء إضافة القسم');
+            setIsSavingNewSection(false)
         }
     };
 
@@ -1665,6 +1839,7 @@ export default function MenuManagement() {
 
         console.log("add section res", response)
         toast.success('تم الأضافة بنجاح');
+        setIsSavingNewSection(false)
         closeAddSectionForm()
 
 
@@ -1673,42 +1848,111 @@ export default function MenuManagement() {
 
 
 
-
-
-
-
-    const handleFileChange = (event) => {
+    const handleFileChange = async (event) => {
         const selectedFile = event.target.files[0];
 
         if (!selectedFile) {
             return;
         }
 
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png'];
+        if (!validTypes.includes(selectedFile.type)) {
+            toast.error('نوع الملف غير مدعوم. يرجى تحميل صورة بصيغة JPEG أو PNG');
+            return;
+        }
+
+        // Validate file size (4MB)
         if (selectedFile.size > 4 * 1024 * 1024) {
             toast.error('حجم الصورة يجب أن يكون أقل من 4MB');
             return;
         }
 
+        setIsUploading(true);
+        setUploadProgress(0);
 
+        try {
+            // Create preview (simulated delay for demo)
+            await new Promise(resolve => {
+                const interval = setInterval(() => {
+                    setUploadProgress(prev => {
+                        if (prev >= 90) {
+                            clearInterval(interval);
+                            return 90; // Hold at 90% until actual upload completes
+                        }
+                        return prev + 10;
+                    });
+                }, 100);
 
-        setSectionFile(selectedFile); // Storing file in state
-        setItemFile(selectedFile); // Storing file in state
+                createPreview(selectedFile).then(resolve);
+            });
 
-        console.log(selectedFile);
+            // Store files in state
+            setSectionFile(selectedFile);
+            setItemFile(selectedFile);
 
-        createPreview(selectedFile); // Update the preview
+            // Simulate final upload completion
+            setUploadProgress(100);
+            setTimeout(() => setIsUploading(false), 500); // Brief delay to show 100%
 
+            toast.success('تم تحميل الصورة بنجاح');
+        } catch (error) {
+            console.error('Upload error:', error);
+            toast.error('فشل تحميل الصورة');
+            setIsUploading(false);
+            setUploadProgress(0);
+        }
     };
 
     const createPreview = (file) => {
-        if (preview) {
-            URL.revokeObjectURL(preview);
-        }
+        return new Promise((resolve) => {
+            if (preview) {
+                URL.revokeObjectURL(preview);
+            }
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => setPreview(reader.result);
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                setPreview(reader.result);
+                resolve();
+            };
+        });
     };
+
+
+
+    // const handleFileChange = (event) => {
+    //     const selectedFile = event.target.files[0];
+
+    //     if (!selectedFile) {
+    //         return;
+    //     }
+
+    //     if (selectedFile.size > 4 * 1024 * 1024) {
+    //         toast.error('حجم الصورة يجب أن يكون أقل من 4MB');
+    //         return;
+    //     }
+
+
+
+    //     setSectionFile(selectedFile); // Storing file in state
+    //     setItemFile(selectedFile); // Storing file in state
+
+    //     console.log(selectedFile);
+
+    //     createPreview(selectedFile); // Update the preview
+
+    // };
+
+    // const createPreview = (file) => {
+    //     if (preview) {
+    //         URL.revokeObjectURL(preview);
+    //     }
+
+    //     const reader = new FileReader();
+    //     reader.readAsDataURL(file);
+    //     reader.onloadend = () => setPreview(reader.result);
+    // };
     const handlePreviewClick = (event) => {
         event.stopPropagation(); // Stop the click from triggering file input
     };
@@ -1751,12 +1995,14 @@ export default function MenuManagement() {
 
     const savePhones = async () => {
         try {
-            await axios.post(`${apiUrl}/api/contacts`, {
+            const response = await axios.post(`${apiUrl}/api/contacts`, {
                 menu_id: m_id,
                 phones, // Sending all phone numbers
             }, {
                 headers: authHeader(),
             });
+
+
 
             toast.success("Phone numbers saved successfully!")
         } catch (error) {
@@ -1922,8 +2168,21 @@ export default function MenuManagement() {
                 </div>
                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
                     <button onClick={toggleFormVisibility} className=' close-form py-2 px-4 bg-gray-200 rounded-md'>تراجع </button>
-                    <button onClick={handleUpdateSection} className='py-2 px-6 rounded-md text-white bg-green-600'>حفظ</button>
 
+                    <button
+                        onClick={handleUpdateSection} className={`py-2 px-6 rounded-md text-white ${isUploading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} transition-colors flex items-center`}
+                        disabled={isUploading}
+                    >
+                        {isSavingNewSection ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                جاري الحفظ...
+                            </>
+                        ) : 'حفظ'}
+                    </button>
 
 
                 </div>
@@ -1954,12 +2213,12 @@ export default function MenuManagement() {
                 </div>
             )}
 
-            <div className={`add-section-form fixed p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
+            <div className={`add-section-form fixed  p-3 rounded-s-lg md:z-20 z-30 md:top-36 left-0 bottom-0 lg:w-1/3 md:w-1/2 w-full top-0   bg-white  shadow-xl border-2 transition-all duration-500 ease-in-out ${isAddSectionFormVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'} `} >
                 <div className="section-name  p-3 flex gap-2 items-center">
                     <i onClick={closeAddSectionForm} className="close-form cursor-pointer  fa-solid fa-x text-gray-500"></i> <p className='font-medium'>اضف قسم جديد</p>
                 </div>
                 <hr className='w-full ' />
-                <form onSubmit={addSection}>
+                {/* <form onSubmit={addSection}>
                     <div className="edit-section px-2 mt-4">
                         <div className="category-name">
                             <p className='text-sm'><span><i className="fa-solid fa-asterisk text-red-500 text-sm"></i></span> الأسم</p>
@@ -2045,7 +2304,143 @@ export default function MenuManagement() {
 
 
                     </div>
+                </form> */}
+                <form onSubmit={addSection} className=" pb-14">
+                    <div className="edit-section px-2 mt-4">
+                        {/* Category Name Field */}
+                        <div className="category-name">
+                            <p className='text-sm'>
+                                <span className="text-red-500 mr-1">*</span>
+                                الأسم
+                            </p>
+                            <input
+                                className='w-full text-sm p-1 mt-2 rounded-md border-2 h-9'
+                                type="text"
+                                placeholder="اسم القسم"
+                                value={categoryName}
+                                onChange={(e) => setCategoryName(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        {/* Category Description Field */}
+                        <div className="category-description mt-4">
+                            <p className='text-sm'>الوصف</p>
+                            <textarea
+                                rows="3"
+                                style={{ resize: "none" }}
+                                className="w-full text-sm mt-3 p-3 border rounded-md"
+                                placeholder="اعطي نبذة عن القسم ..."
+                                value={categoryDescription}
+                                onChange={(e) => setCategoryDescription(e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        {/* Image Upload Section */}
+                        <div className="mt-4">
+                            <input
+                                ref={fileInputRef}
+                                style={{ display: 'none' }}
+                                id="file-upload"
+                                type="file"
+                                onChange={handleFileChange}
+                                accept="image/jpeg, image/png"
+                                disabled={isUploading}
+                            />
+
+                            <label htmlFor={isUploading ? 'forNoClick' : 'file-upload'}>
+                                <div className="category-image">
+                                    {isUploading ? (
+                                        // Upload Progress UI
+                                        <div className="upload-progress-container w-44 h-56 flex flex-col items-center justify-center border-2 border-dashed border-blue-200 rounded-md bg-blue-50">
+                                            <div className="w-3/4 mb-4">
+                                                <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-300"
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    ></div>
+                                                </div>
+                                                <p className="text-center text-xs mt-1 text-blue-600">
+                                                    جاري التحميل... {uploadProgress}%
+                                                </p>
+                                            </div>
+                                            <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                    ) : preview ? (
+                                        // Image Preview UI
+                                        <div className="img-container border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-56 flex flex-col items-center rounded-md bg-slate-100 overflow-hidden">
+                                            <div
+                                                className="relative w-full h-44"
+                                                onMouseEnter={() => setIsHovered(true)}
+                                                onMouseLeave={() => setIsHovered(false)}
+                                            >
+                                                {isHovered && (
+                                                    <div className="preview-overlay absolute inset-0 flex justify-center items-center bg-black/30 text-white cursor-pointer">
+                                                        <i className="fa-regular fa-eye mr-2"></i>
+                                                        <span>معاينة</span>
+                                                    </div>
+                                                )}
+                                                <img
+                                                    src={preview}
+                                                    alt="معاينة الصورة"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div
+                                                className="delete-btn w-full py-2 hover:bg-slate-200 cursor-pointer flex justify-center items-center"
+                                                onClick={handleDeleteImg}
+                                            >
+                                                <i className="text-gray-500 fa-solid fa-trash-can mr-2"></i>
+                                                <span className="text-sm">حذف</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Default Upload UI
+                                        <div className="upload-prompt cursor-pointer">
+                                            <p className='text-sm'>الصورة</p>
+                                            <div className="upload-box border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100">
+                                                <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500 mb-2"></i>
+                                                <p className='mt-1 text-sm'>تحميل الصورة</p>
+                                                <p className='text-xs text-gray-600 mt-2'>يدعم فقط: JPG, PNG</p>
+                                                <p className='text-xs text-gray-500 mt-1'>الحد الأقصى: 3MB</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="form-actions flex justify-end items-center  px-6 gap-3 absolute border-t shadow-lg bottom-0 left-0 right-0 h-14 ">
+                        <button onClick={closeAddSectionForm}
+                            type="button"
+                            className='py-2 px-4 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors'
+                            disabled={isUploading}
+                        >
+                            تراجع
+                        </button>
+                        <button
+                            type="submit"
+                            className={`py-2 px-6 rounded-md text-white ${isUploading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} transition-colors flex items-center`}
+                            disabled={isUploading}
+                        >
+                            {isSavingNewSection ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    جاري الحفظ...
+                                </>
+                            ) : 'حفظ'}
+                        </button>
+                    </div>
                 </form>
+
             </div>
             {
 
@@ -2298,8 +2693,20 @@ export default function MenuManagement() {
                                     <button onClick={closeEditItemForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
                                         Cancel
                                     </button>
-                                    <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
-                                        Save
+                                    <button
+                                        type="submit"
+                                        className={`py-2 px-6 rounded-md text-white ${isUploading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} transition-colors flex items-center`}
+                                        disabled={isUploading}
+                                    >
+                                        {isSavingNewItem ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                جاري الحفظ...
+                                            </>
+                                        ) : 'حفظ'}
                                     </button>
                                 </div>
                             </form>
@@ -2356,14 +2763,14 @@ export default function MenuManagement() {
                                             ></textarea>
                                         </div>
 
-                                        <div className="item-image">
+                                        {/* <div className="item-image">
                                             <p className='text-sm'>Image</p>
                                             <label htmlFor="section-image-upload" className="cursor-pointer">
                                                 <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
                                                     {selectedItem?.image || itemFile ? (
                                                         <>
                                                             <img
-                                                                src={itemFile ? URL.createObjectURL(itemFile) : selectedItem.image_url}
+                                                                src={selectedItem.image_url ? selectedItem.image_url : URL.createObjectURL(itemFile)}
                                                                 alt="Selected"
                                                                 className="w-full h-full object-cover rounded-md"
                                                             />
@@ -2388,8 +2795,41 @@ export default function MenuManagement() {
                                                 className="hidden"
                                                 onChange={handleFileChange}
                                             />
-                                        </div>
+                                        </div> */}
 
+                                        <div className="item-image w-1/2">
+                                            <p className='text-sm'>الصورة</p>
+                                            <label htmlFor="section-image-upload" className="cursor-pointer">
+                                                <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 relative">
+                                                    {selectedItem?.image || itemFile ? (
+                                                        <>
+                                                            <img
+                                                                src={itemFile ? URL.createObjectURL(itemFile) : selectedItem.image_url}
+                                                                alt="Selected"
+                                                                className="w-full h-full object-cover rounded-md"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-md">
+                                                                <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-white"></i>
+                                                                <p className="text-white mt-8">تعديل الصورة</p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
+                                                            <p className="mt-3">تحميل</p>
+                                                            <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </label>
+                                            <input
+                                                id="section-image-upload"
+                                                type="file"
+                                                accept="image/jpeg, image/png, image/jpg"
+                                                className="hidden"
+                                                onChange={handleFileChange}
+                                            />
+                                        </div>
                                         {/* عرض سعر العرض الوحيد */}
                                         <div className="prices-labels mt-5">
                                             <p className="text-[#1b5067] text-lg font-medium">Price</p>
@@ -2426,12 +2866,23 @@ export default function MenuManagement() {
 
                                 <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
                                     <button onClick={closeEditOfferForm} type="button" className="close-form py-2 px-4 bg-gray-200 rounded-md">
-                                        Cancel
+                                        تراجع
                                     </button>
-                                    <button type="submit" className="py-2 px-6 rounded-md text-white bg-green-600">
-                                        Save
-                                    </button>
-                                </div>
+                                    <button
+                                        type="submit"
+                                        className={`py-2 cairo px-6 rounded-md text-white ${isUploading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} transition-colors flex items-center justify-center`}
+                                        disabled={isUploading}
+                                    >
+                                        {isSavingNewItem ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                جاري الحفظ...
+                                            </>
+                                        ) : 'حفظ'}
+                                    </button>                                </div>
                             </form>
                         </div>
                     </div>
@@ -2453,25 +2904,18 @@ export default function MenuManagement() {
                         <form onSubmit={handleAddItemSubmit}>
                             <input type="hidden" name="section_id" value={selectedSectionId} />
 
-                            <div className="flex bg-white mb-4 border-b border-gray-200 pt-2  ">
+                            <div className="flex bg-white mb-4 border-b border-gray-200 pt-2">
                                 <div
                                     className={itemTab("details")}
                                     onClick={() => setActiveItemEditor("details")}
                                 >
                                     تفاصيل
                                 </div>
-
-
-                                {/* <div
-                                    className={itemTab("more")}
-                                    onClick={() => setActiveItemEditor("more")}
-                                >
-                                    More
-                                </div> */}
                             </div>
+
                             {activeItemEditor === "details" && (
                                 <div>
-
+                                    {/* Item Name */}
                                     <div className="item-name mt-4">
                                         <label htmlFor="item_name" className="block cairo">
                                             اسم الصنف <span className="text-red-500">*</span>
@@ -2484,9 +2928,11 @@ export default function MenuManagement() {
                                             className="w-full cairo text-sm p-1 mt-2 rounded-md border-2 h-9"
                                             placeholder="مكرونة"
                                             required
+                                            disabled={isUploading}
                                         />
                                     </div>
 
+                                    {/* Item Description */}
                                     <div className="item-description mt-4">
                                         <p className="text-sm cairo">الوصف</p>
                                         <textarea
@@ -2497,8 +2943,11 @@ export default function MenuManagement() {
                                             className="w-full cairo text-sm mt-3 p-3 border rounded-md"
                                             placeholder="اضف وصف لمنتجك ..."
                                             onChange={(e) => setItemDesc(e.target.value)}
+                                            disabled={isUploading}
                                         ></textarea>
                                     </div>
+
+                                    {/* Item Image Upload */}
                                     <div className="item-image mt-4">
                                         <p className="text-sm cairo">الصورة</p>
                                         <input
@@ -2508,23 +2957,59 @@ export default function MenuManagement() {
                                             onChange={handleFileChange}
                                             className="hidden"
                                             id="item_image_upload"
+                                            disabled={isUploading}
                                         />
-                                        <label htmlFor="item_image_upload">
-                                            <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 cursor-pointer">
-                                                {preview ? (
-                                                    <img src={preview} alt="Preview" className="w-full h-full rounded-md" />
+
+                                        <label htmlFor={isUploading ? 'forNoClick' : 'item_image_upload'}>
+                                            <div className="relative">
+                                                {isUploading ? (
+                                                    <div className="upload-progress-container w-44 h-44 flex flex-col items-center justify-center border-2 border-dashed border-blue-200 rounded-md bg-blue-50">
+                                                        <div className="w-3/4 mb-3">
+                                                            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-300"
+                                                                    style={{ width: `${uploadProgress}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <p className="text-center text-xs mt-1 text-blue-600">
+                                                                جاري التحميل... {uploadProgress}%
+                                                            </p>
+                                                        </div>
+                                                        <svg className="animate-spin h-5 w-5 text-blue-500" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                    </div>
+                                                ) : preview ? (
+                                                    <div className="img-container border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 rounded-md bg-slate-100 overflow-hidden relative">
+                                                        <img
+                                                            src={preview}
+                                                            alt="معاينة الصورة"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleDeleteImg}
+                                                            className="absolute bottom-0 left-0 right-0 py-1 bg-white/90 hover:bg-gray-100 text-gray-700 text-sm flex justify-center items-center"
+                                                        >
+                                                            <i className="fas fa-trash-alt ml-1"></i>
+                                                            حذف الصورة
+                                                        </button>
+                                                    </div>
                                                 ) : (
-                                                    <>
+                                                    <div className="img border hover:border-dashed hover:border-blue-700 mt-2 w-44 h-44 flex flex-col justify-center items-center px-6 rounded-md bg-slate-100 cursor-pointer">
                                                         <i className="fa-solid fa-arrow-up-from-bracket text-2xl text-blue-500"></i>
-                                                        <p className="mt-3">Upload</p>
-                                                        <p className="text-sm text-gray-500">Only jpg, jpeg, png files are supported</p>
-                                                    </>
+                                                        <p className="mt-3 cairo">تحميل</p>
+                                                        <p className="text-xs text-gray-500 cairo">jpg, jpeg, png</p>
+                                                        <p className="text-xs text-gray-400 cairo">(حد أقصى 4MB)</p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </label>
                                     </div>
 
-                                    <div className="item-first-price my-4 " >
+                                    {/* Item Price */}
+                                    <div className="item-first-price my-4">
                                         <label className="block cairo mb-3" htmlFor="">
                                             السعر
                                         </label>
@@ -2534,24 +3019,36 @@ export default function MenuManagement() {
                                             type="text"
                                             value={firstPrice}
                                             onChange={(e) => setFirstPrice(e.target.value)}
-
+                                            disabled={isUploading}
                                         />
                                     </div>
-
-
-
-
                                 </div>
                             )}
 
-
                             {/* Submit Buttons */}
                             <div className="edit-action flex justify-end items-center px-6 gap-3 absolute border shadow-lg bottom-0 left-0 right-0 h-14 bg-white">
-                                <button type="button" onClick={closeAddItemForm} className="close-form cairo py-2 px-4 bg-gray-200 rounded-md">
+                                <button
+                                    type="button"
+                                    onClick={closeAddItemForm}
+                                    className="close-form cairo py-2 px-4 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                    disabled={isUploading}
+                                >
                                     الغاء
                                 </button>
-                                <button type="submit" className="py-2 cairo px-6 rounded-md text-white bg-green-600">
-                                    حفظ
+                                <button
+                                    type="submit"
+                                    className={`py-2 cairo px-6 rounded-md text-white ${isUploading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} transition-colors flex items-center justify-center`}
+                                    disabled={isUploading}
+                                >
+                                    {isSavingNewItem ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            جاري الحفظ...
+                                        </>
+                                    ) : 'حفظ'}
                                 </button>
                             </div>
                         </form>
@@ -2684,7 +3181,7 @@ export default function MenuManagement() {
                 {sectionToDelete && (
                     <div className="confirm-delete-modal-section fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
 
-                        <div className="confirm-delete-form w-1/4 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
+                        <div className="confirm-delete-form md:w-1/4 w-4/5 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
                             <i className="text-gray-500 text-3xl fa-regular fa-trash-can"></i>
                             <p className='cairo text-center'>هل انت متأكد من حذف: <strong>{sectionToDelete.name}</strong> </p>
                             <div className="action-btns flex gap-2 mt-4 ">
@@ -2702,7 +3199,7 @@ export default function MenuManagement() {
                 {itemToDelete && (
                     <div className="confirm-delete-modal-item fixed flex justify-center pt-32 inset-0 bg-black/20 z-40">
 
-                        <div className="confirm-delete-form w-1/4 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
+                        <div className="confirm-delete-form md:w-1/4 w-4/5 h-fit p-8 flex flex-col justify-center items-center animate-slide-down  bg-white rounded-md shadow-lg">
                             <i className="text-gray-500 text-3xl fa-regular fa-trash-can"></i>
                             <p className='cairo text-center'>هل انت متأكد من حذف: <strong>{itemToDelete.name}</strong> </p>
                             <div className="action-btns flex gap-2 mt-4 ">
@@ -2743,7 +3240,7 @@ export default function MenuManagement() {
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    checked={menuData?.is_closed || false}
+                                    checked={menuData?.is_closed || true}
                                     onChange={async () => {
                                         try {
                                             const newStatus = !menuData?.is_closed;
@@ -2752,6 +3249,9 @@ export default function MenuManagement() {
                                             }, {
                                                 headers: authHeader(),
                                             });
+                                            console.log(newStatus);
+
+
                                             setMenuData(prev => ({ ...prev, is_closed: newStatus }));
                                             toast.success(newStatus ? "تم تنشيط المنيو" : "تم الغاء تنشيط المنيو");
                                         } catch (error) {
@@ -2835,7 +3335,7 @@ export default function MenuManagement() {
                                                             </div>
                                                         </div>
 
-                                                        <div className="group relative z-50 ">
+                                                        <div className="group relative  ">
                                                             <i
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -2959,23 +3459,24 @@ peer-hover:after:scale-95
                                                                 src={item.image_url ? item.image_url : def}
                                                                 alt={item.name}
                                                             />
-                                                            <span className={`text-sm font-medium ${item.is_available ? 'text-green-600' : 'text-red-600'
-                                                                }`}>
-                                                                {item.is_available ? 'Active' : 'Inactive'}
-                                                            </span>                                                    <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
+
+
+                                                            <p className='w-full md:text-base text-sm whitespace-nowrap text-ellipsis overflow-hidden'>{item.name}</p>
                                                         </div>                                                <div className="right flex md:gap-4 gap-2 items-center">
                                                             <div className="price-edit border flex p-1 rounded-md gap-2">
                                                                 <p className='md:text-base text-sm'>EGP</p>
                                                                 <input dir='ltr' className="md:w-14 w-12 md:text-base text-sm" type="text" value={item?.item_prices?.[0]?.price || "0"} readOnly />
                                                             </div>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                            {/* <label className="relative bg-red-400 p-2 inline-flex items-center cursor-pointer">
                                                                 <input
                                                                     type="checkbox"
                                                                     className="sr-only peer"
                                                                     checked={item.is_available}
+                                                                    onClick={(e) => e.stopPropagation()}
                                                                     onChange={async (e) => {
                                                                         e.stopPropagation();
-                                                                        await handleUpdateItemStatus(item.id, !item.is_available);
+                                                                        e.preventDefault()
+                                                                        await handleUpdateItemStatus(item.id, item.section_id, !item.is_available);
                                                                     }}
                                                                 />
                                                                 <div className={`
@@ -2987,7 +3488,30 @@ peer-hover:after:scale-95
     ${item.is_available ? 'md:after:translate-x-4 after:translate-x-3' : ''}
     peer-hover:after:scale-95
   `}></div>
-                                                            </label>
+                                                            </label> */}
+                                                            <div
+                                                                className="relative m-2 inline-flex items-center cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    e.preventDefault();
+                                                                    handleUpdateItemStatus(item.id, item.section_id, !item.is_available);
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only"
+                                                                    checked={item.is_available}
+                                                                    readOnly // Important: Make input read-only
+                                                                />
+                                                                <div className={`
+      group rounded-full duration-300 md:w-8 w-6 h-3 md:h-4 ring-2 
+      ${item.is_available ? 'bg-green-500 ring-green-300' : 'bg-gray-300 ring-gray-300'}
+      after:duration-300 after:bg-white after:rounded-xl after:absolute 
+      md:after:h-4 after:h-3 md:after:w-4 after:w-3 after:top-0 after:left-0 
+      ${item.is_available ? 'md:after:translate-x-4 after:translate-x-3' : ''}
+    `}></div>
+                                                            </div>
+
 
                                                             <p
                                                                 onClick={(e) => {
@@ -3388,9 +3912,11 @@ peer-hover:after:scale-95
 
             </div>
         </div >) : (<NewMenuCreation onMenuSelect={(type) => {
+            setIsMenuLoading(true)
             if (type === "scratch") {
-                setIsMenuLoading(false)
                 setScratchMenu(true);
+                setIsMenuLoading(false)
+
             }
             if (type === "sample") {
                 setSampleMenu(true);

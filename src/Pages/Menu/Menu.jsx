@@ -33,6 +33,7 @@ import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaStar, FaTimes, FaPaperclip } from 'react-icons/fa';
 import ItemDetails from '../ItemDetails/ItemDetails.jsx';
+import { Helmet } from 'react-helmet';
 
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -79,7 +80,7 @@ export default function Menu() {
     const [cartCount, setCartCount] = useState(0); // 
     const [showContacts, setShowContacts] = useState(false);
     const [menuData, setMenuData] = useState("");
-    const [menuLive, setMenuLive] = useState(true); // Stored Location URL
+    const [menuLive, setMenuLive] = useState(false); // Stored Location URL
 
     const [toggleReview, setToggleReview] = useState(false); // Stored Location URL
     const [imageLoaded, setImageLoaded] = useState(true);
@@ -106,6 +107,7 @@ export default function Menu() {
     const effectRan = useRef(false);
 
     const [isLoadingOffers, setIsLoadingOffers] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [review, setReview] = useState({
         rate: 0,
@@ -208,27 +210,68 @@ export default function Menu() {
             setMenuData(response.data.result);
 
             // Extract other values you need
-            const { is_closed, end_time } = response.data.result;
-            setMenuLive(!is_closed);
-            if (end_time) {
-                // Store original 24-hour format for calculations
+            const { is_closed, start_time, end_time } = response.data.result;
+            console.log(is_closed);
+
+
+            if (is_closed === false) {
+                setMenuLive(false)
+                console.log("falseeeeeee");
+
+            } else {
+
+                setMenuLive(true)
+            }
+
+
+            console.log("menu data ", response.data.result);
+
+            if (end_time && start_time) {
                 setEndTime(end_time);
 
-                // Convert to 12-hour format for display
-                const [hours, minutes] = end_time.split(':').map(Number);
-                const period = hours >= 12 ? 'PM' : 'AM';
-                const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
-                const displayTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-                setDisplayEndTime(displayTime); // You'll need to add this state
+                // Parse times (24h format)
+                const [endHours, endMinutes] = end_time.split(':').map(Number);
+                const [startHours, startMinutes] = start_time.split(':').map(Number);
 
-                // Time check logic (using original 24-hour format)
+                // Get current time
                 const now = new Date();
+                const currentHours = now.getHours();
+                const currentMinutes = now.getMinutes();
+
+                // Create Date objects for comparison
                 const endTimeToday = new Date();
-                endTimeToday.setHours(hours, minutes, 0, 0);
-                setIsClosed(now >= endTimeToday);
+                endTimeToday.setHours(endHours, endMinutes, 0, 0);
+
+                const startTimeNextDay = new Date();
+                // If start time is earlier than end time, assume it's next day
+                if (startHours < endHours || (startHours === endHours && startMinutes <= endMinutes)) {
+                    startTimeNextDay.setDate(startTimeNextDay.getDate() + 1);
+                }
+                startTimeNextDay.setHours(startHours, startMinutes, 0, 0);
+
+                // Check if current time is between end time and next start time
+                const isCurrentlyClosed = now >= endTimeToday && now < startTimeNextDay;
+                setIsClosed(isCurrentlyClosed);
+
+                // Format for display
+                const formatTime = (hours, minutes) => {
+                    const period = hours >= 12 ? 'PM' : 'AM';
+                    const displayHours = hours % 12 || 12;
+                    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+                };
+
+                if (isCurrentlyClosed) {
+                    const displayTime = `  ${formatTime(endHours, endMinutes)} `;
+                    setDisplayEndTime(displayTime);
+                } else {
+                    setDisplayEndTime(null);
+                }
             } else {
                 setDisplayEndTime(null);
+                setIsClosed(false);
             }
+
+
 
 
         } catch (error) {
@@ -454,6 +497,7 @@ export default function Menu() {
     };
 
     async function getSections(id_hash) {
+        setIsLoading(true)
         try {
             // Fetch sections using menu_id
             const response = await axios.get(`${apiUrl}/api/menusection-client/${id_hash}`);
@@ -507,6 +551,7 @@ export default function Menu() {
                 );
 
                 setSections(sectionsWithImages); // Update state with sections and images
+                setIsLoading(false)
             }
         } catch (error) {
             if (error.response.data && error.response.data.message === "Sections not found for the given MenuId") {
@@ -964,6 +1009,11 @@ export default function Menu() {
 
     return <>
         <Toaster></Toaster>
+        <Helmet>
+            <meta charSet="utf-8" />
+            <title>{`Takka Eats Menu ${menuData.name}`}</title>
+            <link rel="canonical" href={`https://eats.takkasmart.com/menu/${id_hash}`} />
+        </Helmet>
         <div dir='ltr' className="menu bg-white">
 
 
@@ -1081,20 +1131,22 @@ export default function Menu() {
 
 
 
-
-            <div className="contact-us-button fixed z-40 bottom-4 right-4 cursor-pointer"
-                onClick={() => setShowContacts(!showContacts)}
-            >
-                <img src={call} className={`w-11 h-11 border-2 rounded-full ${showContacts ? 'border-sky-300' : 'border-white'}`} alt="Call" />
-            </div>
-            <div onClick={() => setToggleReview(true)} className="review-us-button fixed z-40 bottom-20 right-4 cursor-pointer"
-            >
-                <img src={rev} className={`w-11 h-11 bg-white  p-1 rounded-full `} alt="Call" />
-
-                <div className="add-rev-btn absolute w-4 h-4 flex text-sm justify-center items-center rounded-full -left-2 bottom-0 text-white ">
-                    <img src={add} className='border-2 border-white rounded-full' alt="" />
+            {menuLive && (<>
+                <div className="contact-us-button fixed z-40 bottom-4 right-4 cursor-pointer"
+                    onClick={() => setShowContacts(!showContacts)}
+                >
+                    <img src={call} className={`w-11 h-11 border-2 rounded-full ${showContacts ? 'border-sky-300' : 'border-white'}`} alt="Call" />
                 </div>
-            </div>
+                <div onClick={() => setToggleReview(true)} className="review-us-button fixed z-40 bottom-20 right-4 cursor-pointer"
+                >
+                    <img src={rev} className={`w-11 h-11 bg-white  p-1 rounded-full `} alt="Call" />
+
+                    <div className="add-rev-btn absolute w-4 h-4 flex text-sm justify-center items-center rounded-full -left-2 bottom-0 text-white ">
+                        <img src={add} className='border-2 border-white rounded-full' alt="" />
+                    </div>
+                </div>
+
+            </>)}
 
             {/* Contact Numbers with CSS Transition */}
             <div className={`contact-numbers fixed bottom-16 z-50 rounded-md flex flex-col right-4 bg-white shadow-lg transition-all duration-300 ease-in-out ${showContacts
@@ -1124,7 +1176,7 @@ export default function Menu() {
                     alt="Restaurant cover"
 
                 />
-                <div className="profile-pic absolute -bottom-1/3 border-4 border-white shadow-lg md:w-44 md:h-44 w-36 h-36 rounded-full overflow-hidden">
+                <div className="profile-pic absolute -bottom-1/3 border-4 border-sky-100 shadow-lg w-48 h-48 rounded-full overflow-hidden">
                     {/* Show spinner only while loading */}
                     {imageLoaded && (
                         <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -1134,16 +1186,24 @@ export default function Menu() {
 
                     {/* Show profile image if available and loaded */}
                     {!imageLoaded && profileImageUrl ? (
-                        <img
-                            src={profileImageUrl}
-                            alt="Profile"
-                            className="w-full bg-white h-full object-cover"
-                        // onLoad={() => setImageLoaded(true)}
-                        // onError={() => setImageLoaded(false)}
-                        />
+                        <div className="w-full h-full flex items-center justify-center bg-white overflow-hidden">
+                            <img
+                                src={profileImageUrl}
+                                alt="Profile"
+                                className="max-w-full max-h-full object-cover"
+                            // onLoad={() => setImageLoaded(true)}
+                            // onError={() => setImageLoaded(false)}
+                            />
+                        </div>
                     ) : (
                         /* Default image if no profile image or error */
-                        <img src={reslogo2} alt="Default Profile" className="w-full bg-white h-full object-cover" />
+                        <div className="w-full h-full flex items-center justify-center bg-white overflow-hidden">
+                            <img
+                                src={reslogo2}
+                                alt="Default Profile"
+                                className="max-w-full max-h-full object-cover"
+                            />
+                        </div>
                     )}
                 </div>
             </div>
@@ -1156,7 +1216,7 @@ export default function Menu() {
                 <p dir='rtl' className='bio cairo px-3 text-center md:text-base text-sm text-gray-600'> {menuData.bio} </p>
 
             </div>
-            <div className="contact-icons w-72 mx-auto mt-3 gap-2 flex justify-center">
+            <div className="contact-icons w-full   mx-auto mt-3 gap-2 flex justify-center">
 
 
                 {socialLinks.whatsapp && (
@@ -1199,138 +1259,151 @@ export default function Menu() {
 
             {menuLive ? (
                 <>
-                    <div className="menu-not-live flex flex-col items-center gap-2 border-t-2 mt-5 pt-12 min-h-screen">
-                        <img src={closed} alt="" />
-                        <p className='cairo'>المنيو مغلق الأن</p>
+
+                    <div className="w-full position-relative">
+                        <div className="flex justify-center border-b border-gray-200 pt-2  ">
 
 
-                    </div>
-
-
-
-                </>
-
-
-            ) : (<>
-
-                <div className="w-full position-relative">
-                    <div className="flex justify-center border-b border-gray-200 pt-2  ">
-
-
-                        {hasOffers && ( // Only render if hasOffers is true
-                            <div
-                                className={sectionTab("offers")}
-                                onClick={() => setActiveSection("offers")}
+                            {hasOffers && ( // Only render if hasOffers is true
+                                <div
+                                    className={sectionTab("offers")}
+                                    onClick={() => setActiveSection("offers")}
+                                >
+                                    العروض
+                                </div>
+                            )}                        <div
+                                className={sectionTab("menu")}
+                                onClick={() => setActiveSection("menu")}
                             >
-                                العروض
+                                المنيو
                             </div>
-                        )}                        <div
-                            className={sectionTab("menu")}
-                            onClick={() => setActiveSection("menu")}
-                        >
-                            المنيو
+
                         </div>
 
-                    </div>
+                        <div className="  mt-4  md:pb-28 pb-20 relative  rounded-md">
+                            {activeSection === "menu" && (
+                                <div className="menu">
+                                    <div className="search-categories flex items-center mx-2 border-2 rounded-s-full mt-1 h-11">
+                                        {/* Search Icon */}
+                                        <div
+                                            className="search-icon flex justify-center items-center bg-slate-50   rounded-s-full  border-e-2 w-11 h-11 cursor-pointer"
+                                            onClick={toggleSearch}
+                                        >
+                                            <i className="fa-solid fa-magnifying-glass"></i>
+                                        </div>
 
-                    <div className="  mt-4  md:pb-28 pb-20 relative  rounded-md">
-                        {activeSection === "menu" && (
-                            <div className="menu">
-                                <div className="search-categories flex items-center mx-2 border-2 rounded-s-full mt-1 h-11">
-                                    {/* Search Icon */}
-                                    <div
-                                        className="search-icon flex justify-center items-center bg-slate-50   rounded-s-full  border-e-2 w-11 h-11 cursor-pointer"
-                                        onClick={toggleSearch}
-                                    >
-                                        <i className="fa-solid fa-magnifying-glass"></i>
-                                    </div>
+                                        {/* Search Input */}
+                                        <div
+                                            className={`search-input ${isSearchVisible ? 'w-full' : 'w-0'} h-full transition-all duration-300 overflow-hidden`}
+                                        >
+                                            <input
+                                                className="w-full h-full px-1 border-none outline-none bg-slate-50"
+                                                type="search"
+                                                placeholder="Search here .."
+                                            />
+                                        </div>
 
-                                    {/* Search Input */}
-                                    <div
-                                        className={`search-input ${isSearchVisible ? 'w-full' : 'w-0'} h-full transition-all duration-300 overflow-hidden`}
-                                    >
-                                        <input
-                                            className="w-full h-full px-1 border-none outline-none bg-slate-50"
-                                            type="search"
-                                            placeholder="Search here .."
-                                        />
-                                    </div>
-
-                                    <div
-                                        className={`categories h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'}`}
-                                        ref={scrollRef}
-                                        onMouseDown={handleMouseDown}
-                                        onMouseMove={handleMouseMove}
-                                        onMouseLeave={handleMouseUp}
-                                        onMouseUp={handleMouseUp}
-                                        style={{
-                                            cursor: isDragging ? 'grabbing' : 'grab',
-                                            scrollbarWidth: 'none',
-                                            msOverflowStyle: 'none'
-                                        }}
-                                    >
-                                        {sections.map((section) => (
-                                            <div
-                                                key={section.id}
-                                                onClick={() => handleSectionClick(section.id)}
-                                                className={`category-section border px-4 py-1 rounded-2xl ${selectedSectionId === section.id
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-slate-200 hover:bg-slate-300'
-                                                    } transition-colors duration-200 cursor-pointer`}
-                                            >
-                                                <p className='cairo md:text-base text-sm'>{section.name}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-
-                                </div>
-
-                                <div className="menu-categories-items p-4">
-                                    {sections.length > 0 ? (
-                                        sections.map((section) => (
-                                            <div
-                                                key={section.id}
-                                                id={section.id}
-                                                ref={(el) => (sectionRefs.current[section.id] = el)}
-                                                className="category-and-items border shadow-lg shadow-sky-50 rounded-t-3xl mt-5 rounded-md"
-                                            >
-                                                <div className="category bg-slate-100 rounded-md rounded-t-3xl shadow-md border-2 pb-3">
-                                                    <img
-                                                        className='w-full object-cover bg-white h-28 rounded-md rounded-t-3xl'
-                                                        src={section.cover_image_url ? section.cover_image_url : def}
-                                                        alt={section.name}
-                                                    />
-                                                    <div className="category-name text-center mt-2">
-                                                        <p className='cairo font-semibold'>{section.name}</p>
-                                                        <p className='cairo text-sm pt-5 text-sky-800'>{section.note}</p>
-                                                    </div>
+                                        <div
+                                            className={`categories h-full flex gap-2 items-center px-1 bg-slate-50 overflow-x-auto whitespace-nowrap transition-all duration-300 ${isSearchVisible ? 'hidden' : 'flex w-full'}`}
+                                            ref={scrollRef}
+                                            onMouseDown={handleMouseDown}
+                                            onMouseMove={handleMouseMove}
+                                            onMouseLeave={handleMouseUp}
+                                            onMouseUp={handleMouseUp}
+                                            style={{
+                                                cursor: isDragging ? 'grabbing' : 'grab',
+                                                scrollbarWidth: 'none',
+                                                msOverflowStyle: 'none'
+                                            }}
+                                        >
+                                            {sections.map((section) => (
+                                                <div
+                                                    key={section.id}
+                                                    onClick={() => handleSectionClick(section.id)}
+                                                    className={`category-section border px-4 py-1 rounded-2xl ${selectedSectionId === section.id
+                                                        ? 'bg-blue-500 text-white'
+                                                        : 'bg-slate-200 hover:bg-slate-300'
+                                                        } transition-colors duration-200 cursor-pointer`}
+                                                >
+                                                    <p className='cairo md:text-base text-sm'>{section.name}</p>
                                                 </div>
+                                            ))}
+                                        </div>
 
-                                                {section.items.map((item) => (
-                                                    <div
-                                                        key={item.id}
-                                                        onClick={() => handleItemDetailsClick(item)}
-                                                        className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer"
-                                                    >
-                                                        <div className="left-side w-3/4 h-full p-1">
-                                                            <div className="item-name">
-                                                                <p className='cairo font-medium text-sm kufi'>{item.name}</p>
+
+                                    </div>
+
+                                    <div className="menu-categories-items p-4">
+                                        {isLoading ? (
+                                            // Loading state
+                                            <div className="loading-container">
+                                                {/* Skeleton loading for sections */}
+                                                {[...Array(3)].map((_, index) => (
+                                                    <div key={index} className="skeleton-section mb-8">
+                                                        <div className="skeleton-header h-28 w-full bg-gray-200 rounded-t-3xl animate-pulse"></div>
+                                                        <div className="skeleton-title h-6 w-1/2 bg-gray-200 mt-2 mx-auto animate-pulse"></div>
+                                                        <div className="skeleton-note h-4 w-3/4 bg-gray-200 mt-5 mx-auto animate-pulse"></div>
+
+                                                        {/* Skeleton items */}
+                                                        {[...Array(4)].map((_, itemIndex) => (
+                                                            <div key={itemIndex} className="skeleton-item flex justify-between mt-4 p-2 h-28 bg-gray-100 rounded-md animate-pulse">
+                                                                <div className="w-3/4">
+                                                                    <div className="h-4 w-3/4 bg-gray-200 mb-2"></div>
+                                                                    <div className="h-6 w-1/4 bg-gray-200 mt-4"></div>
+                                                                </div>
+                                                                <div className="w-24 h-full bg-gray-200 rounded-md"></div>
                                                             </div>
-                                                            <div className="item-price-and-add w-full h-full flex justify-between">
-                                                                <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>
-                                                                    {getPriceRange(item)}
-                                                                </p>
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) :
+
+
+                                            sections.length > 0 ? (
+                                                sections.map((section) => (
+                                                    <div
+                                                        key={section.id}
+                                                        id={section.id}
+                                                        ref={(el) => (sectionRefs.current[section.id] = el)}
+                                                        className="category-and-items border shadow-lg shadow-sky-50 rounded-t-3xl mt-5 rounded-md"
+                                                    >
+                                                        <div className="category bg-slate-100 rounded-md rounded-t-3xl shadow-md border-2 pb-3">
+                                                            <img
+                                                                className='w-full object-cover bg-white h-28 rounded-md rounded-t-3xl'
+                                                                src={section.cover_image_url ? section.cover_image_url : def}
+                                                                alt={section.name}
+                                                            />
+                                                            <div dir='rtl' className="category-name text-center mt-2">
+                                                                <p className='cairo font-semibold'>{section.name}</p>
+                                                                <p className='cairo text-sm pt-5 text-sky-800'>{section.note}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="right-side relative rounded-md h-full">
-                                                            <img
-                                                                className='h-full w-24 object-cover rounded-md'
-                                                                src={item.image_url ? item.image_url : def}
-                                                                alt={item.name}
-                                                            />
-                                                            {/* add to cart commented */}
-                                                            {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+
+                                                        {section.items.map((item) => (
+                                                            <div
+                                                                key={item.id}
+                                                                onClick={() => handleItemDetailsClick(item)}
+                                                                className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer"
+                                                            >
+                                                                <div className="left-side w-3/4 h-full p-1">
+                                                                    <div className="item-name">
+                                                                        <p dir='rtl' className='cairo text-end font-medium text-sm kufi'>{item.name}</p>
+                                                                    </div>
+                                                                    <div className="item-price-and-add w-full h-full flex justify-between">
+                                                                        <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>
+                                                                            {getPriceRange(item)}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="right-side relative rounded-md h-full">
+                                                                    <img
+                                                                        className='h-full w-24 object-cover rounded-md'
+                                                                        src={item.image_url ? item.image_url : def}
+                                                                        alt={item.name}
+                                                                    />
+                                                                    {/* add to cart commented */}
+                                                                    {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                                 <button
                                                                     onClick={(e) => handleItemClick(e, item)}
                                                                     title="Add New"
@@ -1343,130 +1416,130 @@ export default function Menu() {
                                                                     </svg>
                                                                 </button>
                                                             </div> */}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {selectedItem && (
-                                                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-                                                        <ItemDetails item={selectedItem} onClose={closeItemDetails} />
-                                                    </div>
-                                                )}
-
-                                            </div>
-                                        ))
-
-
-                                    ) : (
-
-                                        <>
-                                            <div className="no-sections w-full h-16 flex   justify-center items-center">
-                                                <p className=' cairo p-12'>لا يوجد اقسام</p>
-
-
-                                            </div>
-
-                                        </>
-                                    )}
-
-
-
-
-
-
-                                </div>
-
-
-
-
-                            </div>
-
-                        )}
-                        {activeSection === "contact" && (
-
-                            <div className="contact mt-3 flex flex-col items-center  rounded-md ">
-                                <div className="contact-tools  w-full p-4 flex justify-center gap-3">
-                                    <div className="facebook w-32 h-32  flex justify-center items-center bg-blue-50 rounded-md">
-                                        {/* <img src={fb} alt="" /> */}
-                                        {/* <i className="fa-brands text-3xl  fa-facebook-f"></i> */}
-                                    </div>
-                                    <div className="call w-32 h-32 flex justify-center items-center bg-green-50 rounded-md">
-
-                                        {/* <i className="fa-solid  text-3xl fa-phone"></i>              */}
-                                        <img className='w-full h-full' src={call} alt="" />
-
-                                    </div>
-
-
-                                </div>
-
-                            </div>
-
-                        )}
-                        {isFormVisible && selectedItem && (
-                            <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
-                                <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
-                                    <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
-                                        X
-                                    </div>
-                                    <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
-                                    <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
-                                    <hr />
-                                    <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
-                                    {/* Sizes */}
-                                    <div className="sizes items-buttons-container pb-2 px-3">
-                                        {selectedItem.item_prices.map((price, index) => (
-                                            <div className="Size items-button w-full" key={index}>
-                                                <input
-                                                    name="items-group"
-                                                    id={`size${index}`}
-                                                    className="items-button__input"
-                                                    type="radio"
-                                                    onChange={() => setSelectedSize(price)}
-                                                />
-                                                <label htmlFor={`size${index}`} className="items-button__label w-full">
-                                                    <span className="items-button__custom"></span>
-                                                    <div className="item-option w-full justify-between flex">
-                                                        <p className='cairo font-medium'>{price.label}</p>
-                                                        <p className='cairo font-medium'>{price.price}</p>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Extras */}
-                                    {selectedItem.item_extras && selectedItem.item_extras.length > 0 && (
-                                        <>
-                                            <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
-                                            <div className="extras items-buttons-container px-3">
-                                                {selectedItem.item_extras.map((extra, index) => (
-                                                    <div className="extra items-button w-full" key={index}>
-                                                        <input
-                                                            name="extras-group"
-                                                            id={`extra${index}`}
-                                                            className="items-button__input"
-                                                            type="checkbox"
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setSelectedExtras([...selectedExtras, extra]);
-                                                                } else {
-                                                                    setSelectedExtras(selectedExtras.filter(item => item.label !== extra.label));
-                                                                }
-                                                            }}
-                                                        />
-                                                        <label htmlFor={`extra${index}`} className="items-button__label w-full">
-                                                            <span className="items-button__custom"></span>
-                                                            <div className="item-option w-full justify-between flex">
-                                                                <p className='cairo font-medium'>{extra.label}</p>
-                                                                <p className='cairo font-medium'>{extra.price}</p>
+                                                                </div>
                                                             </div>
-                                                        </label>
+                                                        ))}
+                                                        {selectedItem && (
+                                                            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+                                                                <ItemDetails item={selectedItem} onClose={closeItemDetails} />
+                                                            </div>
+                                                        )}
+
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}                                    {/* Sizes */}
-                                    {/* <div className="sizes items-buttons-container pb-2 px-3">
+                                                ))
+
+
+                                            ) : (
+
+                                                <>
+                                                    <div className="no-sections w-full h-16 flex   justify-center items-center">
+                                                        <p className=' cairo p-12'>لا يوجد اقسام</p>
+
+
+                                                    </div>
+
+                                                </>
+                                            )}
+
+
+
+
+
+
+                                    </div>
+
+
+
+
+                                </div>
+
+                            )}
+                            {activeSection === "contact" && (
+
+                                <div className="contact mt-3 flex flex-col items-center  rounded-md ">
+                                    <div className="contact-tools  w-full p-4 flex justify-center gap-3">
+                                        <div className="facebook w-32 h-32  flex justify-center items-center bg-blue-50 rounded-md">
+                                            {/* <img src={fb} alt="" /> */}
+                                            {/* <i className="fa-brands text-3xl  fa-facebook-f"></i> */}
+                                        </div>
+                                        <div className="call w-32 h-32 flex justify-center items-center bg-green-50 rounded-md">
+
+                                            {/* <i className="fa-solid  text-3xl fa-phone"></i>              */}
+                                            <img className='w-full h-full' src={call} alt="" />
+
+                                        </div>
+
+
+                                    </div>
+
+                                </div>
+
+                            )}
+                            {isFormVisible && selectedItem && (
+                                <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
+                                    <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
+                                        <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
+                                            X
+                                        </div>
+                                        <p className='cairo text-lg p-3 mt-5 mb-0 font-medium kufi text-gray-500'>اسم الصنف</p>
+                                        <p className='cairo item-name text-lg kufi mt-0 mb-3 font-semibold px-2'>{selectedItem.name}</p>
+                                        <hr />
+                                        <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الخيارات</p>
+                                        {/* Sizes */}
+                                        <div className="sizes items-buttons-container pb-2 px-3">
+                                            {selectedItem.item_prices.map((price, index) => (
+                                                <div className="Size items-button w-full" key={index}>
+                                                    <input
+                                                        name="items-group"
+                                                        id={`size${index}`}
+                                                        className="items-button__input"
+                                                        type="radio"
+                                                        onChange={() => setSelectedSize(price)}
+                                                    />
+                                                    <label htmlFor={`size${index}`} className="items-button__label w-full">
+                                                        <span className="items-button__custom"></span>
+                                                        <div className="item-option w-full justify-between flex">
+                                                            <p className='cairo font-medium'>{price.label}</p>
+                                                            <p className='cairo font-medium'>{price.price}</p>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Extras */}
+                                        {selectedItem.item_extras && selectedItem.item_extras.length > 0 && (
+                                            <>
+                                                <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                                <div className="extras items-buttons-container px-3">
+                                                    {selectedItem.item_extras.map((extra, index) => (
+                                                        <div className="extra items-button w-full" key={index}>
+                                                            <input
+                                                                name="extras-group"
+                                                                id={`extra${index}`}
+                                                                className="items-button__input"
+                                                                type="checkbox"
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedExtras([...selectedExtras, extra]);
+                                                                    } else {
+                                                                        setSelectedExtras(selectedExtras.filter(item => item.label !== extra.label));
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <label htmlFor={`extra${index}`} className="items-button__label w-full">
+                                                                <span className="items-button__custom"></span>
+                                                                <div className="item-option w-full justify-between flex">
+                                                                    <p className='cairo font-medium'>{extra.label}</p>
+                                                                    <p className='cairo font-medium'>{extra.price}</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}                                    {/* Sizes */}
+                                        {/* <div className="sizes items-buttons-container pb-2 px-3">
                                         {selectedItem.item_prices.map((price, index) => (
                                             <div className="Size items-button w-full" key={index}>
                                                 <input name="items-group" id={`size${index}`} className="items-button__input" type="radio" />
@@ -1481,10 +1554,10 @@ export default function Menu() {
                                         ))}
                                     </div> */}
 
-                                    <hr />
+                                        <hr />
 
-                                    {/* Extras */}
-                                    {/* <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
+                                        {/* Extras */}
+                                        {/* <p className='cairo text-lg p-3 mb-0 font-medium kufi text-gray-500'>الأضافات</p>
                                     <div className="extras items-buttons-container px-3">
                                         {selectedItem.item_extras.map((extra, index) => (
                                             <div className="extra items-button w-full" key={index}>
@@ -1500,28 +1573,28 @@ export default function Menu() {
                                         ))}
                                     </div> */}
 
-                                    <div className="add-to-cart flex justify-center mt-4">
-                                        <button className={`button ${loading ? 'loading' : ''}`} onClick={addCustomItem}>
-                                            <span className='cairo'>أضف الي السلة</span>
-                                            <div className="cart">
-                                                <svg viewBox="0 0 36 26">
-                                                    <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
-                                                    <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
-                                                </svg>
-                                            </div>
-                                        </button>
+                                        <div className="add-to-cart flex justify-center mt-4">
+                                            <button className={`button ${loading ? 'loading' : ''}`} onClick={addCustomItem}>
+                                                <span className='cairo'>أضف الي السلة</span>
+                                                <div className="cart">
+                                                    <svg viewBox="0 0 36 26">
+                                                        <polyline points="1 2.5 6 2.5 10 18.5 25.5 18.5 28.5 7.5 7.5 7.5"></polyline>
+                                                        <polyline points="15 13.5 17 15.5 22 10.5"></polyline>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
 
-                        {activeSection === "offers" && (
-                            <div className="offers flex justify-center">
+                            {activeSection === "offers" && (
+                                <div className="offers flex justify-center">
 
-                                <div className="menu-categories-items min-h-screen w-full p-4 ">
+                                    <div className="menu-categories-items min-h-screen w-full p-4 ">
 
-                                    {/* {isFormVisible && selectedItem && (
+                                        {/* {isFormVisible && selectedItem && (
                                         <div className="item-size-form z-10 flex justify-center bg-black/25 items-center fixed inset-0">
                                             <div dir='rtl' className="size-form w-full pb-4 rounded-md p-2 mx-4 bg-white">
                                                 <div className="close-form float-end text-2xl px-3 cursor-pointer" onClick={closeForm}>
@@ -1579,24 +1652,24 @@ export default function Menu() {
                                         </div>
                                     )} */}
 
-                                    {/* Categories and Items */}
+                                        {/* Categories and Items */}
 
 
 
-                                    {offerItems.map((item) => (
-                                        <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
-                                            <div className="left-side w-3/4 h-full p-1">
-                                                <div className="item-name">
-                                                    <p className='cairo font-medium text-sm kufi'>{item.name}</p>
+                                        {offerItems.map((item) => (
+                                            <div key={item.id} onClick={() => handleItemDetailsClick(item)} className="items hover:transition-transform hover:translate-y-1 h-28 bg-white rounded-md shadow-md flex justify-between mt-4 p-2 cursor-pointer">
+                                                <div className="left-side w-3/4 h-full p-1">
+                                                    <div className="item-name">
+                                                        <p dir='rtl' className='cairo text-end font-medium text-sm kufi'>{item.name}</p>
+                                                    </div>
+                                                    <div className="item-price-and-add w-full h-full flex justify-between">
+                                                        <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>{item?.item_prices[0]?.price}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="item-price-and-add w-full h-full flex justify-between">
-                                                    <p className='cairo kufi text-[#20617c] text-lg font-medium mt-2'>{item?.item_prices[0]?.price}</p>
-                                                </div>
-                                            </div>
-                                            <div className="right-side relative h-full">
-                                                <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
-                                                {/* add to cart commented */}
-                                                {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
+                                                <div className="right-side relative h-full">
+                                                    <img className='h-full w-24 object-cover rounded-md' src={item.image_url ? item.image_url : def} alt={item.name} />
+                                                    {/* add to cart commented */}
+                                                    {/* <div className="add-item flex justify-center bg-white rounded-full w-fit h-fit bottom-0 -left-5 absolute">
                                                     <button onClick={(e) => handleItemClick(e, item)} title="Add New" className="group cursor-pointer outline-none hover:rotate-90 duration-300">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="35px" height="35px" viewBox="0 0 24 24" className="stroke-green-400 fill-none group-hover:fill-green-800 group-active:stroke-green-200 group-active:fill-green-600 group-active:duration-0 duration-300">
                                                             <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z" strokeWidth="1.5"></path>
@@ -1605,46 +1678,46 @@ export default function Menu() {
                                                         </svg>
                                                     </button>
                                                 </div> */}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
 
-                                    {selectedItem && (
-                                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-                                            <ItemDetails item={selectedItem} onClose={closeItemDetails} />
-                                        </div>
-                                    )}
-
+                                        {selectedItem && (
+                                            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+                                                <ItemDetails item={selectedItem} onClose={closeItemDetails} />
+                                            </div>
+                                        )}
 
 
 
+
+
+                                    </div>
 
                                 </div>
-
-                            </div>
-                        )}
-
-                    </div>
-                </div>
-                <div className={`cart fixed w-full ${cartCount == 0 ? "hidden" : "flex"} flex flex-col items-center  z-10  bottom-0  `}>
-
-
-                    <div dir='rtl' className="cart-icon w-1/2 flex items-center justify-between    h-16 mx-4  ">
-                        <div className="cart w-full flex justify-between shadow-xl drop-shadow-2xl  border-t-2  items-center h-2/3 rounded-xl p-3 bg-slate-50">
-                            <div className="cart-and-count text-black flex items-center justify-center">
-                                <i className="fa-solid fa-cart-shopping text-sky-800 text-2xl pe-5"></i>
-                                <p className='cairo cart-count text-2xl '>{cartCount}</p>
-                            </div>
-                            <Link to={`/menu/${id_hash}/cart`}>
-                                <i className="fa-solid fa-arrow-left text-sky-800 text-xl"></i>
-                            </Link>
+                            )}
 
                         </div>
-
-
-
                     </div>
-                    {/* <div dir='rtl' className="cart-page p-3 pb-14  w-full h-full bg-white">
+                    <div className={`cart fixed w-full ${cartCount == 0 ? "hidden" : "flex"} flex flex-col items-center  z-10  bottom-0  `}>
+
+
+                        <div dir='rtl' className="cart-icon w-1/2 flex items-center justify-between    h-16 mx-4  ">
+                            <div className="cart w-full flex justify-between shadow-xl drop-shadow-2xl  border-t-2  items-center h-2/3 rounded-xl p-3 bg-slate-50">
+                                <div className="cart-and-count text-black flex items-center justify-center">
+                                    <i className="fa-solid fa-cart-shopping text-sky-800 text-2xl pe-5"></i>
+                                    <p className='cairo cart-count text-2xl '>{cartCount}</p>
+                                </div>
+                                <Link to={`/menu/${id_hash}/cart`}>
+                                    <i className="fa-solid fa-arrow-left text-sky-800 text-xl"></i>
+                                </Link>
+
+                            </div>
+
+
+
+                        </div>
+                        {/* <div dir='rtl' className="cart-page p-3 pb-14  w-full h-full bg-white">
                         <div className="cart-details  h-fit border-2">
                             <div className="res-logo  h-36 pb-5 flex justify-center items-center  ">
                                 <img className='rounded-full border-8 border-white shadow-lg w-32 h-32' src={reslogo} alt="" />
@@ -1779,7 +1852,20 @@ export default function Menu() {
 
                     </div> */}
 
+                    </div>
+
+                </>
+
+            ) : (<>
+
+
+
+                <div className="menu-not-live flex flex-col items-center gap-2 border-t-2 mt-5 pt-12 min-h-screen">
+                    <p className='cairo'>المنيو مغلق الأن</p>
+
+
                 </div>
+
             </>
             )
 

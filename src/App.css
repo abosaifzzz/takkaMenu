@@ -372,3 +372,7 @@ background-image: url("./assets/bg1.webp");
   background: white; /* Shows while loading */
 }
 
+video::-webkit-media-controls {
+    display: none !important;
+}
+
